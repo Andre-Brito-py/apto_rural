@@ -2,7 +2,7 @@ import cors from '@fastify/cors';
 import { avaliar, FONTES, normalizarCar, REGRAS } from '@apto/regras';
 import Fastify, { type FastifyReply } from 'fastify';
 import { config } from './config.js';
-import { hashDocumento, normalizarDocumento } from './documento.js';
+import { hashDocumento, hashesParaCadastro, normalizarDocumento } from './documento.js';
 import { novaConsulta } from './esquemas.js';
 import { CARS_DEMO, ehCarDemo, RepositorioDemo } from './repositorio/demo.js';
 import { RepositorioPostgis } from './repositorio/postgis.js';
@@ -50,10 +50,12 @@ export function criarServidor() {
     }
 
     let documentoHash: string | undefined;
+    let hashesCadastro: string[] | undefined;
     if (dados.documento) {
       const doc = normalizarDocumento(dados.documento);
       if (!doc) return erro(reply, 400, 'CPF ou CNPJ inválido.', 'documento');
       documentoHash = config.databaseUrl ? hashDocumento(doc) : 'demo';
+      hashesCadastro = config.databaseUrl ? hashesParaCadastro(doc) : undefined;
     }
 
     const repo = demo && ehCarDemo(car) ? demo : banco;
@@ -61,7 +63,7 @@ export function criarServidor() {
       return erro(reply, 503, 'As bases públicas ainda não estão carregadas neste servidor.');
     }
 
-    const entrada = { ...dados, car, documentoHash };
+    const entrada = { ...dados, car, documentoHash, hashesCadastro };
     const evidencias = await repo.coletarEvidencias(entrada);
     const resultado = avaliar(evidencias, hojeBrasilia());
     const salva = await repo.salvar(entrada, evidencias, resultado);

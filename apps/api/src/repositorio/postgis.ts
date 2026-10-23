@@ -38,19 +38,20 @@ export class RepositorioPostgis implements Repositorio {
       geo
         ? this.pool.query<{ area: string }>(`SELECT ST_Area(${GEOM}::geography) / 10000 AS area`, [geo]).then((r) => Number(r.rows[0]!.area))
         : Promise.resolve(undefined),
-      sobrepor<Sobreposicao & { categoria: string }>(
+      sobrepor<Sobreposicao & { categoria: string; grupo?: string; planoManejo?: string }>(
         'cnuc',
-        `SELECT t.nome, t.categoria, ${AREA_INTERSECAO} AS "areaHa" FROM cnuc_uc t, g WHERE ST_Intersects(t.geom, g.geom)`,
+        `SELECT t.nome, t.categoria, t.grupo, t.plano_manejo AS "planoManejo", ${AREA_INTERSECAO} AS "areaHa"
+           FROM cnuc_uc t, g WHERE ST_Intersects(t.geom, g.geom)`,
       ),
-      sobrepor<Sobreposicao & { fase: string }>(
+      sobrepor<Sobreposicao & { fase: string; modalidade?: string }>(
         'funai_ti',
-        `SELECT t.nome, t.fase, ${AREA_INTERSECAO} AS "areaHa" FROM funai_ti t, g WHERE ST_Intersects(t.geom, g.geom)`,
+        `SELECT t.nome, t.fase, t.modalidade, ${AREA_INTERSECAO} AS "areaHa" FROM funai_ti t, g WHERE ST_Intersects(t.geom, g.geom)`,
       ),
       sobrepor('incra_quilombolas', `SELECT t.nome, ${AREA_INTERSECAO} AS "areaHa" FROM incra_quilombola t, g WHERE ST_Intersects(t.geom, g.geom)`),
       sobrepor('sfb_cnfp', `SELECT t.nome, ${AREA_INTERSECAO} AS "areaHa" FROM sfb_floresta_tipo_b t, g WHERE ST_Intersects(t.geom, g.geom)`),
       this.embargos(geo, carregada('ibama_embargos')),
       this.listaMma(e.car, carregada('mma_lista_mcr')),
-      this.trabalhoEscravo(e.documentoHash, carregada('mte_empregadores')),
+      this.trabalhoEscravo(e.hashesCadastro, carregada('mte_empregadores')),
     ]);
 
     // O que o técnico informou prevalece; senão, usa o que o MMA trouxe do Sicar.
@@ -116,9 +117,9 @@ export class RepositorioPostgis implements Repositorio {
     };
   }
 
-  private async trabalhoEscravo(hash: string | undefined, carregada: boolean): Promise<Evidencias['trabalhoEscravo']> {
-    if (!hash || !carregada) return null;
-    const { rowCount } = await this.pool.query('SELECT 1 FROM mte_empregador WHERE documento_hash = $1', [hash]);
+  private async trabalhoEscravo(hashes: string[] | undefined, carregada: boolean): Promise<Evidencias['trabalhoEscravo']> {
+    if (!hashes?.length || !carregada) return null;
+    const { rowCount } = await this.pool.query('SELECT 1 FROM mte_empregador WHERE documento_hash = ANY($1)', [hashes]);
     return { consta: (rowCount ?? 0) > 0 };
   }
 

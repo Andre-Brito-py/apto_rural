@@ -12,6 +12,7 @@
   "dependencies": {
     "@apto/regras": "0.1.0",
     "@tmcw/togeojson": "^5.8.1",
+    "qrcode-generator": "^1.4.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"

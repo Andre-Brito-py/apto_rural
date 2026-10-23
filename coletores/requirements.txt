@@ -1,2 +1,5 @@
 psycopg[binary]>=3.2
 requests>=2.32
+pyshp>=2.3
+pypdf>=5.0
+truststore>=0.10

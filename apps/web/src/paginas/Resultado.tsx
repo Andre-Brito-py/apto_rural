@@ -132,9 +132,9 @@ export function Resultado() {
           Salvar relatório em PDF
         </button>
         {temDossie && (
-          <button type="button" className="botao botao-desativado" disabled title="Em desenvolvimento">
-            Gerar dossiê (em breve)
-          </button>
+          <Link to={`/consulta/${consulta.id}/dossie`} state={consulta} className="botao botao-secundario">
+            Gerar dossiê do imóvel
+          </Link>
         )}
       </div>
 

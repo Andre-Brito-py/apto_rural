@@ -7,7 +7,10 @@ export interface EntradaColeta {
   modulosFiscais?: number;
   usoColetivo?: boolean;
   geometria?: GeometriaImovel;
+  /** Hash do CPF/CNPJ guardado no histórico. */
   documentoHash?: string;
+  /** Hashes procurados no cadastro do MTE (CPF, ou CNPJ e sua raiz). */
+  hashesCadastro?: string[];
 }
 
 export interface ConsultaSalva {

@@ -61,8 +61,10 @@ export interface Evidencias {
     usoColetivo?: boolean;
   };
   trabalhoEscravo?: { consta: boolean } | null;
-  unidadesConservacao?: Array<Sobreposicao & { categoria: string }> | null;
-  terrasIndigenas?: Array<Sobreposicao & { fase: string }> | null;
+  /** grupo: "Proteção Integral" ou "Uso Sustentável" (CNUC). */
+  unidadesConservacao?: Array<Sobreposicao & { categoria: string; grupo?: string; planoManejo?: string }> | null;
+  /** fase e modalidade conforme o GeoServer da Funai (campos fase_ti e modalidade_ti). */
+  terrasIndigenas?: Array<Sobreposicao & { fase: string; modalidade?: string }> | null;
   quilombolas?: Sobreposicao[] | null;
   embargos?: Embargo[] | null;
   florestasTipoB?: Sobreposicao[] | null;

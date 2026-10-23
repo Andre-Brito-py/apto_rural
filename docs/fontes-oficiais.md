@@ -46,13 +46,13 @@ Registro das normas e bases que o Apto Rural usa. **Regra do projeto:** nenhuma 
 
 | Regra | Base | Órgão | Acesso | Licença | Situação |
 | --- | --- | --- | --- | --- | --- |
-| 2-9-17 | Lista MCR (CAR com supressão após 31/7/2019) | MMA / Inpe | [Página do MMA](https://www.gov.br/mma/pt-br/assuntos/controle-ao-desmatamento-queimadas-e-ordenamento-ambiental-territorial/controle-do-desmatamento-1/atendimento-ao-manual-de-credito-rural) — CSV (ZIP), base espacial e painel | A CONFIRMAR | Confirmada. Atualizada em 21/9/2026 com o Prodes de ago/2026. Hoje cobre imóveis acima de 4 MF e CAR suspenso/cancelado. |
-| 2-9-10 | Termos de embargo | Ibama | [Dados abertos](https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-termo-de-embargo) — CSV/JSON/XML, atualização diária | "Outra (Aberta)" | Confirmada |
-| 2-9-5 | Polígonos do CNUC | MMA | [dados.mma.gov.br](https://dados.mma.gov.br/dataset/unidadesdeconservacao) — SHP | CC-BY | Confirmada (verificar versão mais nova) |
-| 2-9-7 | Terras indígenas | Funai | GeoServer da Funai (geoprocessamento) | A CONFIRMAR | URL e atributo de fase A CONFIRMAR |
-| 2-9-8 | Territórios quilombolas titulados | Incra | Acervo Fundiário (certificacao.incra.gov.br) | A CONFIRMAR | A CONFIRMAR |
-| 2-9-14 | Florestas públicas (CNFP) | Serviço Florestal Brasileiro | [dados.florestal.gov.br](https://dados.florestal.gov.br/dataset/cadastro-nacional-de-florestas-publicas-cnfp) | CC-BY | Campo "Tipo B" A CONFIRMAR |
-| 2-9-4 | Cadastro de empregadores | MTE | gov.br/trabalho-e-emprego (atualização semestral) | Ato público | URL do arquivo A CONFIRMAR |
+| 2-9-17 | Lista MCR (CAR com supressão após 31/7/2019) | MMA / Inpe | [Página do MMA](https://www.gov.br/mma/pt-br/assuntos/controle-ao-desmatamento-queimadas-e-ordenamento-ambiental-territorial/controle-do-desmatamento-1/atendimento-ao-manual-de-credito-rural) — CSV (ZIP), base espacial e painel | A CONFIRMAR | Coletor pronto. Campos pela [Nota Explicativa](https://www.gov.br/mma/pt-br/assuntos/controle-ao-desmatamento-queimadas-e-ordenamento-ambiental-territorial/controle-do-desmatamento-1/atendimento-ao-manual-de-credito-rural/NotaExplicativaManualdeCreditoRural_27_03.pdf). Edição de 21/9/2026: 106.024 imóveis, todos acima do critério; 13.317 com CAR CA/SU. Exclui AST e PCT. |
+| 2-9-10 | Termos de embargo | Ibama | [Dados abertos](https://dadosabertos.ibama.gov.br/dataset/fiscalizacao-termo-de-embargo) — CSV com polígono em WKT, atualização diária | "Outra (Aberta)" | Coletor pronto. Há datas impossíveis (ex.: ano 2925), descartadas. Valores de SIT_DESEMBARGO A CONFIRMAR. |
+| 2-9-5 | Polígonos do CNUC | MMA | [dados.mma.gov.br](https://dados.mma.gov.br/dataset/unidadesdeconservacao) — SHP em SIRGAS 2000 | CC BY | Coletor pronto (2025_08: 3.121 UCs ativas). Versões de 2026 só em SharePoint: baixar à mão e usar `--arquivo`. |
+| 2-9-7 | Terras indígenas | Funai | GeoServer `Funai:tis_poligonais` (WFS, EPSG:4674) | A CONFIRMAR | Coletor pronto (665 TIs). Campos `fase_ti` e `modalidade_ti`. |
+| 2-9-8 | Territórios quilombolas titulados | Incra | Acervo Fundiário (certificacao.incra.gov.br) | — | **Sem fonte aberta**: o Acervo exige login. Item fica "Não verificado". |
+| 2-9-14 | Florestas públicas (CNFP 2025) | Serviço Florestal Brasileiro | Item público `2b752dfbf9254920bf8990ce363918af` em mapas.florestal.gov.br (SHP, 229 MB) | CC BY | Coletor pronto. Campo `tipo` = "TIPO B" (1.742 de 12.874 polígonos). |
+| 2-9-4 | Cadastro de empregadores | MTE | [PDF oficial](https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/inspecao-do-trabalho/areas-de-atuacao/cadastro_de_empregadores.pdf) (Portaria Interministerial 18/2024, semestral) | Ato público | Coletor pronto. Edição de 6/10/2026: 335 CPFs e 163 CNPJs; gravados só como HMAC. |
 | 2-9-2/3 | Imóveis do CAR | SFB / Sicar | consultapublica.car.gov.br | **Não declarada** | Download protegido por captcha — ver conformidade |
 | 2-9-15/17 | Módulo fiscal por município | Incra | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
 

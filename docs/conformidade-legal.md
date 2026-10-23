@@ -27,6 +27,17 @@ Decisões que protegem o produto e o cliente. Cada uma deve ser revisada por um 
 - Para cada base: conferir licença e exigência de citação antes de vender (ver `fontes-oficiais.md`).
 - Os coletores registram a URL, a data do download e o hash de cada arquivo, para provar a origem de cada resultado.
 
+## Critérios do produto (não estão na norma)
+
+Cada um aparece no código com comentário e deve ser revisado por advogado:
+
+- **Sobreposição de borda** abaixo de 0,1 ha sai como "Atenção", não "Impedimento". A norma não prevê tolerância; o texto avisa isso ao técnico.
+- **UC de Uso Sustentável** (APA, ARIE, RDS…) sai como "Atenção": o item 5 ressalva atividade conforme o Plano de Manejo. **Proteção Integral** sai como "Impedimento".
+- **Terra indígena "Encaminhada RI"** conta como homologada (o registro em cartório é etapa posterior à homologação). A modalidade "Reserva Indígena" impede em qualquer fase.
+- **Embargo sem data** usa o limite mais restritivo do item 12-"h" (5% ou 20 ha). O Ibama publica a data do termo, não a da notificação: o texto pede para conferir no processo.
+- **CNPJ** é procurado também pela raiz (8 dígitos) no cadastro do MTE, porque o item 4 alcança a pessoa jurídica.
+- **Conexões TLS** usam o repositório de certificados do sistema (`truststore`); a verificação nunca é desligada.
+
 ## Regras mudam
 
 - As regras ficam em `packages/regras` como configuração, cada uma com o ato que a criou. Mudou uma resolução: atualizar a regra, os testes e `fontes-oficiais.md` no mesmo commit.

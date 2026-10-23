@@ -197,6 +197,21 @@ details.extra[open] > summary::before { content: '−'; }
 .fonte-rotulo { color: var(--tinta-suave); font-weight: 650; }
 .fonte-suave { color: var(--tinta-suave); }
 
+/* Dossiê */
+.mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.88rem; }
+.dossie-cabecalho { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.dossie-lateral { display: flex; flex-direction: column; align-items: center; }
+.dossie-sobretitulo { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--marca); }
+.dossie-sub { font-size: 0.95rem; margin-top: 14px; color: var(--marca-forte); }
+.caminhos-dossie { margin: 6px 0 0; padding-left: 22px; display: grid; gap: 12px; }
+.caminhos-dossie p { margin-top: 2px; }
+.checklist { list-style: none; padding: 0; margin: 6px 0 0; }
+.checklist .marcar { min-height: 40px; padding-top: 4px; }
+.assinatura { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 40px; font-size: 0.85rem; color: var(--tinta-suave); }
+.assinatura span { border-top: 1px solid var(--tinta); padding-top: 6px; }
+.so-impressao { display: none; }
+.linhas-escrita { height: 120px; background: repeating-linear-gradient(transparent 0 29px, #bbb 29px 30px); }
+
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Impressão: vira o relatório em PDF pelo próprio navegador. */
@@ -204,6 +219,8 @@ details.extra[open] > summary::before { content: '−'; }
   :root { font-size: 12pt; background: #fff; }
   body { background: #fff; }
   .cabecalho, .faixa-demo, .nao-imprimir, .rodape { display: none !important; }
+  .so-impressao { display: block; }
+  .dossie-secao { break-before: auto; }
   .pagina { max-width: none; padding: 0; }
   .item, .cartao { box-shadow: none; break-inside: avoid; }
   .item details { display: block; }

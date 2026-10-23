@@ -38,6 +38,10 @@ cd coletores
 pip install -r requirements.txt
 python -m coletores.mma_lista_mcr
 python -m coletores.ibama_embargos
+python -m coletores.cnuc
+python -m coletores.funai_ti
+python -m coletores.sfb_cnfp
+python -m coletores.mte_empregadores
 ```
 
 `--simular` lê e conta sem gravar; `--arquivo` usa um arquivo já baixado. Cada carga é atômica: se falhar, a anterior continua valendo.
@@ -56,10 +60,12 @@ npm run build
 | --- | --- | --- |
 | Lista MCR do MMA (Prodes/BiomasBR) | 2-9-17 | pronto |
 | Termos de embargo do Ibama | 2-9-10 | pronto |
-| CNUC (MMA) | 2-9-5 | a fazer |
-| Terras indígenas (Funai) | 2-9-7 | a fazer — confirmar URL e campo de fase |
-| Quilombolas titulados (Incra) | 2-9-8 | a fazer — confirmar fonte |
-| Florestas públicas Tipo B (SFB) | 2-9-14 | a fazer — confirmar campo de tipo |
-| Cadastro de empregadores (MTE) | 2-9-4 | a fazer — confirmar arquivo |
+| CNUC (MMA) | 2-9-5 | pronto |
+| Terras indígenas (Funai) | 2-9-7 | pronto |
+| Florestas públicas Tipo B (SFB) | 2-9-14 | pronto |
+| Cadastro de empregadores (MTE) | 2-9-4 | pronto |
+| Quilombolas titulados (Incra) | 2-9-8 | sem fonte aberta (Acervo exige login) |
+
+Todos os coletores foram testados com `--simular` nos arquivos oficiais de outubro de 2026; a gravação no banco ainda não foi testada (falta o PostGIS local).
 
 Enquanto uma base não estiver carregada, o item correspondente aparece como **Não verificado**, nunca como verde.

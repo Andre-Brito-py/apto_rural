@@ -3,6 +3,7 @@ import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { api, type Saude } from './api';
 import { LimiteErro } from './componentes/LimiteErro';
 import { Consulta } from './paginas/Consulta';
+import { Dossie } from './paginas/Dossie';
 import { Fontes } from './paginas/Fontes';
 import { Resultado } from './paginas/Resultado';
 
@@ -43,6 +44,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<Consulta saude={saude} />} />
             <Route path="/consulta/:id" element={<Resultado />} />
+            <Route path="/consulta/:id/dossie" element={<Dossie />} />
             <Route path="/fontes" element={<Fontes />} />
             <Route
               path="*"

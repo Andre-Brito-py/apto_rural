@@ -12,6 +12,12 @@ from datetime import date
 from pathlib import Path
 
 import requests
+import truststore
+
+# Usa o repositório de certificados do sistema operacional. Alguns servidores
+# gov.br (ex.: GeoServer da Funai) não enviam o certificado intermediário; o
+# sistema completa a cadeia. A verificação TLS continua ligada.
+truststore.inject_into_ssl()
 
 PASTA_DADOS = Path(__file__).resolve().parents[2] / "dados"
 # Alguns portais gov.br recusam requisições sem User-Agent (HTTP 403).
@@ -65,6 +71,56 @@ def argumentos(descricao: str) -> argparse.Namespace:
     p.add_argument("--arquivo", type=Path, help="usa um arquivo já baixado em vez de baixar")
     p.add_argument("--simular", action="store_true", help="só lê e conta, sem gravar no banco")
     return p.parse_args()
+
+
+def ler_shapefile(zip_caminho: Path, nome_base: str | None = None, encoding: str = "utf-8"):
+    """
+    Lê um shapefile dentro de um ZIP e devolve (atributos, geometria GeoJSON).
+    Recusa projeção que não seja SIRGAS 2000 geográfico, para não gravar
+    coordenadas erradas em silêncio.
+    """
+    import json
+    import zipfile
+
+    import shapefile
+
+    # Extrai para o disco: há shapefiles oficiais com quase 1 GB descompactados.
+    destino = PASTA_DADOS / Path(zip_caminho).stem
+    with zipfile.ZipFile(zip_caminho) as z:
+        if nome_base is None:
+            nome_base = next(n for n in z.namelist() if n.lower().endswith(".shp"))[:-4]
+        for ext in (".shp", ".shx", ".dbf", ".prj"):
+            z.extract(nome_base + ext, destino)
+    prj = (destino / f"{nome_base}.prj").read_text(encoding="latin-1")
+    if "SIRGAS" not in prj.upper() or not prj.upper().startswith("GEOGCS"):
+        raise SystemExit(f"Projeção inesperada em {nome_base}.prj: {prj[:120]}")
+    # encodingErrors="replace": há textos oficiais cortados no meio de um caractere.
+    with shapefile.Reader(str(destino / nome_base), encoding=encoding, encodingErrors="replace") as r:
+        for forma in r.iterShapeRecords():
+            if forma.shape.shapeType == shapefile.NULL:
+                continue
+            yield forma.record.as_dict(), json.dumps(forma.shape.__geo_interface__)
+
+
+# Polígono válido, 2D, multipart e em SIRGAS 2000.
+GEOM_DE_GEOJSON = "ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Force2D(ST_SetSRID(ST_GeomFromGeoJSON(geojson), 4674))), 3))"
+
+
+def copiar_poligonos(conn, tabela: str, colunas: list[str], linhas, carga_id: int, contador: dict) -> None:
+    """Grava linhas {coluna: valor, ..., 'geojson': str} numa tabela de polígonos."""
+    defs = ", ".join(f"{c} text" for c in colunas)
+    conn.execute(f"CREATE TEMP TABLE bruto ({defs}, geojson text) ON COMMIT DROP")
+    with conn.cursor().copy(f"COPY bruto ({', '.join(colunas)}, geojson) FROM STDIN") as copia:
+        for l in linhas:
+            copia.write_row([l[c] for c in colunas] + [l["geojson"]])
+            contador["registros"] += 1
+    lista = ", ".join(colunas)
+    conn.execute(
+        f"INSERT INTO {tabela} ({lista}, geom, carga_id)"
+        f" SELECT DISTINCT ON (id) {lista}, {GEOM_DE_GEOJSON}, %s FROM bruto",
+        (carga_id,),
+    )
+    conn.execute(f"DELETE FROM {tabela} WHERE ST_IsEmpty(geom)")
 
 
 @contextmanager

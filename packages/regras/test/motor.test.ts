@@ -75,6 +75,34 @@ describe('MCR 2-9-7 — terras indígenas', () => {
   });
 });
 
+describe('MCR 2-9-7 — fases e modalidade da Funai', () => {
+  it('"Encaminhada RI" conta como homologada', () => {
+    const ev = limpo({ terrasIndigenas: [{ nome: 'TI', fase: 'Encaminhada RI', areaHa: 5 }] });
+    expect(item(ev, 'terra-indigena').status).toBe('impedimento');
+  });
+  it('modalidade Reserva Indígena impede mesmo com outra fase', () => {
+    const ev = limpo({ terrasIndigenas: [{ nome: 'RI', fase: 'Declarada', modalidade: 'Reserva Indígena', areaHa: 5 }] });
+    expect(item(ev, 'terra-indigena').status).toBe('impedimento');
+  });
+  it('fase Declarada sem ser reserva não é impedimento do item 7', () => {
+    const ev = limpo({ terrasIndigenas: [{ nome: 'TI', fase: 'Declarada', modalidade: 'Tradicionalmente ocupada', areaHa: 5 }] });
+    expect(item(ev, 'terra-indigena').status).toBe('atencao');
+  });
+});
+
+describe('MCR 2-9-5 — Unidades de Conservação', () => {
+  it('Proteção Integral impede', () => {
+    const ev = limpo({ unidadesConservacao: [{ nome: 'Parque', categoria: 'Parque Nacional', grupo: 'Proteção Integral', areaHa: 40 }] });
+    expect(item(ev, 'unidade-conservacao').status).toBe('impedimento');
+  });
+  it('Uso Sustentável (APA) pede conformidade com o Plano de Manejo', () => {
+    const ev = limpo({ unidadesConservacao: [{ nome: 'APA', categoria: 'Área de Proteção Ambiental', grupo: 'Uso Sustentável', areaHa: 400 }] });
+    const r = item(ev, 'unidade-conservacao');
+    expect(r.status).toBe('atencao');
+    expect(r.caminhos[0]!.norma!.item).toBe('MCR 2-9-5');
+  });
+});
+
 describe('MCR 2-9-10 a 12 — embargos', () => {
   it('embargo impede e oferece a exceção do item 12 até 30/6/2027', () => {
     const ev = limpo({ embargos: [{ numero: 'ABC123', areaHa: 30 }] });

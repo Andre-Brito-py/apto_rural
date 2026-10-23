@@ -134,10 +134,17 @@ export const regraUnidadeConservacao: Regra = {
     const aberto = sobreposicaoSimples(this, ev.unidadesConservacao, 'Unidades de Conservação do CNUC');
     if (!Array.isArray(aberto)) return aberto;
     const lista = ev.unidadesConservacao!;
-    const detalhes = lista.map((u) => `${u.nome} (${u.categoria}): ${ha(u.areaHa)} dentro do imóvel.`);
+    const detalhes = lista.map(
+      (u) =>
+        `${u.nome} (${u.categoria}${u.grupo ? `, ${u.grupo}` : ''}): ${ha(u.areaHa)} dentro do imóvel.` +
+        (u.planoManejo ? ` Plano de Manejo: ${u.planoManejo}.` : ''),
+    );
     if (soBorda(lista)) {
       return { ...base(this), status: 'atencao', resumo: 'Sobreposição de borda com Unidade de Conservação.', detalhes: [...detalhes, AVISO_BORDA], dossie: 'contestacao' };
     }
+    // Critério do produto: em UC de Uso Sustentável (APA, ARIE, RDS…) a atividade
+    // agropecuária costuma ser compatível com o Plano de Manejo, a exceção do item 5.
+    const usoSustentavel = lista.every((u) => sem(u.grupo ?? '').includes('uso sustentavel'));
     const caminhos: Caminho[] = [
       {
         titulo: 'Atividade conforme o Plano de Manejo',
@@ -157,10 +164,20 @@ export const regraUnidadeConservacao: Regra = {
         norma: norma('MCR 2-9-5-A', 'res5268'),
       });
     }
+    if (usoSustentavel) {
+      return {
+        ...base(this),
+        status: 'atencao',
+        resumo: 'Imóvel dentro de Unidade de Conservação de Uso Sustentável: o banco pode exigir a conformidade com o Plano de Manejo.',
+        detalhes,
+        caminhos,
+        dossie: 'plano_de_saida',
+      };
+    }
     return {
       ...base(this),
       status: 'impedimento',
-      resumo: 'Imóvel com área dentro de Unidade de Conservação.',
+      resumo: 'Imóvel com área dentro de Unidade de Conservação de Proteção Integral.',
       detalhes,
       caminhos,
       dossie: 'plano_de_saida',
@@ -168,7 +185,16 @@ export const regraUnidadeConservacao: Regra = {
   },
 };
 
-const FASES_IMPEDITIVAS = ['homologada', 'regularizada', 'reserva indigena'];
+/**
+ * MCR 2-9-7: terras "homologadas, regularizadas ou definidas como Reserva Indígena".
+ * "Encaminhada RI" (encaminhada ao registro de imóveis) é etapa posterior à
+ * homologação, por isso também conta. Reserva Indígena vem da modalidade.
+ */
+const FASES_IMPEDITIVAS = ['homologada', 'regularizada', 'encaminhada ri'];
+
+function terraImpeditiva(t: { fase: string; modalidade?: string }): boolean {
+  return FASES_IMPEDITIVAS.includes(sem(t.fase)) || sem(t.modalidade ?? '').includes('reserva indigena') || sem(t.fase).includes('reserva indigena');
+}
 
 export const regraTerraIndigena: Regra = {
   id: 'terra-indigena',
@@ -180,8 +206,10 @@ export const regraTerraIndigena: Regra = {
     const aberto = sobreposicaoSimples(this, ev.terrasIndigenas, 'terras indígenas da Funai');
     if (!Array.isArray(aberto)) return aberto;
     const lista = ev.terrasIndigenas!;
-    const impeditivas = lista.filter((t) => FASES_IMPEDITIVAS.some((f) => sem(t.fase).includes(f)));
-    const detalhes = lista.map((t) => `${t.nome} (fase: ${t.fase}): ${ha(t.areaHa)} dentro do imóvel.`);
+    const impeditivas = lista.filter(terraImpeditiva);
+    const detalhes = lista.map(
+      (t) => `${t.nome} (fase: ${t.fase}${t.modalidade ? `; ${t.modalidade}` : ''}): ${ha(t.areaHa)} dentro do imóvel.`,
+    );
     if (impeditivas.length === 0) {
       return {
         ...base(this),

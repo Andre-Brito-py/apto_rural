@@ -50,10 +50,12 @@ CREATE INDEX ibama_embargo_geom ON ibama_embargo USING gist (geom) WHERE ativo;
 
 -- MCR 2-9-5: Unidades de Conservação (CNUC).
 CREATE TABLE cnuc_uc (
-  id        text PRIMARY KEY,
-  nome      text NOT NULL,
-  categoria text NOT NULL,
-  esfera    text,
+  id           text PRIMARY KEY,               -- cd_cnuc
+  nome         text NOT NULL,                  -- nome_uc
+  categoria    text NOT NULL,                  -- categoria
+  grupo        text,                           -- grupo: Proteção Integral / Uso Sustentável
+  plano_manejo text,                           -- pl_manejo
+  esfera       text,
   geom      geometry (MultiPolygon, 4674) NOT NULL,
   carga_id  bigint REFERENCES fonte_carga (id)
 );
@@ -61,9 +63,10 @@ CREATE INDEX cnuc_uc_geom ON cnuc_uc USING gist (geom);
 
 -- MCR 2-9-7: terras indígenas (Funai), com a fase do processo.
 CREATE TABLE funai_ti (
-  id       text PRIMARY KEY,
-  nome     text NOT NULL,
-  fase     text NOT NULL,
+  id         text PRIMARY KEY,                 -- gid
+  nome       text NOT NULL,                    -- terrai_nome
+  fase       text NOT NULL,                    -- fase_ti
+  modalidade text,                             -- modalidade_ti
   geom     geometry (MultiPolygon, 4674) NOT NULL,
   carga_id bigint REFERENCES fonte_carga (id)
 );
@@ -87,7 +90,8 @@ CREATE TABLE sfb_floresta_tipo_b (
 );
 CREATE INDEX sfb_floresta_tipo_b_geom ON sfb_floresta_tipo_b USING gist (geom);
 
--- MCR 2-9-4: cadastro de empregadores do MTE. Só o hash do documento (LGPD).
+-- MCR 2-9-4: cadastro de empregadores do MTE. Só o hash do documento (LGPD):
+-- HMAC do CPF, do CNPJ e da raiz do CNPJ (8 dígitos, a pessoa jurídica).
 CREATE TABLE mte_empregador (
   documento_hash text PRIMARY KEY,
   carga_id       bigint REFERENCES fonte_carga (id)

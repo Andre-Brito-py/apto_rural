@@ -14,6 +14,15 @@ export function hashDocumento(documento: string): string {
   return createHmac('sha256', config.segredoDocumento).update(documento).digest('hex');
 }
 
+/**
+ * Códigos a procurar no cadastro do MTE. Para CNPJ, inclui a raiz (8 dígitos):
+ * a pessoa jurídica é a mesma em todas as filiais. Mesmo critério do coletor.
+ */
+export function hashesParaCadastro(documento: string): string[] {
+  const docs = documento.length === 14 ? [documento, documento.slice(0, 8)] : [documento];
+  return docs.map(hashDocumento);
+}
+
 function cpfValido(c: string): boolean {
   if (/^(\d)\1{10}$/.test(c)) return false;
   const dv = (n: number) => {
