@@ -11,6 +11,7 @@ import { Privacidade, Termos } from './paginas/Legal';
 import { PagamentoSimulado } from './paginas/PagamentoSimulado';
 import { Planos } from './paginas/Planos';
 import { Resultado } from './paginas/Resultado';
+import { AvisoConfirmarEmail, ConfirmarEmail, EsqueciSenha, RedefinirSenha } from './paginas/Senha';
 import { useSessao } from './sessao';
 import { contagem } from './textos';
 
@@ -55,6 +56,8 @@ export function App() {
         </div>
       )}
 
+      <AvisoConfirmarEmail />
+
       <main>
         <LimiteErro>
           <Routes>
@@ -66,6 +69,9 @@ export function App() {
             <Route path="/conta" element={<Conta />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/pagamento-simulado/:id" element={<PagamentoSimulado />} />
+            <Route path="/confirmar-email" element={<ConfirmarEmail />} />
+            <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/termos" element={<Termos />} />
             <Route path="/privacidade" element={<Privacidade />} />
             <Route

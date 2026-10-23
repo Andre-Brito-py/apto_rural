@@ -1,7 +1,7 @@
 import pg from 'pg';
 import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
 
-const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id`;
+const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em`;
 
 function usuario(r: Record<string, unknown>): Usuario {
   return {
@@ -11,6 +11,7 @@ function usuario(r: Record<string, unknown>): Usuario {
     whatsapp: (r.whatsapp as string) ?? undefined,
     profissao: (r.profissao as string) ?? undefined,
     pagamentoClienteId: (r.pagamento_cliente_id as string) ?? undefined,
+    emailConfirmado: r.email_confirmado_em != null,
   };
 }
 
@@ -31,7 +32,48 @@ function pedido(r: Record<string, unknown>): Pedido {
 export class RepositorioContasPostgres implements RepositorioContas {
   constructor(private pool: pg.Pool) {}
 
-  async criarUsuario(u: Omit<Usuario, 'id'> & { senhaHash: string }) {
+  async buscarPorId(id: string) {
+    const { rows } = await this.pool.query(`SELECT ${USUARIO} FROM usuario WHERE id = $1`, [id]);
+    return rows[0] ? usuario(rows[0]) : null;
+  }
+
+  async confirmarEmail(usuarioId: string) {
+    const { rowCount } = await this.pool.query(
+      'UPDATE usuario SET email_confirmado_em = now() WHERE id = $1 AND email_confirmado_em IS NULL',
+      [usuarioId],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async definirSenha(usuarioId: string, senhaHash: string) {
+    await this.pool.query('UPDATE usuario SET senha_hash = $2 WHERE id = $1', [usuarioId, senhaHash]);
+  }
+
+  async apagarSessoesDoUsuario(usuarioId: string) {
+    await this.pool.query('DELETE FROM sessao WHERE usuario_id = $1', [usuarioId]);
+  }
+
+  async criarTokenEmail(usuarioId: string, tipo: 'confirmacao' | 'senha', tokenHash: string, expiraEm: Date) {
+    await this.pool.query('INSERT INTO token_email (token_hash, usuario_id, tipo, expira_em) VALUES ($1, $2, $3, $4)', [
+      tokenHash,
+      usuarioId,
+      tipo,
+      expiraEm,
+    ]);
+  }
+
+  async consumirTokenEmail(tokenHash: string, tipo: 'confirmacao' | 'senha') {
+    // Atômico: dois cliques no mesmo link não usam o token duas vezes.
+    const { rows } = await this.pool.query<{ usuario_id: string }>(
+      `UPDATE token_email SET usado_em = now()
+        WHERE token_hash = $1 AND tipo = $2 AND usado_em IS NULL AND expira_em > now()
+        RETURNING usuario_id`,
+      [tokenHash, tipo],
+    );
+    return rows[0]?.usuario_id ?? null;
+  }
+
+  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado'> & { senhaHash: string }) {
     const { rows } = await this.pool.query(
       `INSERT INTO usuario (nome, email, whatsapp, profissao, senha_hash, aceite_termos_em)
        VALUES ($1, lower($2), $3, $4, $5, now())

@@ -8,6 +8,20 @@ delete process.env.ASAAS_API_KEY;
 const { criarServidor, criarContexto } = await import('../src/servidor.js');
 const { ProvedorAsaas } = await import('../src/pagamentos/asaas.js');
 const { CARS_DEMO } = await import('../src/repositorio/demo.js');
+const { EnviadorMemoria } = await import('../src/email/enviador.js');
+
+/** Servidor com e-mails guardados em memória, para ler os links nos testes. */
+function servidorComEmail() {
+  const ctx = criarContexto();
+  const email = new EnviadorMemoria();
+  ctx.email = email;
+  return { app: criarServidor(ctx), email, ctx };
+}
+
+function tokenDoUltimoEmail(email: InstanceType<typeof EnviadorMemoria>): string {
+  const texto = email.enviadas.at(-1)!.texto;
+  return decodeURIComponent(/token=([^\s]+)/.exec(texto)![1]!);
+}
 
 const TOKEN_WEBHOOK = 'x'.repeat(40);
 
@@ -26,15 +40,25 @@ async function novaConta(app: ReturnType<typeof criarServidor>, email = 'tecnico
 }
 
 describe('contas', () => {
-  const app = criarServidor();
+  const { app, email } = servidorComEmail();
 
-  it('cadastro dá a amostra grátis e abre sessão', async () => {
+  it('cadastro abre sessão e manda o e-mail de confirmação; a amostra grátis espera a confirmação', async () => {
     const { res, cookie } = await novaConta(app);
     expect(res.statusCode).toBe(201);
-    expect(res.json().saldo).toEqual({ consulta: 1, dossie: 0 });
+    expect(res.json().saldo).toEqual({ consulta: 0, dossie: 0 });
+    expect(res.json().usuario.emailConfirmado).toBe(false);
     expect(res.headers['set-cookie']).toMatch(/HttpOnly/i);
+    expect(email.enviadas.at(-1)!.para).toBe('tecnico@exemplo.com');
+
+    const token = tokenDoUltimoEmail(email);
+    const conf = await app.inject({ method: 'POST', url: '/v1/conta/confirmar', payload: { token } });
+    expect(conf.json().saldo).toEqual({ consulta: 1, dossie: 0 });
     const eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
-    expect(eu.json().usuario.email).toBe('tecnico@exemplo.com');
+    expect(eu.json().usuario.emailConfirmado).toBe(true);
+
+    // O mesmo link não vale duas vezes, e a amostra não é dada de novo.
+    const repetido = await app.inject({ method: 'POST', url: '/v1/conta/confirmar', payload: { token } });
+    expect(repetido.statusCode).toBe(400);
   });
 
   it('e-mail repetido é recusado, sem diferença de maiúsculas', async () => {
@@ -56,8 +80,48 @@ describe('contas', () => {
     expect(b.json()).toEqual(a.json());
   });
 
+  it('esqueci a senha não revela se o e-mail existe', async () => {
+    const enviadasAntes = email.enviadas.length;
+    const a = await app.inject({ method: 'POST', url: '/v1/senha/esqueci', payload: { email: 'ninguem@exemplo.com' } });
+    const b = await app.inject({ method: 'POST', url: '/v1/senha/esqueci', payload: { email: 'tecnico@exemplo.com' } });
+    expect(a.json()).toEqual(b.json());
+    await new Promise((r) => setTimeout(r, 50)); // o envio é assíncrono
+    expect(email.enviadas.length).toBe(enviadasAntes + 1);
+    expect(email.enviadas.at(-1)!.para).toBe('tecnico@exemplo.com');
+  });
+
+  it('nova senha pelo link derruba as sessões antigas e entra com a nova', async () => {
+    const antiga = cookieDe(await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'senha-bem-longa' } }));
+    await app.inject({ method: 'POST', url: '/v1/senha/esqueci', payload: { email: 'tecnico@exemplo.com' } });
+    await new Promise((r) => setTimeout(r, 50));
+    const token = tokenDoUltimoEmail(email);
+
+    const curta = await app.inject({ method: 'POST', url: '/v1/senha/redefinir', payload: { token, senha: 'curta' } });
+    expect(curta.statusCode).toBe(400);
+    const r = await app.inject({ method: 'POST', url: '/v1/senha/redefinir', payload: { token, senha: 'senha-nova-bem-longa' } });
+    expect(r.statusCode).toBe(200);
+
+    expect((await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie: antiga } })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie: cookieDe(r) } })).statusCode).toBe(200);
+    const velha = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'senha-bem-longa' } });
+    expect(velha.statusCode).toBe(401);
+    const nova = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'senha-nova-bem-longa' } });
+    expect(nova.statusCode).toBe(200);
+
+    // Link de senha usado não vale de novo.
+    const outra = await app.inject({ method: 'POST', url: '/v1/senha/redefinir', payload: { token, senha: 'mais-uma-senha-longa' } });
+    expect(outra.statusCode).toBe(400);
+  });
+
+  it('link de confirmação não serve para trocar senha', async () => {
+    await novaConta(app, 'outro@exemplo.com');
+    const token = tokenDoUltimoEmail(email);
+    const r = await app.inject({ method: 'POST', url: '/v1/senha/redefinir', payload: { token, senha: 'tentativa-de-troca' } });
+    expect(r.statusCode).toBe(400);
+  });
+
   it('sair invalida a sessão', async () => {
-    const login = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'senha-bem-longa' } });
+    const login = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'senha-nova-bem-longa' } });
     const cookie = cookieDe(login);
     await app.inject({ method: 'DELETE', url: '/v1/sessao', headers: { cookie } });
     const eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
@@ -77,12 +141,12 @@ describe('compra com pagamento simulado', () => {
     expect(pedido.statusCode).toBe(201);
     const { id } = pedido.json();
     let eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
-    expect(eu.json().saldo).toEqual({ consulta: 1, dossie: 0 });
+    expect(eu.json().saldo).toEqual({ consulta: 0, dossie: 0 });
 
     await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${id}/pagar`, headers: { cookie } });
     await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${id}/pagar`, headers: { cookie } });
     eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
-    expect(eu.json().saldo).toEqual({ consulta: 21, dossie: 2 });
+    expect(eu.json().saldo).toEqual({ consulta: 20, dossie: 2 });
   });
 
   it('produto inexistente é recusado', async () => {

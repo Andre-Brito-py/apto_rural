@@ -45,7 +45,7 @@ export function Entrar() {
       <div className="pilha-p">
         <h1 className="titulo-pagina">{criar ? 'Criar conta' : 'Entrar'}</h1>
         <p className="subtitulo">
-          {criar ? 'A primeira consulta de um imóvel real é por nossa conta.' : 'Use o e-mail e a senha da sua conta.'}
+          {criar ? 'Confirme o e-mail e ganhe a primeira consulta de um imóvel real.' : 'Use o e-mail e a senha da sua conta.'}
         </p>
       </div>
 
@@ -97,7 +97,13 @@ export function Entrar() {
             autoComplete={criar ? 'new-password' : 'current-password'}
             required
           />
-          {criar && <span className="ajuda">Pelo menos 10 caracteres.</span>}
+          {criar ? (
+            <span className="ajuda">Pelo menos 10 caracteres.</span>
+          ) : (
+            <Link to="/esqueci-senha" className="ajuda">
+              Esqueci minha senha
+            </Link>
+          )}
         </label>
         {criar && (
           <label className="marcar campo">
@@ -116,7 +122,7 @@ export function Entrar() {
 
         <div style={{ marginTop: 24 }}>
           <button className="botao botao-primario" type="submit" disabled={enviando}>
-            {enviando ? 'Aguarde…' : criar ? 'Criar conta e ganhar 1 consulta' : 'Entrar'}
+            {enviando ? 'Aguarde…' : criar ? 'Criar conta' : 'Entrar'}
           </button>
         </div>
       </form>

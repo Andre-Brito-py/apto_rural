@@ -63,6 +63,16 @@ No painel do Asaas, em Integrações → Webhooks, cadastre:
 - **Token de autenticação:** o mesmo valor de `ASAAS_WEBHOOK_TOKEN`
 - **Eventos:** cobranças (confirmada, recebida, estornada, chargeback, removida)
 
+## 6. Configurar o e-mail
+
+O sistema manda dois e-mails: **confirmação de conta** (a consulta grátis só é liberada depois dela) e **nova senha**. Funciona com qualquer provedor que ofereça SMTP (Brevo, Amazon SES, Resend, Google Workspace…).
+
+1. Crie a conta no provedor e **verifique o domínio** lá. O provedor mostra os registros DNS (SPF e DKIM) a criar no painel do domínio. Sem isso, os e-mails caem no spam.
+2. Preencha no `.env.producao`: `SMTP_HOST`, `SMTP_PORTA` (587 ou 465), `SMTP_USUARIO`, `SMTP_SENHA` e `EMAIL_REMETENTE` (ex.: `Apto Rural <nao-responda@seu-dominio>`).
+3. Rode de novo o comando do passo 4.
+
+Em produção a API não sobe sem `SMTP_HOST` e `EMAIL_REMETENTE`. No desenvolvimento, sem SMTP, os e-mails aparecem no log da API, com o link clicável.
+
 ## Tarefas do dia a dia
 
 | Quero… | Comando |

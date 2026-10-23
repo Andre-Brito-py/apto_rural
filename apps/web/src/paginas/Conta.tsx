@@ -31,7 +31,9 @@ export function Conta() {
           <dt>Nome</dt>
           <dd>{sessao.usuario.nome}</dd>
           <dt>E-mail</dt>
-          <dd>{sessao.usuario.email}</dd>
+          <dd>
+            {sessao.usuario.email} {sessao.usuario.emailConfirmado ? '(confirmado)' : '(não confirmado)'}
+          </dd>
           <dt>Consultas</dt>
           <dd>{sessao.saldo.consulta}</dd>
           <dt>Dossiês</dt>

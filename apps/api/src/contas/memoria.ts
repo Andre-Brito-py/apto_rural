@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
+import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, TipoTokenEmail, Usuario } from './tipos.js';
 
 /**
  * Contas em memória, só para desenvolvimento e testes (APTO_DEMO=1 sem banco).
@@ -11,14 +11,49 @@ export class RepositorioContasMemoria implements RepositorioContas {
   private lancamentos: (Lancamento & { criadoEm: Date })[] = [];
   private pedidos = new Map<string, Pedido>();
   private eventos = new Set<string>();
+  private tokens = new Map<string, { usuarioId: string; tipo: TipoTokenEmail; expiraEm: Date; usado: boolean }>();
 
-  async criarUsuario(u: Omit<Usuario, 'id'> & { senhaHash: string }) {
+  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado'> & { senhaHash: string }) {
     const email = u.email.toLowerCase();
     if ([...this.usuarios.values()].some((x) => x.email === email)) return 'email_existe' as const;
-    const novo = { ...u, email, id: randomUUID() };
+    const novo = { ...u, email, id: randomUUID(), emailConfirmado: false };
     this.usuarios.set(novo.id, novo);
     const { senhaHash: _, ...publico } = novo;
     return publico;
+  }
+
+  async buscarPorId(id: string) {
+    const u = this.usuarios.get(id);
+    if (!u) return null;
+    const { senhaHash: _, ...publico } = u;
+    return publico;
+  }
+
+  async confirmarEmail(usuarioId: string) {
+    const u = this.usuarios.get(usuarioId);
+    if (!u || u.emailConfirmado) return false;
+    u.emailConfirmado = true;
+    return true;
+  }
+
+  async definirSenha(usuarioId: string, senhaHash: string) {
+    const u = this.usuarios.get(usuarioId);
+    if (u) u.senhaHash = senhaHash;
+  }
+
+  async apagarSessoesDoUsuario(usuarioId: string) {
+    for (const [hash, s] of this.sessoes) if (s.usuarioId === usuarioId) this.sessoes.delete(hash);
+  }
+
+  async criarTokenEmail(usuarioId: string, tipo: TipoTokenEmail, tokenHash: string, expiraEm: Date) {
+    this.tokens.set(tokenHash, { usuarioId, tipo, expiraEm, usado: false });
+  }
+
+  async consumirTokenEmail(tokenHash: string, tipo: TipoTokenEmail) {
+    const t = this.tokens.get(tokenHash);
+    if (!t || t.tipo !== tipo || t.usado || t.expiraEm <= new Date()) return null;
+    t.usado = true;
+    return t.usuarioId;
   }
 
   async buscarPorEmail(email: string) {

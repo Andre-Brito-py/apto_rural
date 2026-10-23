@@ -10,7 +10,7 @@ services:
       - "${APTO_DB_PORTA:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    # As tabelas são criadas por "npm run migrar -w @apto/api" (o mesmo executor da produção).
 
 volumes:
   pgdata:

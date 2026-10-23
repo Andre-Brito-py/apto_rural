@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { config } from './config.js';
 import { hashToken } from './contas/senha.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
+import type { Enviador } from './email/enviador.js';
 import type { ProvedorPagamento } from './pagamentos/tipos.js';
 import type { Repositorio } from './repositorio/tipos.js';
 
@@ -12,6 +13,7 @@ export interface Contexto {
   demo: Repositorio | null;
   contas: RepositorioContas;
   pagamento: ProvedorPagamento | null;
+  email: Enviador;
 }
 
 export const COOKIE_SESSAO = 'apto_sessao';

@@ -7,7 +7,10 @@ export interface Usuario {
   whatsapp?: string;
   profissao?: string;
   pagamentoClienteId?: string;
+  emailConfirmado: boolean;
 }
+
+export type TipoTokenEmail = 'confirmacao' | 'senha';
 
 export type Saldo = Record<TipoCredito, number>;
 
@@ -35,7 +38,16 @@ export interface Lancamento {
 }
 
 export interface RepositorioContas {
-  criarUsuario(u: Omit<Usuario, 'id'> & { senhaHash: string }): Promise<Usuario | 'email_existe'>;
+  criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado'> & { senhaHash: string }): Promise<Usuario | 'email_existe'>;
+  buscarPorId(id: string): Promise<Usuario | null>;
+  /** Marca o e-mail como confirmado. Retorna true só na primeira vez. */
+  confirmarEmail(usuarioId: string): Promise<boolean>;
+  definirSenha(usuarioId: string, senhaHash: string): Promise<void>;
+  apagarSessoesDoUsuario(usuarioId: string): Promise<void>;
+
+  criarTokenEmail(usuarioId: string, tipo: TipoTokenEmail, tokenHash: string, expiraEm: Date): Promise<void>;
+  /** Usa o token (uma vez só). Retorna o dono, ou null se inválido, usado ou vencido. */
+  consumirTokenEmail(tokenHash: string, tipo: TipoTokenEmail): Promise<string | null>;
   buscarPorEmail(email: string): Promise<(Usuario & { senhaHash: string }) | null>;
   definirClientePagamento(usuarioId: string, clienteId: string): Promise<void>;
 

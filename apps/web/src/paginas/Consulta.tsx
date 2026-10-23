@@ -223,9 +223,11 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         )}
 
         <p className="ajuda" style={{ marginTop: 20 }}>
-          {sessao
-            ? `Esta consulta usa 1 crédito. Você tem ${sessao.saldo.consulta}.`
-            : 'Para consultar um imóvel real, crie sua conta: a primeira consulta é grátis.'}
+          {!sessao
+            ? 'Para consultar um imóvel real, crie sua conta: a primeira consulta é grátis.'
+            : !sessao.usuario.emailConfirmado && sessao.saldo.consulta === 0
+              ? 'Confirme seu e-mail para liberar a consulta grátis (veja o link que enviamos).'
+              : `Esta consulta usa 1 crédito. Você tem ${sessao.saldo.consulta}.`}
         </p>
 
         <div style={{ marginTop: 12 }}>

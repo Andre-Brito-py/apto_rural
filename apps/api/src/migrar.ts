@@ -17,6 +17,7 @@ const PASTA = resolve(process.env.MIGRACOES_DIR ?? join(import.meta.dirname, '..
 const MARCADORES: Record<string, string> = {
   '001_inicial.sql': 'consulta',
   '002_contas_e_pagamentos.sql': 'usuario',
+  // 003 em diante: sempre pelo executor, nunca pelo initdb.
 };
 
 /** Espera o banco aceitar conexões (até ~60 s), útil logo após o container subir. */

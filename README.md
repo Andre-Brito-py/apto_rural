@@ -164,7 +164,7 @@ O técnico compra **créditos**:
 | Pacote Projetista | R$ 199 | 20 consultas + 2 dossiês |
 | Pacote Escritório | R$ 499 | 100 consultas + 10 dossiês |
 
-- Quem cria a conta ganha **1 consulta grátis**.
+- Quem cria a conta ganha **1 consulta grátis** assim que **confirma o e-mail** (isso evita contas falsas em série).
 - O pagamento é pelo **Asaas** (Pix, cartão ou boleto). O Apto Rural nunca vê dados de cartão.
 - Os preços são valores de partida, a ajustar depois de conversar com técnicos.
 
@@ -196,7 +196,7 @@ Abra http://localhost:5173. No modo demonstração (`APTO_DEMO=1` no arquivo `.e
    docker compose up -d
    ```
 
-2. **Crie o arquivo `.env`** copiando o `.env.example` e preencha:
+2. **Crie o arquivo `.env`** copiando o `.env.example` e preencha (no mínimo):
    - `DATABASE_URL=postgres://apto:apto@localhost:5433/apto_rural`
    - `DOCUMENTO_HASH_SECRET=` um texto longo e aleatório (protege os CPFs)
 
@@ -215,7 +215,13 @@ Abra http://localhost:5173. No modo demonstração (`APTO_DEMO=1` no arquivo `.e
 
    Dicas: `--simular` só lê e conta, sem gravar; `--arquivo caminho` usa um arquivo já baixado. Se uma carga falhar no meio, a anterior continua valendo.
 
-4. **Rode a API e o site** como na opção A e crie uma conta em "Entrar".
+4. **Crie as tabelas do banco** (rode de novo sempre que baixar uma versão nova do código):
+
+   ```bash
+   npm run migrar -w @apto/api
+   ```
+
+5. **Rode a API e o site** como na opção A e crie uma conta em "Entrar". Sem servidor de e-mail configurado, o e-mail de confirmação aparece no terminal da API: abra o link de lá para confirmar a conta.
 
 ### Testes
 
@@ -233,6 +239,13 @@ python -m coletores.amostra_mma --bioma cerrado --uf MT --limite 2000
 cd ../apps/api
 npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts
 ```
+
+### Contas e e-mail
+
+- A conta usa e-mail e senha. A senha é guardada só como código irreversível, e há limite de tentativas de login.
+- Ao criar a conta, o sistema manda um **link de confirmação** (vale 48 horas). Confirmado o e-mail, entra a consulta grátis.
+- **Esqueci minha senha**: manda um link que vale 1 hora e só funciona uma vez. Ao criar a senha nova, a conta sai de todos os outros aparelhos.
+- O e-mail sai por **SMTP** (qualquer provedor). Configure `SMTP_HOST`, `SMTP_PORTA`, `SMTP_USUARIO`, `SMTP_SENHA` e `EMAIL_REMETENTE`. Sem isso, no desenvolvimento, o e-mail aparece no terminal da API.
 
 ### Pagamentos
 
@@ -288,12 +301,13 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Site para celular: consulta, semáforo, relatório em PDF, resumo por WhatsApp e página de fontes.
 - [x] Dossiê v1, com checklist de documentos e código QR.
 - [x] Contas, créditos e pagamento (Asaas real + simulado para desenvolvimento).
+- [x] Confirmação de e-mail e recuperação de senha por e-mail (SMTP).
 - [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
 
 **Falta para lançar**
 
 - [ ] Contratar o servidor e o domínio e subir seguindo [docs/implantacao.md](docs/implantacao.md).
-- [ ] Recuperação de senha e confirmação de e-mail.
+- [ ] Contratar um provedor de e-mail (SMTP) e verificar o domínio nele (o código já está pronto).
 - [ ] Revisão de um advogado: termos de uso, privacidade (LGPD) e linguagem do dossiê.
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
