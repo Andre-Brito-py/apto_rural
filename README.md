@@ -201,7 +201,7 @@ npm run dev:api
 npm run dev:web
 ```
 
-Abra http://localhost:5173. No modo demonstração (`APTO_DEMO=1` no arquivo `.env`) aparecem três fazendas **fictícias** para testar as telas.
+Abra http://localhost:5180 (porta própria do Apto Rural, para não misturar com outros projetos que usam a 5173, a porta padrão do Vite). No modo demonstração (`APTO_DEMO=1` no arquivo `.env`) aparecem três fazendas **fictícias** para testar as telas.
 
 ### Opção B — com as bases reais
 

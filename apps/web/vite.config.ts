@@ -4,7 +4,9 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    // Porta própria: a 5173 é o padrão do Vite e pode estar presa ao cache de outro projeto no navegador.
+    port: 5180,
+    strictPort: true,
     proxy: { '/v1': 'http://localhost:3333' },
   },
   build: {

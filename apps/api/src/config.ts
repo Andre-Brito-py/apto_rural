@@ -6,7 +6,7 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL,
   segredoDocumento: process.env.DOCUMENTO_HASH_SECRET ?? '',
   demo: process.env.APTO_DEMO === '1' && !producao,
-  webOrigin: process.env.WEB_ORIGIN ?? 'http://localhost:5173',
+  webOrigin: process.env.WEB_ORIGIN ?? 'http://localhost:5180',
   asaas: {
     chave: process.env.ASAAS_API_KEY ?? '',
     ambiente: (process.env.ASAAS_AMBIENTE === 'producao' ? 'producao' : 'sandbox') as 'producao' | 'sandbox',
