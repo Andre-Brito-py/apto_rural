@@ -64,6 +64,24 @@ export function mensagemConfirmacao(nome: string, para: string, link: string): M
   };
 }
 
+const NOME_PAPEL: Record<string, string> = { administrador: 'administrador', tecnico: 'técnico' };
+
+/** Convite para entrar na equipe de um escritório (plano Escritório). */
+export function mensagemConviteEquipe(quemConvidou: string, responsavel: string, papel: string, para: string, link: string): Mensagem {
+  const paragrafos = [
+    `${quemConvidou} convidou você para a equipe de ${responsavel} no Apto Rural, como ${NOME_PAPEL[papel] ?? papel}.`,
+    'Na equipe, você consulta imóveis e acompanha a carteira usando os créditos do escritório, sem pagar nada à parte.',
+    'Para aceitar, abra o link e entre (ou crie sua conta) com este mesmo e-mail.',
+  ];
+  const rodape = 'O convite vale por 7 dias e só pode ser usado uma vez. Se você não conhece quem convidou, ignore este e-mail.';
+  return {
+    para,
+    assunto: `${quemConvidou} convidou você para a equipe no Apto Rural`,
+    texto: `${paragrafos.join('\n\n')}\n\nAceitar o convite: ${link}\n\n${rodape}`,
+    html: html('Convite para a equipe', paragrafos, { texto: 'Ver o convite', link }, rodape),
+  };
+}
+
 /** Comprovante da exclusão, mandado para o e-mail antigo antes de ele ser apagado. */
 export function mensagemContaExcluida(nome: string, para: string, link: string): Mensagem {
   const primeiro = nome.split(' ')[0];

@@ -52,8 +52,15 @@ export interface Plano {
   creditosMensais: { consulta: number; dossie: number };
   /** Quantos imóveis a conta pode acompanhar na carteira com este plano. */
   limiteCarteira: number;
+  /** Quantas pessoas usam a conta, contando o responsável. 1 = sem equipe. */
+  limiteMembros: number;
   destaque?: boolean;
   ativo: boolean;
+}
+
+/** Configurações salvas antes das equipes não têm o campo: vale o padrão do plano (ou 1). */
+export function limiteMembrosDoPlano(p: Pick<Plano, 'id'> & { limiteMembros?: number }): number {
+  return p.limiteMembros ?? PLANOS_PADRAO.find((x) => x.id === p.id)?.limiteMembros ?? 1;
 }
 
 /** Valores de partida do plano de negócio; editáveis no painel. */
@@ -65,16 +72,18 @@ export const PLANOS_PADRAO: Plano[] = [
     valorMensal: 199,
     creditosMensais: { consulta: 20, dossie: 2 },
     limiteCarteira: 50,
+    limiteMembros: 1,
     destaque: true,
     ativo: true,
   },
   {
     id: 'plano-escritorio',
     nome: 'Escritório',
-    descricao: '100 consultas e 10 dossiês por mês, carteira com até 300 imóveis.',
+    descricao: '100 consultas e 10 dossiês por mês, carteira com até 300 imóveis e equipe de até 5 pessoas.',
     valorMensal: 499,
     creditosMensais: { consulta: 100, dossie: 10 },
     limiteCarteira: 300,
+    limiteMembros: 5,
     ativo: true,
   },
 ];

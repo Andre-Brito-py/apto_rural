@@ -5,6 +5,8 @@ import { aplicarEventoAssinatura, limiteCarteira } from '../assinaturas/mensalid
 import { config } from '../config.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { normalizarDocumento } from '../documento.js';
+import { contaEmUso, podePagar } from '../equipe/conta.js';
+import { limiteMembrosDoPlano } from '../produtos.js';
 
 const novaAssinatura = z.object({
   plano: z.string(),
@@ -14,22 +16,29 @@ const novaAssinatura = z.object({
 
 export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
   app.get('/v1/planos', async () => ({
-    planos: (await ctx.config.obter()).planos.filter((p) => p.ativo),
+    planos: (await ctx.config.obter()).planos.filter((p) => p.ativo).map((p) => ({ ...p, limiteMembros: limiteMembrosDoPlano(p) })),
     pagamentoDisponivel: ctx.pagamento != null,
     exigeDocumento: ctx.pagamento?.exigeDocumento ?? false,
   }));
 
-  /** A assinatura em andamento da conta e o limite da carteira que vale hoje. */
+  /** A assinatura em andamento da conta em uso (na equipe, a do responsável) e o limite da carteira que vale hoje. */
   app.get('/v1/assinatura', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
-    return { assinatura: await ctx.contas.assinaturaAtual(u.id), limiteCarteira: await limiteCarteira(ctx, u.id) };
+    const conta = await contaEmUso(ctx, u);
+    return {
+      assinatura: await ctx.contas.assinaturaAtual(conta.contaId),
+      limiteCarteira: await limiteCarteira(ctx, conta.contaId),
+      podePagar: podePagar(conta),
+    };
   });
 
   app.post('/v1/assinaturas', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta para assinar.');
     if (!ctx.pagamento) return erro(reply, 503, 'Pagamentos ainda não estão disponíveis.');
+    const conta = await contaEmUso(ctx, u);
+    if (!podePagar(conta)) return erro(reply, 403, `O plano é da equipe. Quem assina é ${conta.equipe!.donoNome}, responsável pela equipe.`);
     const corpo = novaAssinatura.safeParse(req.body);
     const planos = (await ctx.config.obter()).planos;
     const plano = corpo.success ? planos.find((p) => p.id === corpo.data.plano && p.ativo) : undefined;
@@ -54,6 +63,7 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
       valorMensal: plano.valorMensal,
       creditos: plano.creditosMensais,
       limiteCarteira: plano.limiteCarteira,
+      limiteMembros: limiteMembrosDoPlano(plano),
       provedor: ctx.pagamento.nome,
     });
     if (criada === 'ja_existe') return erro(reply, 409, 'Você já tem uma assinatura. Cancele a atual para trocar de plano.');
@@ -78,6 +88,8 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
   app.post('/v1/assinatura/cancelar', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
+    const conta = await contaEmUso(ctx, u);
+    if (!podePagar(conta)) return erro(reply, 403, `O plano é da equipe. Só ${conta.equipe!.donoNome}, responsável pela equipe, pode cancelar.`);
     const a = await ctx.contas.assinaturaAtual(u.id);
     if (!a) return erro(reply, 404, 'Você não tem assinatura em andamento.');
     if (a.provedorId && ctx.pagamento?.nome === a.provedor) {

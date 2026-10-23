@@ -23,6 +23,8 @@ export function Planos() {
   const [documento, setDocumento] = useState('');
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Na equipe, só o responsável compra e assina; os outros só veem.
+  const [podePagar, setPodePagar] = useState(true);
   const { sessao } = useSessao();
   const navegar = useNavigate();
 
@@ -32,7 +34,14 @@ export function Planos() {
   }, []);
 
   useEffect(() => {
-    if (sessao) api.assinatura().then((r) => setAssinatura(r.assinatura)).catch(() => undefined);
+    if (sessao)
+      api
+        .assinatura()
+        .then((r) => {
+          setAssinatura(r.assinatura);
+          setPodePagar(r.podePagar);
+        })
+        .catch(() => undefined);
   }, [sessao]);
 
   const exigeDocumento = catalogo?.exigeDocumento ?? false;
@@ -95,10 +104,17 @@ export function Planos() {
         </p>
       )}
 
+      {!podePagar && sessao?.equipe && (
+        <p className="alerta" role="note">
+          Você está na equipe de <strong>{sessao.equipe.donoNome}</strong>: os créditos e o plano são da equipe, e só o responsável compra ou
+          assina. Avise quando os créditos estiverem acabando.
+        </p>
+      )}
+
       {sessao && (
         <div className="cartao pilha-p saldo-planos">
           <p>
-            Seu saldo: <strong>{contagem(sessao.saldo.consulta, 'consulta', 'consultas')}</strong> e{' '}
+            {sessao.equipe ? 'Saldo da equipe' : 'Seu saldo'}: <strong>{contagem(sessao.saldo.consulta, 'consulta', 'consultas')}</strong> e{' '}
             <strong>{contagem(sessao.saldo.dossie, 'dossiê', 'dossiês')}</strong>.
           </p>
           {assinatura && (
@@ -108,16 +124,18 @@ export function Planos() {
                 <span className={assinatura.status === 'ativa' ? 'verificacao sim' : 'verificacao nao'}>{SITUACAO[assinatura.status]}</span>
                 {assinatura.ativadaEm && <span className="fonte-suave"> · desde {dataBr(assinatura.ativadaEm)}</span>}
               </p>
-              <div className="acoes-imovel">
-                {assinatura.status !== 'ativa' && assinatura.link && (
-                  <a href={assinatura.link} className="botao botao-primario">
-                    Pagar mensalidade
-                  </a>
-                )}
-                <button type="button" className="link-botao" onClick={cancelar}>
-                  Cancelar assinatura
-                </button>
-              </div>
+              {podePagar && (
+                <div className="acoes-imovel">
+                  {assinatura.status !== 'ativa' && assinatura.link && (
+                    <a href={assinatura.link} className="botao botao-primario">
+                      Pagar mensalidade
+                    </a>
+                  )}
+                  <button type="button" className="link-botao" onClick={cancelar}>
+                    Cancelar assinatura
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -139,6 +157,7 @@ export function Planos() {
                   `${contagem(p.creditosMensais.consulta, 'consulta', 'consultas')} por mês`,
                   `${contagem(p.creditosMensais.dossie, 'dossiê', 'dossiês')} por mês`,
                   `Carteira com até ${p.limiteCarteira} fazendas, reconferidas todo dia`,
+                  ...((p.limiteMembros ?? 1) > 1 ? [`Equipe de até ${p.limiteMembros} pessoas, cada uma com o próprio login`] : []),
                   'Créditos que sobram passam para o mês seguinte',
                 ].map((t) => (
                   <li key={t}>
@@ -151,11 +170,15 @@ export function Planos() {
                 type="button"
                 className={`l-botao ${p.destaque ? 'l-botao-marca' : 'l-botao-claro'}`}
                 style={{ marginTop: 'auto' }}
-                disabled={enviando || !catalogo?.pagamentoDisponivel || (assinatura != null && assinatura.planoId !== p.id)}
+                disabled={enviando || !podePagar || !catalogo?.pagamentoDisponivel || (assinatura != null && assinatura.planoId !== p.id)}
                 onClick={() => seguir(`plano:${p.id}`, () => api.assinar(p.id, documento || undefined))}
               >
                 {assinatura?.planoId === p.id
-                  ? 'Seu plano'
+                  ? podePagar
+                    ? 'Seu plano'
+                    : 'Plano da equipe'
+                  : !podePagar
+                    ? 'Só o responsável assina'
                   : assinatura
                     ? 'Cancele o atual para trocar'
                     : escolhido === `plano:${p.id}` || !exigeDocumento
@@ -183,7 +206,7 @@ export function Planos() {
                 type="button"
                 className="l-botao l-botao-claro"
                 style={{ marginTop: 'auto' }}
-                disabled={enviando || !catalogo.pagamentoDisponivel}
+                disabled={enviando || !podePagar || !catalogo.pagamentoDisponivel}
                 onClick={() => seguir(`produto:${p.id}`, () => api.comprar(p.id, documento || undefined))}
               >
                 {escolhido === `produto:${p.id}` || !exigeDocumento ? 'Ir para o pagamento' : 'Comprar'}

@@ -554,6 +554,28 @@ ul.l-planos { list-style: none; padding: 0; }
 .arquivo-ok .arquivo-icone { background: #fff; color: var(--ok); }
 .credito-aviso { padding: 12px 14px; background: var(--papel); border-radius: 10px; }
 
+/* Equipe */
+.faixa-equipe { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; background: var(--marca-clara); border: 1px solid #b9d4bf; border-radius: 12px; color: #0c4521; }
+.faixa-equipe svg { margin-top: 3px; }
+.ocupacao { background: #fff; border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px 24px; display: grid; gap: 10px; }
+.ocupacao-texto { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.ocupacao-barra { height: 8px; border-radius: 999px; background: var(--neutro-fundo); overflow: hidden; }
+.ocupacao-barra span { display: block; height: 100%; background: var(--marca); border-radius: inherit; }
+.entrada-pequena { min-height: 38px; padding: 4px 8px; width: auto; }
+.link-perigo { color: var(--impedimento); }
+.lista-convites { list-style: none; margin: 0; padding: 0; }
+.lista-convites li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--linha); }
+.lista-convites li:first-child { border-top: 0; }
+.lista-convites li > div { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.linha-convite { display: grid; gap: 12px; }
+@media (min-width: 640px) { .linha-convite { grid-template-columns: 1fr 200px; } }
+.linha-convite .campo + .campo { margin-top: 0; }
+.papeis { margin: 0; display: grid; gap: 12px; }
+.papeis dt { font-weight: 700; }
+.papeis dd { margin: 2px 0 0; color: var(--tinta-suave); }
+.equipe-vazia .secao-titulo { margin-top: 12px; }
+.alerta-ok { background: var(--ok-fundo); border-color: #b9d4bf; color: #0c4521; }
+
 /* Direitos do titular */
 .exclusao { margin-top: 16px; padding: 20px; border: 1.5px solid #f1b8b2; background: #fff8f7; border-radius: 12px; }
 .exclusao > strong { color: #7a1a12; }

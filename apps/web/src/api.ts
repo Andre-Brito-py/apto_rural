@@ -37,6 +37,8 @@ export interface Sessao {
   nivelAdmin?: 'admin' | 'suporte' | null;
   /** Preenchido no modo "entrar como" (só leitura). */
   personificadoPor?: { nome: string; email: string };
+  /** Quem está numa equipe usa o saldo e a carteira do responsável. */
+  equipe?: { papel: PapelEquipe; donoNome: string };
 }
 
 export type Papel = 'usuario' | 'suporte' | 'admin';
@@ -151,8 +153,39 @@ export interface Plano {
   valorMensal: number;
   creditosMensais: Saldo;
   limiteCarteira: number;
+  /** Pessoas que usam a conta, contando o responsável (1 = sem equipe). */
+  limiteMembros?: number;
   destaque?: boolean;
   ativo: boolean;
+}
+
+export type PapelEquipe = 'responsavel' | 'administrador' | 'tecnico';
+
+export interface MembroEquipe {
+  usuarioId: string;
+  nome: string;
+  papel: PapelEquipe;
+  /** Só para o responsável e os administradores. */
+  email?: string;
+  entrouEm?: string;
+  consultasNoMes?: number;
+}
+
+export interface Equipe {
+  papel: PapelEquipe;
+  donoNome: string;
+  limite: number;
+  ocupacao: number;
+  membros: MembroEquipe[];
+  convites: { id: string; email: string; papel: Exclude<PapelEquipe, 'responsavel'>; criadoEm: string; expiraEm: string }[];
+  podeGerir: boolean;
+}
+
+export interface ConviteEquipe {
+  donoNome: string;
+  papel: Exclude<PapelEquipe, 'responsavel'>;
+  email: string;
+  situacao: 'pendente' | 'aceito' | 'cancelado' | 'vencido';
 }
 
 export interface Assinatura {
@@ -292,16 +325,28 @@ export const api = {
   pedidos: () => pedir<{ pedidos: Pedido[] }>('/v1/pedidos'),
   pedido: (id: string) => pedir<{ pedido: Pedido; produto?: Produto }>(`/v1/pedidos/${encodeURIComponent(id)}`),
   planos: () => pedir<{ planos: Plano[]; pagamentoDisponivel: boolean; exigeDocumento: boolean }>('/v1/planos'),
-  assinatura: () => pedir<{ assinatura: Assinatura | null; limiteCarteira: number }>('/v1/assinatura'),
+  assinatura: () => pedir<{ assinatura: Assinatura | null; limiteCarteira: number; podePagar: boolean }>('/v1/assinatura'),
   assinar: (plano: string, documento?: string) => pedir<{ id: string; link: string }>('/v1/assinaturas', post({ plano, documento })),
   cancelarAssinatura: () => pedir<{ ok: boolean }>('/v1/assinatura/cancelar', post()),
   pagarMesSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/assinaturas/${encodeURIComponent(id)}/pagar-mes`, post()),
 
-  carteira: () => pedir<{ imoveis: ImovelCarteira[]; limite: number; disponivel: boolean }>('/v1/carteira'),
+  carteira: () => pedir<{ imoveis: ImovelCarteira[]; limite: number; disponivel: boolean; podeRemover: boolean }>('/v1/carteira'),
   acompanhar: (consultaId: string, apelido?: string) => pedir<ImovelCarteira>('/v1/carteira', post({ consultaId, apelido })),
   deixarDeAcompanhar: (id: string) => pedir<{ ok: boolean }>(`/v1/carteira/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   avisos: () => pedir<{ avisos: Aviso[]; naoLidos: number }>('/v1/avisos'),
   marcarAvisosLidos: () => pedir<{ ok: boolean }>('/v1/avisos/lidos', post()),
+
+  equipe: {
+    ver: () => pedir<Equipe>('/v1/equipe'),
+    convidar: (email: string, papel: 'administrador' | 'tecnico') => pedir<{ ok: boolean }>('/v1/equipe/convites', post({ email, papel })),
+    cancelarConvite: (id: string) => pedir<{ ok: boolean }>(`/v1/equipe/convites/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    mudarPapel: (usuarioId: string, papel: 'administrador' | 'tecnico') =>
+      pedir<{ ok: boolean }>(`/v1/equipe/membros/${encodeURIComponent(usuarioId)}`, { method: 'PATCH', body: JSON.stringify({ papel }) }),
+    /** Remove alguém, ou sai da equipe (com o próprio id). */
+    remover: (usuarioId: string) => pedir<{ ok: boolean }>(`/v1/equipe/membros/${encodeURIComponent(usuarioId)}`, { method: 'DELETE' }),
+    verConvite: (token: string) => pedir<ConviteEquipe>('/v1/convites/ver', post({ token })),
+    aceitarConvite: (token: string) => pedir<{ ok: boolean; saldo: Saldo; equipe: Sessao['equipe'] }>('/v1/convites/aceitar', post({ token })),
+  },
 
   admin: {
     resumo: () => pedir<PainelResumo>('/v1/admin/resumo'),

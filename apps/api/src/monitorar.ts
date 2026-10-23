@@ -63,7 +63,11 @@ export async function monitorarCarteira(ctx: Contexto, hoje = hojeBrasilia()): P
 
   for (const grupo of await ctx.carteira.avisosParaEmail()) {
     try {
-      await ctx.email.enviar(mensagemAvisosCarteira(grupo.nome, grupo.email, grupo.avisos, `${config.webOrigin}/carteira`));
+      // Carteira de equipe: o responsável e os administradores recebem o mesmo resumo.
+      const destinatarios = [{ nome: grupo.nome, email: grupo.email }, ...((await ctx.equipe?.administradores(grupo.usuarioId)) ?? [])];
+      for (const d of destinatarios) {
+        await ctx.email.enviar(mensagemAvisosCarteira(d.nome, d.email, grupo.avisos, `${config.webOrigin}/carteira`));
+      }
       await ctx.carteira.marcarEmailados(grupo.avisos.map((a) => a.id));
       resumo.emails++;
     } catch (e) {

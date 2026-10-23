@@ -7,6 +7,7 @@ import type { Configuracoes } from './configuracoes.js';
 import type { RegistroErros } from './monitoramento/erros.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { Enviador } from './email/enviador.js';
+import type { RepositorioEquipe } from './equipe/repositorio.js';
 import type { ProvedorPagamento } from './pagamentos/tipos.js';
 import type { Repositorio } from './repositorio/tipos.js';
 
@@ -25,6 +26,8 @@ export interface Contexto {
   config: Configuracoes;
   /** Consultas do painel administrativo; null sem banco. */
   admin: RepositorioAdmin | null;
+  /** Equipes do plano Escritório; null sem banco (cada pessoa usa só a própria conta). */
+  equipe: RepositorioEquipe | null;
 }
 
 export type NivelAdmin = 'admin' | 'suporte';

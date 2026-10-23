@@ -8,6 +8,7 @@ import { enviarLinkEmail } from '../contas/links.js';
 import { TentativasLogin } from '../contas/tentativas.js';
 import { COOKIE_SESSAO, erro, hojeBrasilia, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { hashEmail } from '../documento.js';
+import { contaEmUso } from '../equipe/conta.js';
 import { mensagemContaExcluida } from '../email/mensagens.js';
 
 const cadastro = z.object({
@@ -47,6 +48,15 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   }
 
   const enviarLink = (u: Usuario, tipo: TipoTokenEmail) => enviarLinkEmail(ctx, u, tipo);
+
+  /** Saldo da conta em uso (na equipe, o da equipe) e o papel da pessoa nela. */
+  async function saldoEEquipe(u: Usuario) {
+    const conta = await contaEmUso(ctx, u);
+    return {
+      saldo: await ctx.contas.saldo(conta.contaId),
+      equipe: conta.equipe ? { papel: conta.equipe.papel, donoNome: conta.equipe.donoNome } : undefined,
+    };
+  }
 
   /** Confirma o e-mail e, na primeira vez, libera a amostra grátis. */
   async function confirmar(usuarioId: string) {
@@ -105,7 +115,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     if (u.bloqueado) return erro(reply, 403, 'Esta conta está bloqueada. Fale com o suporte do Apto Rural.');
     await abrirSessao(u.id, reply);
     const { senhaHash: _, ...usuario } = u;
-    return { usuario, saldo: await ctx.contas.saldo(u.id), nivelAdmin: nivelAdmin(usuario) };
+    return { usuario, ...(await saldoEEquipe(usuario)), nivelAdmin: nivelAdmin(usuario) };
   });
 
   app.delete('/v1/sessao', async (req, reply) => {
@@ -122,7 +132,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     const quemOlha = u.personificadoPor ? await ctx.contas.buscarPorId(u.personificadoPor) : null;
     return {
       usuario: u,
-      saldo: await ctx.contas.saldo(u.id),
+      ...(await saldoEEquipe(u)),
       nivelAdmin: nivelAdmin(u),
       personificadoPor: quemOlha ? { nome: quemOlha.nome, email: quemOlha.email } : undefined,
     };
@@ -242,6 +252,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     // Quem recebeu o link no e-mail provou que ele é seu.
     await confirmar(usuarioId);
     await abrirSessao(usuarioId, reply);
-    return { usuario: await ctx.contas.buscarPorId(usuarioId), saldo: await ctx.contas.saldo(usuarioId) };
+    const usuario = (await ctx.contas.buscarPorId(usuarioId))!;
+    return { usuario, ...(await saldoEEquipe(usuario)) };
   });
 }

@@ -175,6 +175,7 @@ export class RepositorioContasMemoria implements RepositorioContas {
       sessoesAbertas: [...this.sessoes.values()]
         .filter((s) => s.usuarioId === usuarioId && s.expiraEm > agora)
         .map((s) => ({ expira_em: s.expiraEm, aberta_pelo_suporte: s.personificadoPor != null })),
+      equipe: [],
     };
   }
 

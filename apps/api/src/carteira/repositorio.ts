@@ -38,22 +38,26 @@ export interface ImovelParaMonitorar {
 export class RepositorioCarteira {
   constructor(private pool: pg.Pool) {}
 
-  /** Coloca na carteira o imóvel de uma consulta do próprio usuário. */
+  /**
+   * Coloca na carteira da conta (usuarioId) o imóvel de uma consulta feita por
+   * uma das pessoas que usam essa conta (autores: a própria pessoa ou a equipe).
+   */
   async adicionarDeConsulta(
     usuarioId: string,
+    autores: string[],
     consultaId: string,
     apelido: string | undefined,
     /** Quantos imóveis a conta pode acompanhar (configuração do painel). */
     limite: number,
   ): Promise<ImovelCarteira | 'nao_encontrada' | 'limite'> {
-    if (!/^[0-9a-f-]{36}$/i.test(consultaId)) return 'nao_encontrada';
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(consultaId)) return 'nao_encontrada';
     const cliente = await this.pool.connect();
     try {
       await cliente.query('BEGIN');
       await cliente.query('SELECT 1 FROM usuario WHERE id = $1 FOR UPDATE', [usuarioId]);
       const { rows: origem } = await cliente.query(
-        'SELECT cod_car FROM consulta WHERE id = $1 AND usuario_id = $2',
-        [consultaId, usuarioId],
+        'SELECT cod_car FROM consulta WHERE id = $1 AND usuario_id = ANY($2::uuid[])',
+        [consultaId, autores],
       );
       if (!origem[0]) {
         await cliente.query('ROLLBACK');
@@ -71,12 +75,12 @@ export class RepositorioCarteira {
       const { rows } = await cliente.query(
         `INSERT INTO imovel_monitorado
            (usuario_id, cod_car, apelido, situacao_car, modulos_fiscais, uso_coletivo, geojson, resultado, ultima_consulta_id, verificado_em)
-         SELECT c.usuario_id, c.cod_car, $3,
+         SELECT $2::uuid, c.cod_car, $3,
                 c.evidencias #>> '{imovel,situacaoCar}',
                 (c.evidencias #>> '{imovel,modulosFiscais}')::numeric,
                 coalesce((c.evidencias #>> '{imovel,usoColetivo}')::boolean, false),
                 ST_AsGeoJSON(c.geom)::jsonb, c.resultado, c.id, c.criada_em
-           FROM consulta c WHERE c.id = $1 AND c.usuario_id = $2
+           FROM consulta c WHERE c.id = $1
          ON CONFLICT (usuario_id, cod_car) DO UPDATE SET
            apelido = coalesce(EXCLUDED.apelido, imovel_monitorado.apelido),
            situacao_car = EXCLUDED.situacao_car, modulos_fiscais = EXCLUDED.modulos_fiscais,

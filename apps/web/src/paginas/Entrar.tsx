@@ -24,7 +24,8 @@ export function Entrar() {
   const [busca] = useSearchParams();
   const [modo, setModo] = useState<'entrar' | 'criar'>(busca.get('modo') === 'criar' ? 'criar' : 'entrar');
   const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
+  // Vindo de um convite de equipe, o e-mail já vem preenchido.
+  const [email, setEmail] = useState(busca.get('email') ?? '');
   const [whatsapp, setWhatsapp] = useState('');
   const [profissao, setProfissao] = useState('');
   const [senha, setSenha] = useState('');

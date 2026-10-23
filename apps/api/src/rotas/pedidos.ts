@@ -5,6 +5,7 @@ import { normalizarDocumento } from '../documento.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { aplicarEventoAssinatura } from '../assinaturas/mensalidades.js';
 import { aplicarEvento } from '../pagamentos/aplicar.js';
+import { contaEmUso, podePagar } from '../equipe/conta.js';
 
 const novoPedido = z.object({
   produto: z.string(),
@@ -24,6 +25,8 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta para comprar.');
     if (!ctx.pagamento) return erro(reply, 503, 'Pagamentos ainda não estão disponíveis.');
+    const conta = await contaEmUso(ctx, u);
+    if (!podePagar(conta)) return erro(reply, 403, `Os créditos são da equipe. Quem compra é ${conta.equipe!.donoNome}, responsável pela equipe.`);
 
     const corpo = novoPedido.safeParse(req.body);
     const produtos = (await ctx.config.obter()).produtos;

@@ -358,6 +358,11 @@ export function Landing() {
                     <li>
                       <Icone nome="check" className="l-icone-p" /> Carteira com até {p.limiteCarteira} imóveis e avisos diários
                     </li>
+                    {(p.limiteMembros ?? 1) > 1 && (
+                      <li>
+                        <Icone nome="check" className="l-icone-p" /> Equipe de até {p.limiteMembros} pessoas, cada uma com o próprio login
+                      </li>
+                    )}
                     <li>
                       <Icone nome="check" className="l-icone-p" /> Créditos que sobram passam para o mês seguinte
                     </li>

@@ -19,6 +19,8 @@ export function Carteira() {
   const [imoveis, setImoveis] = useState<ImovelCarteira[] | null>(null);
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [limite, setLimite] = useState(50);
+  // Técnico da equipe inclui imóveis, mas só o responsável e os administradores tiram.
+  const [podeRemover, setPodeRemover] = useState(true);
   const [erro, setErro] = useState('');
 
   async function carregar() {
@@ -26,6 +28,7 @@ export function Carteira() {
       const [c, a] = await Promise.all([api.carteira(), api.avisos()]);
       setImoveis(c.imoveis);
       setLimite(c.limite);
+      setPodeRemover(c.podeRemover);
       setAvisos(a.avisos);
     } catch (e) {
       setErro((e as Error).message);
@@ -54,8 +57,9 @@ export function Carteira() {
 
   return (
     <div className="pagina pilha">
-      <div className="pilha-p">
-        <h1 className="titulo-pagina">Minha carteira</h1>
+      <div className="topo-pagina">
+        <p className="sobretitulo">Carteira</p>
+        <h1 className="titulo-pagina">{sessao?.equipe ? `Carteira da equipe de ${sessao.equipe.donoNome}` : 'Minha carteira'}</h1>
         <p className="subtitulo">
           Reconferimos estes imóveis todos os dias com as bases oficiais. Se algo mudar, avisamos aqui e por e-mail.
         </p>
@@ -129,9 +133,11 @@ export function Carteira() {
                   </p>
                   <div className="acoes-imovel">
                     {im.ultimaConsultaId && <Link to={`/consulta/${im.ultimaConsultaId}`}>Ver resultado</Link>}
-                    <button type="button" className="link-botao" onClick={() => remover(im)}>
-                      Deixar de acompanhar
-                    </button>
+                    {podeRemover && (
+                      <button type="button" className="link-botao" onClick={() => remover(im)}>
+                        Deixar de acompanhar
+                      </button>
+                    )}
                   </div>
                 </li>
               );

@@ -50,6 +50,8 @@ export interface Assinatura {
   valorMensal: number;
   creditos: Saldo;
   limiteCarteira: number;
+  /** Pessoas na equipe, contando o responsável (1 = sem equipe). */
+  limiteMembros: number;
   status: StatusAssinatura;
   provedor: string;
   provedorId?: string;
@@ -93,8 +95,11 @@ export interface RepositorioContas {
   saldo(usuarioId: string): Promise<Saldo>;
   /** Lança créditos. Retorna false se a referência já foi usada. */
   lancar(l: Lancamento): Promise<boolean>;
-  /** Debita 1 crédito de forma atômica. Retorna false se não houver saldo. */
-  debitar(usuarioId: string, tipo: TipoCredito, motivo: string, referencia: string): Promise<boolean>;
+  /**
+   * Debita 1 crédito de forma atômica. Retorna false se não houver saldo.
+   * autorId: quem da equipe usou (quando a conta é de outra pessoa, o responsável).
+   */
+  debitar(usuarioId: string, tipo: TipoCredito, motivo: string, referencia: string, autorId?: string): Promise<boolean>;
 
   criarPedido(p: Omit<Pedido, 'id' | 'status' | 'criadoEm'>): Promise<Pedido>;
   atualizarPedido(id: string, dados: Partial<Pick<Pedido, 'provedorId' | 'link' | 'status'>>): Promise<void>;
@@ -134,4 +139,6 @@ export interface DadosDoTitular {
   carteira: Record<string, unknown>[];
   avisos: Record<string, unknown>[];
   sessoesAbertas: Record<string, unknown>[];
+  /** Participação em equipe (como responsável ou membro). */
+  equipe: Record<string, unknown>[];
 }

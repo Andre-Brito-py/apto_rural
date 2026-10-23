@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, type Pedido } from '../api';
 import { Icone } from '../componentes/Icones';
+import { NOME_PAPEL } from './Equipe';
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
 
@@ -43,6 +44,9 @@ function ExcluirConta({ aoCancelar }: { aoCancelar: () => void }) {
         </li>
         <li>
           <b>Cancelamos</b> a assinatura, se houver: não haverá novas cobranças.
+        </li>
+        <li>
+          <b>Equipe:</b> você sai da equipe em que estiver. Se for o responsável, a equipe é desfeita e cada pessoa volta à própria conta.
         </li>
         <li>
           <b>Guardamos</b>, sem seus dados de contato, só os registros das compras (valor, data e situação), porque a lei manda guardar
@@ -95,6 +99,23 @@ export function Conta() {
         <h1 className="titulo-pagina">Olá, {sessao.usuario.nome.split(' ')[0]}</h1>
       </div>
 
+      {sessao.equipe && (
+        <p className="faixa-equipe">
+          <Icone nome="camadas" className="l-icone-p" />
+          <span>
+            {sessao.equipe.papel === 'responsavel' ? (
+              'Você é o responsável pela equipe: o saldo abaixo é usado por todos.'
+            ) : (
+              <>
+                Você está na equipe de <strong>{sessao.equipe.donoNome}</strong> como {NOME_PAPEL[sessao.equipe.papel].toLowerCase()}: o saldo
+                abaixo é o da equipe.
+              </>
+            )}{' '}
+            <Link to="/equipe">Ver equipe</Link>
+          </span>
+        </p>
+      )}
+
       <div className="saldos">
         <div className="saldo-bloco">
           <span className="saldo-numero">{sessao.saldo.consulta}</span>
@@ -111,7 +132,10 @@ export function Conta() {
           Consultar um imóvel
         </Link>
         <Link to="/carteira" className="botao botao-secundario">
-          Minha carteira
+          {sessao.equipe ? 'Carteira da equipe' : 'Minha carteira'}
+        </Link>
+        <Link to="/equipe" className="botao botao-secundario">
+          Equipe
         </Link>
         <Link to="/planos" className="botao botao-secundario">
           Planos e créditos

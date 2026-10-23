@@ -40,4 +40,8 @@ As telas de quem já tem conta seguem o visual da landing, para o produto parece
 - **Consulta:** o formulário dividido em três partes numeradas (dados do imóvel, mapa, opcional) e os exemplos de demonstração como botões pequenos.
 - **Resultado:** veredito maior, contagem em etiquetas e botões de ação lado a lado.
 
+- **Equipe (`/equipe`):** ocupação ("3 de 5 pessoas"), lista de pessoas com papel e consultas no mês, convites em aberto, formulário de convite e o que cada papel faz. O técnico vê só a lista e o botão de sair. Quem não tem plano de equipe vê o convite para conhecer o Escritório.
+- **Convite (`/convite?token=…`):** o que a pessoa vê ao abrir o link do e-mail. Sem conta, cria pelo próprio link (o e-mail já vem preenchido); com outra conta aberta, oferece sair e entrar com o e-mail certo.
+- **Para quem está numa equipe:** o topo mostra o saldo da equipe e o link "Equipe"; Minha conta e Carteira dizem de quem é a equipe; Planos explica que só o responsável compra; o técnico não vê o botão de tirar imóveis da carteira.
+
 A base (cartões, botões, campos, rodapé) mudou para todas as telas: bordas mais suaves, cantos de 14px e cores de texto iguais às da landing.

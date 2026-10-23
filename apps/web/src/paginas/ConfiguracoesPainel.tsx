@@ -170,6 +170,7 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
               <th>Consultas/mês</th>
               <th>Dossiês/mês</th>
               <th>Carteira</th>
+              <th title="Pessoas que usam a conta, contando o responsável. 1 = sem equipe.">Pessoas</th>
               <th>Destaque</th>
               <th>Ativo</th>
             </tr>
@@ -217,6 +218,17 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
                   <input className="entrada" type="number" min={0} value={p.limiteCarteira} onChange={(e) => mudar(i, { limiteCarteira: num(e.target.value) })} disabled={!podeAlterar} />
                 </td>
                 <td>
+                  <input
+                    className="entrada"
+                    type="number"
+                    min={1}
+                    value={p.limiteMembros ?? 1}
+                    onChange={(e) => mudar(i, { limiteMembros: num(e.target.value) })}
+                    disabled={!podeAlterar}
+                    aria-label="Pessoas na equipe"
+                  />
+                </td>
+                <td>
                   <input type="checkbox" checked={!!p.destaque} onChange={(e) => mudar(i, { destaque: e.target.checked })} disabled={!podeAlterar} aria-label="Destaque" />
                 </td>
                 <td>
@@ -233,7 +245,7 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
             type="button"
             className="botao botao-secundario"
             onClick={() =>
-              setPlanos((ps) => [...ps, { id: '', nome: '', descricao: '', valorMensal: 0, creditosMensais: { consulta: 0, dossie: 0 }, limiteCarteira: 0, ativo: true }])
+              setPlanos((ps) => [...ps, { id: '', nome: '', descricao: '', valorMensal: 0, creditosMensais: { consulta: 0, dossie: 0 }, limiteCarteira: 0, limiteMembros: 1, ativo: true }])
             }
           >
             Novo plano

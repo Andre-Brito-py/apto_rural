@@ -47,6 +47,13 @@ O que **fica guardado** e por quê:
 - A política de privacidade precisa dizer que a equipe pode acessar a conta para suporte (**A CONFIRMAR** com advogado, junto com o prazo de guarda da auditoria e dos registros de erro).
 - Registros de erro nunca guardam o corpo das requisições (que pode ter CPF/CNPJ): só rota, mensagem e pilha técnica.
 
+## Equipes (plano Escritório)
+
+- Na equipe, o responsável e os administradores veem **nome, e-mail, papel e quantas consultas cada pessoa fez no mês**. Técnicos veem só nomes e papéis. Isso precisa constar na política de privacidade (**A CONFIRMAR** com advogado).
+- O convite guarda o e-mail convidado até ser aceito, cancelado ou vencer. Ao excluir a conta, os convites para aquele e-mail são apagados.
+- A conta e os dados continuam sendo de cada pessoa: cada membro baixa os próprios dados e exclui a própria conta. Ao sair da equipe, volta a usar só a própria conta.
+- As consultas feitas por um membro ficam ligadas a ele (não ao responsável); o crédito gasto fica no extrato do responsável com a indicação de quem usou.
+
 ## Coleta de dados públicos
 
 - **Sicar:** o download da consulta pública é protegido por captcha e a licença não é declarada. O Apto Rural **não contorna captcha**. No MVP, o imóvel entra pelo arquivo que o técnico já tem (GeoJSON/KML exportado do CAR) e a situação do CAR é informada a partir do demonstrativo. Acesso automatizado ao Sicar só com autorização ou convênio com o SFB.

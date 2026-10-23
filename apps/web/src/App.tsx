@@ -8,8 +8,10 @@ import { AdminUsuario } from './paginas/AdminUsuario';
 import { Carteira } from './paginas/Carteira';
 import { Consulta } from './paginas/Consulta';
 import { Conta } from './paginas/Conta';
+import { Convite } from './paginas/Convite';
 import { Dossie } from './paginas/Dossie';
 import { Entrar } from './paginas/Entrar';
+import { Equipe } from './paginas/Equipe';
 import { Fontes } from './paginas/Fontes';
 import { Landing } from './paginas/Landing';
 import { Privacidade, Termos } from './paginas/Legal';
@@ -45,6 +47,11 @@ export function App() {
             {sessao && (
               <NavLink to="/carteira" className="so-largo">
                 Carteira
+              </NavLink>
+            )}
+            {sessao?.equipe && (
+              <NavLink to="/equipe" className="so-largo">
+                Equipe
               </NavLink>
             )}
             <NavLink to="/planos">Planos</NavLink>
@@ -88,6 +95,8 @@ export function App() {
             <Route path="/entrar" element={<Entrar />} />
             <Route path="/conta" element={<Conta />} />
             <Route path="/carteira" element={<Carteira />} />
+            <Route path="/equipe" element={<Equipe />} />
+            <Route path="/convite" element={<Convite />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/usuarios/:id" element={<AdminUsuario />} />
             <Route path="/planos" element={<Planos />} />

@@ -160,11 +160,11 @@ Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 
 O principal é a **assinatura mensal**: todo mês o técnico recebe créditos e pode acompanhar mais fazendas na carteira.
 
-| Plano | Preço | Todo mês | Carteira |
-| --- | --- | --- | --- |
-| Projetista | R$ 199/mês | 20 consultas + 2 dossiês | até 50 fazendas |
-| Escritório | R$ 499/mês | 100 consultas + 10 dossiês | até 300 fazendas |
-| Sem assinatura | — | — | até 5 fazendas |
+| Plano | Preço | Todo mês | Carteira | Pessoas |
+| --- | --- | --- | --- | --- |
+| Projetista | R$ 199/mês | 20 consultas + 2 dossiês | até 50 fazendas | 1 |
+| Escritório | R$ 499/mês | 100 consultas + 10 dossiês | até 300 fazendas | até 5 (equipe) |
+| Sem assinatura | — | — | até 5 fazendas | 1 |
 
 Para quem não quer assinar, há **compra avulsa**: consulta por R$ 39 e dossiê por R$ 190.
 
@@ -175,7 +175,28 @@ Como funciona a assinatura:
 - **Mensalidade atrasada:** a assinatura fica "em atraso" e a carteira volta ao limite de quem não assina até o pagamento. Ninguém perde fazendas que já acompanha: o limite só vale para incluir novas.
 - **Cancelar:** o próprio técnico cancela na página de planos, a qualquer momento. As próximas mensalidades deixam de ser cobradas e os créditos que ele já tem continuam dele.
 - **Trocar de plano:** cancela o atual e assina o outro.
-- Valor, créditos e carteira ficam **fixados na contratação**: se o plano mudar no painel, quem já assina continua com as condições de quando assinou.
+- Valor, créditos, carteira e número de pessoas ficam **fixados na contratação**: se o plano mudar no painel, quem já assina continua com as condições de quando assinou.
+
+### Equipe (plano Escritório)
+
+Um escritório tem várias pessoas atendendo produtores. No plano Escritório, **quem assina (o responsável) convida a equipe por e-mail**, e todos passam a usar **os mesmos créditos e a mesma carteira**, cada um com o próprio login.
+
+| Papel | O que faz |
+| --- | --- |
+| **Responsável** | Quem assina e paga. Faz tudo o que os outros fazem. É o único que compra, assina e cancela. |
+| **Administrador** | Convida e remove pessoas, muda papéis e tira imóveis da carteira. Recebe os avisos da carteira por e-mail, junto com o responsável. |
+| **Técnico** | Consulta imóveis, gera dossiês e põe imóveis na carteira, usando os créditos da equipe. |
+
+Como funciona, em detalhes:
+
+- **Convite:** em **Equipe**, o responsável (ou um administrador) digita o e-mail e escolhe o papel. A pessoa recebe um link que vale **7 dias** e **uma vez só**. Só aceita quem entra com **o mesmo e-mail** convidado; se a pessoa ainda não tem conta, cria pelo próprio link.
+- **Limite:** o Escritório comporta **5 pessoas, contando o responsável e os convites em aberto**. Cancelar um convite ou remover alguém libera a vaga. O número é editável no painel (coluna "Pessoas" dos planos).
+- **Créditos:** cada consulta de alguém da equipe gasta 1 crédito da conta do responsável, e o sistema guarda **quem usou**. A tela Equipe mostra quantas consultas cada pessoa fez no mês.
+- **Créditos pessoais:** quem entra na equipe com créditos próprios não os perde: eles ficam guardados e voltam se a pessoa sair.
+- **Quem já assina outro plano** precisa cancelar a assinatura antes de entrar numa equipe, para não pagar em dobro.
+- **Sair:** técnicos e administradores podem sair quando quiserem; o responsável e os administradores podem remover pessoas. Quem sai volta a usar só a própria conta.
+- **Se o plano for cancelado ou atrasar:** quem já está na equipe continua nela e usando os créditos que já foram pagos, mas não dá para convidar mais ninguém até o plano voltar a ficar em dia.
+- **Se o responsável excluir a conta:** a equipe é desfeita e cada pessoa volta à própria conta.
 
 Outras regras:
 
@@ -256,6 +277,7 @@ npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts   # consultas de 
 npx tsx --env-file=../../.env scripts/testar-carteira.ts         # carteira + monitor + aviso por e-mail
 npx tsx --env-file=../../.env scripts/testar-god-mode.ts         # painel: entrar como, bloqueio, papéis, auditoria
 npx tsx --env-file=../../.env scripts/testar-exclusao.ts         # LGPD: baixar meus dados e excluir a conta
+npx tsx --env-file=../../.env scripts/testar-equipe.ts           # equipe: convites, papéis, créditos e carteira compartilhados
 ```
 
 Rodar a reconferência da carteira na hora (sem esperar as 6h):
@@ -355,6 +377,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Revisão de segurança antes do lançamento: bibliotecas sem falhas conhecidas, freio de tentativas de senha, proteções do navegador e faxina diária de dados vencidos (veja [docs/seguranca.md](docs/seguranca.md)).
 - [x] Direitos do titular (LGPD): em **Minha conta**, a pessoa baixa todos os seus dados em um arquivo e exclui a conta sozinha. O que é apagado e o que a lei manda guardar está em [docs/conformidade-legal.md](docs/conformidade-legal.md).
 - [x] Visual profissional em todo o site: landing page e telas do app no mesmo padrão.
+- [x] Equipes no plano Escritório: convite por e-mail, papéis (responsável, administrador, técnico) e créditos e carteira compartilhados (testado de ponta a ponta com o banco real).
 
 **Falta para lançar**
 

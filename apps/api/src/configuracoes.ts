@@ -1,6 +1,14 @@
 import type pg from 'pg';
 import { z } from 'zod';
-import { CREDITOS_BOAS_VINDAS_PADRAO, LIMITE_CARTEIRA_PADRAO, PLANOS_PADRAO, PRODUTOS_PADRAO, type Plano, type Produto } from './produtos.js';
+import {
+  CREDITOS_BOAS_VINDAS_PADRAO,
+  LIMITE_CARTEIRA_PADRAO,
+  limiteMembrosDoPlano,
+  PLANOS_PADRAO,
+  PRODUTOS_PADRAO,
+  type Plano,
+  type Produto,
+} from './produtos.js';
 
 export interface AvisoSite {
   ativo: boolean;
@@ -66,6 +74,7 @@ export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], z.ZodTypeDef,
           .transform((v) => Math.round(v * 100) / 100),
         creditosMensais: creditos,
         limiteCarteira: z.number().int().min(0).max(100000),
+        limiteMembros: z.number().int().min(1, 'O plano precisa de pelo menos 1 pessoa (o responsável).').max(1000).default(1),
         destaque: z.boolean().optional(),
         ativo: z.boolean(),
       }),
@@ -102,6 +111,8 @@ export class Configuracoes {
       salvas = Object.fromEntries(rows.map((r) => [r.chave, r.valor]));
     }
     const valor = { ...PADRAO, ...salvas };
+    // Planos salvos antes das equipes: completa o limite de pessoas com o padrão do plano.
+    valor.planos = valor.planos.map((p) => ({ ...p, limiteMembros: limiteMembrosDoPlano(p) }));
     this.cache = { valor, quando: Date.now() };
     return valor;
   }

@@ -16,6 +16,8 @@ import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
 import { COOKIE_SESSAO, usuarioDaRequisicao, type Contexto } from './contexto.js';
 import { EnviadorConsole, EnviadorSmtp } from './email/enviador.js';
+import { RepositorioEquipe } from './equipe/repositorio.js';
+import { rotasEquipe } from './rotas/equipe.js';
 import { ProvedorAsaas } from './pagamentos/asaas.js';
 import { ProvedorSimulado } from './pagamentos/simulado.js';
 import { RepositorioDemo } from './repositorio/demo.js';
@@ -34,6 +36,7 @@ export function criarContexto(): Contexto {
     contas: pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria(),
     carteira: pool ? new RepositorioCarteira(pool) : null,
     admin: pool ? new RepositorioAdmin(pool) : null,
+    equipe: pool ? new RepositorioEquipe(pool) : null,
     erros: new RegistroErros(pool, email, config.adminEmails, config.webOrigin),
     config: new Configuracoes(pool),
     email,
@@ -76,6 +79,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasCarteira(app, ctx);
     rotasAdmin(app, ctx);
     rotasAssinaturas(app, ctx);
+    rotasEquipe(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.

@@ -7,14 +7,24 @@ import { hashDocumento, hashesParaCadastro, normalizarDocumento } from '../docum
 import { novaConsulta } from '../esquemas.js';
 import { CARS_DEMO, ehCarDemo } from '../repositorio/demo.js';
 import type { ConsultaSalva } from '../repositorio/tipos.js';
+import type { Usuario } from '../contas/tipos.js';
+import { contaEmUso, pessoasDaConta } from '../equipe/conta.js';
 
-/** O que a tela recebe: sem o id do dono, com o que este visitante pode fazer. */
-function paraCliente(c: ConsultaSalva, usuarioId?: string) {
+/**
+ * O que a tela recebe: sem o id do dono, com o que este visitante pode fazer.
+ * "minha" vale para quem fez a consulta e para a equipe dele.
+ */
+function paraCliente(c: ConsultaSalva, pessoas: string[]) {
   const { usuarioId: dono, ...resto } = c;
-  return { ...resto, minha: dono != null && dono === usuarioId };
+  return { ...resto, minha: dono != null && pessoas.includes(dono) };
 }
 
 export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
+  /** Quem usa a mesma conta que o visitante (ninguém, se não entrou). */
+  async function pessoasDoVisitante(usuario: Usuario | null): Promise<string[]> {
+    return usuario ? pessoasDaConta(ctx, await contaEmUso(ctx, usuario)) : [];
+  }
+
   app.get('/v1/saude', async () => {
     const aviso = (await ctx.config.obter()).aviso_site;
     return {
@@ -60,12 +70,22 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     if (!repo) return erro(reply, 503, 'As bases públicas ainda não estão carregadas neste servidor.');
 
     const usuario = await usuarioDaRequisicao(ctx, req);
+    // Na equipe, o crédito sai da conta do responsável e fica registrado quem usou.
+    const conta = usuario ? await contaEmUso(ctx, usuario) : null;
     const id = randomUUID();
     // Exemplos fictícios são grátis; consulta real gasta 1 crédito.
     if (!exemplo) {
-      if (!usuario) return erro(reply, 401, 'Entre na sua conta para consultar um imóvel.');
-      const ok = await ctx.contas.debitar(usuario.id, 'consulta', `Consulta ${car}`, `consulta:${id}`);
-      if (!ok) return erro(reply, 402, 'Seus créditos de consulta acabaram. Compre um pacote para continuar.');
+      if (!usuario || !conta) return erro(reply, 401, 'Entre na sua conta para consultar um imóvel.');
+      const ok = await ctx.contas.debitar(conta.contaId, 'consulta', `Consulta ${car}`, `consulta:${id}`, usuario.id);
+      if (!ok) {
+        return erro(
+          reply,
+          402,
+          conta.equipe && conta.equipe.papel !== 'responsavel'
+            ? `Os créditos de consulta da equipe acabaram. Avise ${conta.equipe.donoNome}, responsável pela equipe.`
+            : 'Seus créditos de consulta acabaram. Compre um pacote para continuar.',
+        );
+      }
     }
 
     try {
@@ -73,10 +93,10 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
       const evidencias = await repo.coletarEvidencias(entrada);
       const resultado = avaliar(evidencias, hojeBrasilia());
       const salva = await repo.salvar(entrada, evidencias, resultado, { id, usuarioId: usuario?.id });
-      return reply.status(201).send(paraCliente(salva, usuario?.id));
+      return reply.status(201).send(paraCliente(salva, usuario ? [usuario.id] : []));
     } catch (e) {
-      if (!exemplo && usuario) {
-        await ctx.contas.lancar({ usuarioId: usuario.id, tipo: 'consulta', quantidade: 1, motivo: 'Devolução: consulta falhou', referencia: `devolucao:${id}` });
+      if (!exemplo && conta) {
+        await ctx.contas.lancar({ usuarioId: conta.contaId, tipo: 'consulta', quantidade: 1, motivo: 'Devolução: consulta falhou', referencia: `devolucao:${id}` });
       }
       throw e;
     }
@@ -91,7 +111,7 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     const salva = await buscar(req.params.id);
     if (!salva) return erro(reply, 404, 'Consulta não encontrada.');
     const usuario = await usuarioDaRequisicao(ctx, req);
-    return paraCliente(salva, usuario?.id);
+    return paraCliente(salva, await pessoasDoVisitante(usuario));
   });
 
   app.post<{ Params: { id: string } }>('/v1/consultas/:id/dossie', async (req, reply) => {
@@ -99,10 +119,13 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     if (!salva) return erro(reply, 404, 'Consulta não encontrada.');
     if (salva.dossieLiberado) return { ok: true };
     const usuario = await usuarioDaRequisicao(ctx, req);
-    if (!usuario || salva.usuarioId !== usuario.id) return erro(reply, 403, 'Só quem fez a consulta pode liberar o dossiê.');
-    const ok = await ctx.contas.debitar(usuario.id, 'dossie', `Dossiê ${salva.resultado.car}`, `dossie:${salva.id}`);
-    if (!ok) return erro(reply, 402, 'Você não tem créditos de dossiê. Compre um dossiê avulso ou um pacote.');
+    const conta = usuario ? await contaEmUso(ctx, usuario) : null;
+    if (!usuario || !conta || !salva.usuarioId || !(await pessoasDaConta(ctx, conta)).includes(salva.usuarioId)) {
+      return erro(reply, 403, 'Só quem fez a consulta (ou a equipe dessa pessoa) pode liberar o dossiê.');
+    }
+    const ok = await ctx.contas.debitar(conta.contaId, 'dossie', `Dossiê ${salva.resultado.car}`, `dossie:${salva.id}`, usuario.id);
+    if (!ok) return erro(reply, 402, 'Não há créditos de dossiê. Compre um dossiê avulso ou um plano.');
     await ctx.banco!.liberarDossie(salva.id);
-    return { ok: true, saldo: await ctx.contas.saldo(usuario.id) };
+    return { ok: true, saldo: await ctx.contas.saldo(conta.contaId) };
   });
 }

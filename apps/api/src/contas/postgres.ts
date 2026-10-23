@@ -47,6 +47,7 @@ function assinatura(r: Record<string, unknown>): Assinatura {
     valorMensal: Number(r.valor_mensal),
     creditos: { consulta: r.creditos_consulta as number, dossie: r.creditos_dossie as number },
     limiteCarteira: r.limite_carteira as number,
+    limiteMembros: (r.limite_membros as number) ?? 1,
     status: r.status as Assinatura['status'],
     provedor: r.provedor as string,
     provedorId: (r.provedor_id as string) ?? undefined,
@@ -164,7 +165,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
     return (rowCount ?? 0) > 0;
   }
 
-  async debitar(usuarioId: string, tipo: TipoCredito, motivo: string, referencia: string) {
+  async debitar(usuarioId: string, tipo: TipoCredito, motivo: string, referencia: string, autorId?: string) {
     const cliente = await this.pool.connect();
     try {
       await cliente.query('BEGIN');
@@ -179,8 +180,8 @@ export class RepositorioContasPostgres implements RepositorioContas {
         return false;
       }
       await cliente.query(
-        `INSERT INTO credito_lancamento (usuario_id, tipo, quantidade, motivo, referencia) VALUES ($1, $2, -1, $3, $4)`,
-        [usuarioId, tipo, motivo, referencia],
+        `INSERT INTO credito_lancamento (usuario_id, tipo, quantidade, motivo, referencia, autor_id) VALUES ($1, $2, -1, $3, $4, $5)`,
+        [usuarioId, tipo, motivo, referencia, autorId ?? null],
       );
       await cliente.query('COMMIT');
       return true;
@@ -214,9 +215,9 @@ export class RepositorioContasPostgres implements RepositorioContas {
   async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>) {
     try {
       const { rows } = await this.pool.query(
-        `INSERT INTO assinatura (usuario_id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, provedor)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-        [a.usuarioId, a.planoId, a.nomePlano, a.valorMensal, a.creditos.consulta, a.creditos.dossie, a.limiteCarteira, a.provedor],
+        `INSERT INTO assinatura (usuario_id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, limite_membros, provedor)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [a.usuarioId, a.planoId, a.nomePlano, a.valorMensal, a.creditos.consulta, a.creditos.dossie, a.limiteCarteira, a.limiteMembros, a.provedor],
       );
       return assinatura(rows[0]);
     } catch (e) {
@@ -292,7 +293,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
   async exportarDados(usuarioId: string): Promise<DadosDoTitular> {
     const q = (sql: string) => this.pool.query(sql, [usuarioId]).then((r) => r.rows);
     // Nunca sai: hash da senha e hashes de tokens (não são dados da pessoa, e sim chaves de segurança).
-    const [conta, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas] = await Promise.all([
+    const [conta, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe] = await Promise.all([
       q(`SELECT id, nome, email, whatsapp, profissao, papel, criado_em, aceite_termos_em, email_confirmado_em, bloqueado_em
            FROM usuario WHERE id = $1`),
       q('SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id'),
@@ -309,8 +310,12 @@ export class RepositorioContasPostgres implements RepositorioContas {
       q('SELECT id, imovel_id, consulta_id, alteracoes, criado_em, lido_em, emailado_em FROM aviso WHERE usuario_id = $1 ORDER BY criado_em'),
       q(`SELECT criada_em, expira_em, personificado_por IS NOT NULL AS aberta_pelo_suporte
            FROM sessao WHERE usuario_id = $1 AND expira_em > now() ORDER BY criada_em`),
+      q(`SELECT 'responsavel' AS papel, e.criada_em AS desde, (SELECT count(*)::int FROM equipe_membro m WHERE m.equipe_id = e.id) AS membros
+           FROM equipe e WHERE e.dono_id = $1
+         UNION ALL
+         SELECT m.papel, m.entrou_em, NULL FROM equipe_membro m WHERE m.usuario_id = $1`),
     ]);
-    return { conta: conta[0] ?? {}, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas };
+    return { conta: conta[0] ?? {}, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe };
   }
 
   async excluirConta(usuarioId: string, emailHash: string) {
@@ -318,6 +323,10 @@ export class RepositorioContasPostgres implements RepositorioContas {
     try {
       await cliente.query('BEGIN');
       await cliente.query('INSERT INTO email_excluido (email_hash) VALUES ($1) ON CONFLICT DO NOTHING', [emailHash]);
+      // Equipe: sai da que participa; a que é dele é desfeita (os membros voltam às contas próprias).
+      await cliente.query('DELETE FROM equipe_membro WHERE usuario_id = $1', [usuarioId]);
+      await cliente.query('DELETE FROM equipe WHERE dono_id = $1', [usuarioId]);
+      await cliente.query('DELETE FROM convite_equipe WHERE email = (SELECT email FROM usuario WHERE id = $1)', [usuarioId]);
       // Só da pessoa: apaga (aviso e imóvel em cascata).
       await cliente.query('DELETE FROM imovel_monitorado WHERE usuario_id = $1', [usuarioId]);
       await cliente.query('DELETE FROM token_email WHERE usuario_id = $1', [usuarioId]);
