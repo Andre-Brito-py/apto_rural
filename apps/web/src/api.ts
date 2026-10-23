@@ -281,6 +281,9 @@ export const api = {
   sair: () => pedir<{ ok: boolean }>('/v1/sessao', { method: 'DELETE' }),
   confirmarEmail: (token: string) => pedir<{ ok: boolean; saldo: Saldo }>('/v1/conta/confirmar', post({ token })),
   reenviarConfirmacao: () => pedir<{ ok: boolean; jaConfirmado?: boolean }>('/v1/conta/confirmacao', post()),
+  /** Endereço do arquivo com os dados da conta (o navegador baixa direto, com o cookie). */
+  enderecoMeusDados: '/v1/conta/dados',
+  excluirConta: (senha: string) => pedir<{ ok: boolean }>('/v1/conta/excluir', post({ senha, confirmo: true })),
   esqueciSenha: (email: string) => pedir<{ ok: boolean; mensagem: string }>('/v1/senha/esqueci', post({ email })),
   redefinirSenha: (token: string, senha: string) => pedir<Sessao>('/v1/senha/redefinir', post({ token, senha })),
 

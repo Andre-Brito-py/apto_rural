@@ -243,7 +243,8 @@ export class RepositorioAdmin {
   }
 
   async desbloquear(id: string) {
-    await this.pool.query('UPDATE usuario SET bloqueado_em = NULL, bloqueio_motivo = NULL WHERE id = $1', [id]);
+    // Conta excluída pelo titular não volta.
+    await this.pool.query('UPDATE usuario SET bloqueado_em = NULL, bloqueio_motivo = NULL WHERE id = $1 AND excluida_em IS NULL', [id]);
   }
 
   async auditar(adminId: string, acao: string, alvoUsuarioId: string | null, detalhes: Record<string, unknown> = {}) {

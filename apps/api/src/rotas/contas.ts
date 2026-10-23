@@ -6,7 +6,9 @@ import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../co
 import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
 import { enviarLinkEmail } from '../contas/links.js';
 import { TentativasLogin } from '../contas/tentativas.js';
-import { COOKIE_SESSAO, erro, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
+import { COOKIE_SESSAO, erro, hojeBrasilia, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
+import { hashEmail } from '../documento.js';
+import { mensagemContaExcluida } from '../email/mensagens.js';
 
 const cadastro = z.object({
   nome: z.string().trim().min(2, 'Informe seu nome.').max(120),
@@ -49,6 +51,9 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   /** Confirma o e-mail e, na primeira vez, libera a amostra grátis. */
   async function confirmar(usuarioId: string) {
     if (!(await ctx.contas.confirmarEmail(usuarioId))) return;
+    // Quem excluiu a conta e voltou com o mesmo e-mail não ganha a amostra de novo.
+    const u = await ctx.contas.buscarPorId(usuarioId);
+    if (u && (await ctx.contas.emailJaExcluido(hashEmail(u.email)))) return;
     const boasVindas = (await ctx.config.obter()).creditos_boas_vindas;
     for (const [tipo, quantidade] of Object.entries(boasVindas) as [TipoCredito, number][]) {
       if (quantidade > 0) {
@@ -149,6 +154,76 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
       enviarLink(usuario, 'senha').catch((e) => req.log.error(e, 'falha ao enviar e-mail de senha'));
     }
     return { ok: true, mensagem: 'Se houver uma conta com este e-mail, enviamos um link para criar uma nova senha.' };
+  });
+
+  // ---- Direitos do titular (LGPD, art. 18) ----
+
+  /** Arquivo com tudo o que guardamos sobre a pessoa (acesso e portabilidade). */
+  app.get('/v1/conta/dados', LIMITE_EMAIL, async (req, reply) => {
+    const u = await usuarioDaRequisicao(ctx, req);
+    if (!u) return erro(reply, 401, 'Entre na sua conta.');
+    // É um direito do titular: o suporte, no modo "entrar como", não baixa os dados de ninguém.
+    if (u.personificadoPor) return erro(reply, 403, 'Modo visualização: só o próprio titular pode baixar os dados da conta.');
+    const dados = await ctx.contas.exportarDados(u.id);
+    const hoje = hojeBrasilia();
+    return reply
+      .header('Content-Disposition', `attachment; filename="apto-rural-meus-dados-${hoje}.json"`)
+      .header('Cache-Control', 'no-store')
+      .type('application/json; charset=utf-8')
+      .send(
+        JSON.stringify(
+          {
+            sobre: 'Dados da sua conta no Apto Rural (LGPD, art. 18). Senhas e chaves de acesso não são incluídas.',
+            geradoEm: new Date().toISOString(),
+            ...dados,
+          },
+          null,
+          2,
+        ),
+      );
+  });
+
+  const exclusao = z.object({
+    senha: z.string().min(1, 'Informe sua senha para confirmar.').max(200),
+    confirmo: z.literal(true, { errorMap: () => ({ message: 'Marque que entende o que acontece com a exclusão.' }) }),
+  });
+
+  /** Exclusão da conta pelo titular. Pede a senha de novo: quem pegou o celular desbloqueado não apaga a conta. */
+  app.post('/v1/conta/excluir', LIMITE_LOGIN, async (req, reply) => {
+    const u = await usuarioDaRequisicao(ctx, req);
+    if (!u) return erro(reply, 401, 'Entre na sua conta.');
+    const corpo = exclusao.safeParse(req.body);
+    if (!corpo.success) {
+      const p = corpo.error.issues[0]!;
+      return erro(reply, 400, p.message, p.path.join('.'));
+    }
+    const comSenha = await ctx.contas.buscarPorEmail(u.email);
+    if (!comSenha || !(await conferirSenha(corpo.data.senha, comSenha.senhaHash))) {
+      return erro(reply, 401, 'Senha incorreta.', 'senha');
+    }
+
+    // Primeiro a cobrança: se o Asaas não cancelar, nada é apagado e a pessoa tenta de novo.
+    const assinatura = await ctx.contas.assinaturaAtual(u.id);
+    if (assinatura) {
+      if (assinatura.provedorId && ctx.pagamento?.nome === assinatura.provedor) {
+        try {
+          await ctx.pagamento.cancelarAssinatura(assinatura.provedorId);
+        } catch (e) {
+          req.log.error(e, 'falha ao cancelar assinatura na exclusão da conta');
+          return erro(reply, 502, 'Não conseguimos cancelar sua assinatura agora, então nada foi apagado. Tente de novo em instantes.');
+        }
+      }
+      await ctx.contas.atualizarAssinatura(assinatura.id, { status: 'cancelada' });
+    }
+
+    const { nome, email } = u;
+    await ctx.contas.excluirConta(u.id, hashEmail(email));
+    reply.clearCookie(COOKIE_SESSAO, opcoesCookie());
+    ctx.email
+      .enviar(mensagemContaExcluida(nome, email, config.webOrigin))
+      .catch((e) => req.log.error(e, 'falha ao enviar o comprovante de exclusão'));
+    req.log.info({ usuarioId: u.id }, 'conta excluída pelo titular');
+    return { ok: true };
   });
 
   app.post('/v1/senha/redefinir', LIMITE_EMAIL, async (req, reply) => {

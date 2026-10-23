@@ -60,6 +60,14 @@ export function Privacidade() {
         <p>
           O código do CAR, o contorno enviado e o resultado ficam guardados para que o relatório possa ser conferido depois pelo código QR.
         </p>
+        <h2 className="secao-titulo">Seus direitos (LGPD, art. 18)</h2>
+        <p>
+          Em <Link to="/conta">Minha conta</Link> você pode, a qualquer momento e sem custo, <strong>baixar uma cópia dos seus dados</strong>{' '}
+          (arquivo JSON) e <strong>excluir a conta</strong>. A exclusão apaga nome, e-mail, WhatsApp, profissão, senha, carteira e avisos, e
+          cancela a assinatura. Ficam guardados, sem dados de contato, os registros das compras pelo prazo que a lei exige (Código Tributário
+          Nacional, art. 195, parágrafo único) e os relatórios já emitidos, sem indicar quem os gerou. Para proteger a amostra grátis de abusos,
+          guardamos um código irreversível do e-mail de contas excluídas.
+        </p>
         <h2 className="secao-titulo">Base legal, prazos de guarda e contato do encarregado</h2>
         <p>A definir com assessoria jurídica.</p>
       </section>

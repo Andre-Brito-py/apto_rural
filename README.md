@@ -255,6 +255,7 @@ cd ../apps/api
 npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts   # consultas de ponta a ponta
 npx tsx --env-file=../../.env scripts/testar-carteira.ts         # carteira + monitor + aviso por e-mail
 npx tsx --env-file=../../.env scripts/testar-god-mode.ts         # painel: entrar como, bloqueio, papéis, auditoria
+npx tsx --env-file=../../.env scripts/testar-exclusao.ts         # LGPD: baixar meus dados e excluir a conta
 ```
 
 Rodar a reconferência da carteira na hora (sem esperar as 6h):
@@ -352,12 +353,14 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Carteira de fazendas com reconferência diária e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
 - [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
 - [x] Revisão de segurança antes do lançamento: bibliotecas sem falhas conhecidas, freio de tentativas de senha, proteções do navegador e faxina diária de dados vencidos (veja [docs/seguranca.md](docs/seguranca.md)).
+- [x] Direitos do titular (LGPD): em **Minha conta**, a pessoa baixa todos os seus dados em um arquivo e exclui a conta sozinha. O que é apagado e o que a lei manda guardar está em [docs/conformidade-legal.md](docs/conformidade-legal.md).
+- [x] Visual profissional em todo o site: landing page e telas do app no mesmo padrão.
 
 **Falta para lançar**
 
 - [ ] Contratar o servidor e o domínio e subir seguindo [docs/implantacao.md](docs/implantacao.md).
 - [ ] Contratar um provedor de e-mail (SMTP) e verificar o domínio nele (o código já está pronto).
-- [ ] Revisão de um advogado: termos de uso, privacidade (LGPD) e linguagem do dossiê.
+- [ ] Revisão de um advogado: termos de uso, privacidade (LGPD), prazos de guarda depois da exclusão de conta e linguagem do dossiê.
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
 - [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.

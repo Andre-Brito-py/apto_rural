@@ -14,6 +14,11 @@ export function hashDocumento(documento: string): string {
   return createHmac('sha256', config.segredoDocumento).update(documento).digest('hex');
 }
 
+/** Mesmo HMAC para e-mails de contas excluídas: dá para reconhecer o e-mail, não para lê-lo. */
+export function hashEmail(email: string): string {
+  return createHmac('sha256', config.segredoDocumento).update(`email:${email.trim().toLowerCase()}`).digest('hex');
+}
+
 /**
  * Códigos a procurar no cadastro do MTE. Para CNPJ, inclui a raiz (8 dígitos):
  * a pessoa jurídica é a mesma em todas as filiais. Mesmo critério do coletor.

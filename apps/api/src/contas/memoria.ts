@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Assinatura, Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, TipoTokenEmail, Usuario } from './tipos.js';
+import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, TipoTokenEmail, Usuario } from './tipos.js';
 
 /**
  * Contas em memória, só para desenvolvimento e testes (APTO_DEMO=1 sem banco).
@@ -155,5 +155,42 @@ export class RepositorioContasMemoria implements RepositorioContas {
     if (this.eventos.has(id)) return false;
     this.eventos.add(id);
     return true;
+  }
+
+  private emailsExcluidos = new Set<string>();
+
+  async exportarDados(usuarioId: string): Promise<DadosDoTitular> {
+    const u = await this.buscarPorId(usuarioId);
+    const agora = new Date();
+    return {
+      conta: u ? { id: u.id, nome: u.nome, email: u.email, whatsapp: u.whatsapp, profissao: u.profissao, papel: u.papel } : {},
+      creditos: this.lancamentos
+        .filter((l) => l.usuarioId === usuarioId)
+        .map(({ tipo, quantidade, motivo, criadoEm }) => ({ tipo, quantidade, motivo, criado_em: criadoEm })),
+      pedidos: (await this.pedidosDoUsuario(usuarioId)).map(({ link: _, provedorId: __, ...p }) => p),
+      assinaturas: [...this.assinaturas.values()].filter((a) => a.usuarioId === usuarioId).map(({ link: _, provedorId: __, ...a }) => a),
+      consultas: [],
+      carteira: [],
+      avisos: [],
+      sessoesAbertas: [...this.sessoes.values()]
+        .filter((s) => s.usuarioId === usuarioId && s.expiraEm > agora)
+        .map((s) => ({ expira_em: s.expiraEm, aberta_pelo_suporte: s.personificadoPor != null })),
+    };
+  }
+
+  async excluirConta(usuarioId: string, emailHash: string) {
+    this.emailsExcluidos.add(emailHash);
+    for (const [hash, t] of this.tokens) if (t.usuarioId === usuarioId) this.tokens.delete(hash);
+    for (const [hash, s] of this.sessoes) if (s.usuarioId === usuarioId || s.personificadoPor === usuarioId) this.sessoes.delete(hash);
+    const u = this.usuarios.get(usuarioId);
+    if (u) {
+      Object.assign(u, { nome: 'Conta excluída', email: `excluida-${u.id}@excluida.invalid`, senhaHash: 'excluida', papel: 'usuario', bloqueado: true });
+      delete u.whatsapp;
+      delete u.profissao;
+    }
+  }
+
+  async emailJaExcluido(emailHash: string) {
+    return this.emailsExcluidos.has(emailHash);
   }
 }

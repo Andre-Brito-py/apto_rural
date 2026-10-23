@@ -483,3 +483,58 @@ describe('segurança', () => {
     expect(r.body).not.toContain('segredo');
   });
 });
+
+describe('direitos do titular (LGPD)', () => {
+  const { app, email } = servidorComEmail();
+  const EMAIL = 'titular@exemplo.com';
+  let cookie = '';
+
+  beforeAll(async () => {
+    cookie = (await novaConta(app, EMAIL)).cookie;
+    await app.inject({ method: 'POST', url: '/v1/conta/confirmar', payload: { token: tokenDoUltimoEmail(email) } });
+  });
+
+  it('baixar os dados exige conta e entrega um arquivo sem a senha', async () => {
+    expect((await app.inject({ method: 'GET', url: '/v1/conta/dados' })).statusCode).toBe(401);
+    const r = await app.inject({ method: 'GET', url: '/v1/conta/dados', headers: { cookie } });
+    expect(r.statusCode).toBe(200);
+    expect(r.headers['content-disposition']).toMatch(/attachment; filename="apto-rural-meus-dados-\d{4}-\d{2}-\d{2}\.json"/);
+    const dados = r.json();
+    expect(dados.conta.email).toBe(EMAIL);
+    expect(dados.creditos).toEqual([expect.objectContaining({ motivo: 'Amostra grátis', quantidade: 1 })]);
+    expect(r.body).not.toMatch(/scrypt|senha_?hash/i);
+  });
+
+  it('excluir pede a senha e a confirmação', async () => {
+    const semMarcar = await app.inject({ method: 'POST', url: '/v1/conta/excluir', headers: { cookie }, payload: { senha: 'senha-bem-longa' } });
+    expect(semMarcar.statusCode).toBe(400);
+    const senhaErrada = await app.inject({ method: 'POST', url: '/v1/conta/excluir', headers: { cookie }, payload: { senha: 'outra-senha', confirmo: true } });
+    expect(senhaErrada.statusCode).toBe(401);
+    expect((await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).statusCode).toBe(200);
+  });
+
+  it('excluir cancela a assinatura, apaga os dados pessoais, encerra a sessão e manda o comprovante', async () => {
+    const a = await app.inject({ method: 'POST', url: '/v1/assinaturas', headers: { cookie }, payload: { plano: 'plano-projetista' } });
+    expect(a.statusCode).toBe(201);
+
+    const r = await app.inject({ method: 'POST', url: '/v1/conta/excluir', headers: { cookie }, payload: { senha: 'senha-bem-longa', confirmo: true } });
+    expect(r.statusCode).toBe(200);
+    expect(String(r.headers['set-cookie'])).toMatch(/apto_sessao=;/);
+    await new Promise((ok) => setTimeout(ok, 10));
+    expect(email.enviadas.at(-1)).toMatchObject({ para: EMAIL, assunto: 'Sua conta no Apto Rural foi excluída' });
+
+    // A sessão antiga não vale mais, e o e-mail e a senha antigos não entram.
+    expect((await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).statusCode).toBe(401);
+    const login = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: EMAIL, senha: 'senha-bem-longa' } });
+    expect(login.statusCode).toBe(401);
+  });
+
+  it('o e-mail fica livre para uma conta nova, mas sem a amostra grátis de novo', async () => {
+    const { res, cookie: novo } = await novaConta(app, EMAIL);
+    expect(res.statusCode).toBe(201);
+    await app.inject({ method: 'POST', url: '/v1/conta/confirmar', payload: { token: tokenDoUltimoEmail(email) } });
+    const eu = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie: novo } })).json();
+    expect(eu.usuario.emailConfirmado).toBe(true);
+    expect(eu.saldo).toEqual({ consulta: 0, dossie: 0 });
+  });
+});

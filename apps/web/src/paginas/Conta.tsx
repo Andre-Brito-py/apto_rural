@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, type Pedido } from '../api';
+import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
 
@@ -11,9 +12,73 @@ const STATUS: Record<Pedido['status'], string> = {
   cancelado: 'Cancelado',
 };
 
+/** Confirmação da exclusão: explica o que some e o que a lei manda guardar, e pede a senha de novo. */
+function ExcluirConta({ aoCancelar }: { aoCancelar: () => void }) {
+  const [senha, setSenha] = useState('');
+  const [entendo, setEntendo] = useState(false);
+  const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
+
+  async function excluir(ev: FormEvent) {
+    ev.preventDefault();
+    setErro('');
+    setEnviando(true);
+    try {
+      await api.excluirConta(senha);
+      // Recarrega o site do zero: a sessão já não existe no servidor e nada da conta fica na memória da página.
+      window.location.replace('/?conta=excluida');
+    } catch (e) {
+      setErro((e as Error).message);
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <form className="exclusao pilha-p" onSubmit={excluir}>
+      <strong>Excluir a conta é definitivo.</strong>
+      <ul className="lista-simples">
+        <li>
+          <b>Apagamos</b> seu nome, e-mail, WhatsApp, profissão, senha, a carteira de imóveis e os avisos. Os créditos que sobraram são
+          perdidos.
+        </li>
+        <li>
+          <b>Cancelamos</b> a assinatura, se houver: não haverá novas cobranças.
+        </li>
+        <li>
+          <b>Guardamos</b>, sem seus dados de contato, só os registros das compras (valor, data e situação), porque a lei manda guardar
+          (Código Tributário Nacional, art. 195). Os relatórios já emitidos continuam abrindo pelo QR, sem indicar quem os gerou.
+        </li>
+      </ul>
+      <p className="fonte-suave">Antes de excluir, se quiser, baixe seus dados.</p>
+      <label className="campo">
+        <span className="rotulo">Sua senha</span>
+        <input className="entrada" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required />
+      </label>
+      <label className="marcar">
+        <input type="checkbox" checked={entendo} onChange={(e) => setEntendo(e.target.checked)} />
+        <span>Entendo que a exclusão não pode ser desfeita.</span>
+      </label>
+      {erro && (
+        <p className="alerta alerta-erro" role="alert">
+          {erro}
+        </p>
+      )}
+      <div className="botoes">
+        <button type="submit" className="botao botao-perigo-cheio" disabled={!entendo || !senha || enviando}>
+          {enviando ? 'Excluindo…' : 'Excluir minha conta'}
+        </button>
+        <button type="button" className="botao botao-secundario" onClick={aoCancelar} disabled={enviando}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export function Conta() {
   const { sessao, carregando, sair } = useSessao();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [excluindo, setExcluindo] = useState(false);
   const navegar = useNavigate();
 
   useEffect(() => {
@@ -100,6 +165,26 @@ export function Conta() {
           </div>
         </section>
       )}
+
+      <section className="cartao pilha-p">
+        <h2 className="secao-titulo">Seus dados</h2>
+        <p className="fonte-suave">
+          Pela Lei Geral de Proteção de Dados (LGPD, art. 18), você pode baixar uma cópia de tudo o que guardamos sobre você ou excluir a
+          sua conta quando quiser.
+        </p>
+        <div className="botoes">
+          {/* Só o titular baixa: no modo "entrar como" a API recusa. */}
+          <a href={api.enderecoMeusDados} download className="botao botao-secundario">
+            <Icone nome="documento" className="l-icone-p" /> Baixar meus dados
+          </a>
+          {!excluindo && (
+            <button type="button" className="botao botao-perigo" onClick={() => setExcluindo(true)}>
+              Excluir minha conta
+            </button>
+          )}
+        </div>
+        {excluindo && <ExcluirConta aoCancelar={() => setExcluindo(false)} />}
+      </section>
 
       <button
         type="button"

@@ -21,6 +21,26 @@ Decisões que protegem o produto e o cliente. Cada uma deve ser revisada por um 
 - O documento é guardado apenas como hash (SHA-256 com chave secreta) no histórico; o número em claro não é armazenado.
 - Base legal, termo de uso e política de privacidade: **A CONFIRMAR com advogado**.
 
+## Direitos do titular (baixar dados e excluir a conta)
+
+A LGPD garante a quem tem conta, a qualquer momento e sem custo, o acesso aos dados, a portabilidade e a eliminação (art. 18, II, V e VI). Os dados devem ser eliminados quando o tratamento termina, mas podem ser guardados para cumprir obrigação legal (art. 16, I). O acesso pode ser dado na hora, em formato simplificado (art. 19, I). Fonte: [Lei 13.709/2018, no Planalto](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm); resumo da ANPD em [Direito dos titulares](https://www.gov.br/anpd/pt-br/assuntos/titular-de-dados-1/direito-dos-titulares).
+
+Como o Apto Rural atende, pela tela **Minha conta**:
+
+| Pedido | O que acontece |
+| --- | --- |
+| **Baixar meus dados** | Arquivo JSON na hora, com conta, créditos, compras, assinaturas, consultas, carteira, avisos e sessões abertas. Não inclui a senha nem chaves de acesso (são de segurança, não dados da pessoa). No modo "entrar como", o suporte não consegue baixar. |
+| **Excluir minha conta** | Pede a senha de novo e uma confirmação. Cancela a assinatura no Asaas antes de tudo (se falhar, nada é apagado). Depois apaga nome, e-mail, WhatsApp, profissão, senha, carteira, avisos, sessões e links de e-mail, e manda um comprovante para o e-mail antigo. |
+
+O que **fica guardado** e por quê:
+
+- **Compras e créditos** (valor, data, situação), ligados a uma conta sem nenhum dado pessoal. Motivo: os comprovantes das operações devem ser conservados até a prescrição dos tributos (Código Tributário Nacional, art. 195, parágrafo único, como lido no [Parecer PGFN nº 177/1993](https://normas.receita.fazenda.gov.br/sijut2consulta/link.action?visao=anotado&idAto=31062)). O Asaas guarda os dados de cobrança por conta própria.
+- **Relatórios já emitidos** (CAR, mapa e resultado), sem dono e sem o código do CPF/CNPJ do produtor, para que o QR que foi ao banco continue abrindo. Os dados são do imóvel, não da pessoa que consultou.
+- **Código irreversível do e-mail** (HMAC) da conta excluída, para que a mesma pessoa não apague e recrie a conta só para ganhar a amostra grátis de novo (prevenção a fraude).
+- **Registros de acesso do servidor** (logs da API) seguem o seu próprio prazo. O Marco Civil da Internet manda o provedor de aplicações que é pessoa jurídica guardar os registros de acesso por 6 meses (art. 15; texto em [Pensando o Direito/MJ](https://pensando.mj.gov.br/marcocivil/tema/registros-de-acesso/)).
+
+**A CONFIRMAR com advogado:** o prazo exato de guarda das compras, se guardar os relatórios sem dono e o código do e-mail está coberto pelas bases legais acima, e o canal do encarregado (art. 41) para pedidos que não passam pela tela (correção de dados, informação sobre compartilhamento etc.).
+
 ## Acesso administrativo aos dados dos clientes
 
 - O "entrar como" mostra os dados do cliente a quem tem papel de suporte ou administrador. É só leitura, dura até 1 hora e fica registrado na auditoria.

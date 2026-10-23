@@ -1,5 +1,7 @@
 import pg from 'pg';
-import type { Assinatura, Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
+import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em`;
 
@@ -235,7 +237,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
   }
 
   async buscarAssinatura(id: string) {
-    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    if (!UUID.test(id)) return null;
     const { rows } = await this.pool.query('SELECT * FROM assinatura WHERE id = $1', [id]);
     return rows[0] ? assinatura(rows[0]) : null;
   }
@@ -264,7 +266,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
   }
 
   async buscarPedido(id: string) {
-    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    if (!UUID.test(id)) return null;
     const { rows } = await this.pool.query('SELECT * FROM pedido WHERE id = $1', [id]);
     return rows[0] ? pedido(rows[0]) : null;
   }
@@ -284,6 +286,63 @@ export class RepositorioContasPostgres implements RepositorioContas {
       'INSERT INTO webhook_evento (id, provedor, payload) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING',
       [id, provedor, payload],
     );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async exportarDados(usuarioId: string): Promise<DadosDoTitular> {
+    const q = (sql: string) => this.pool.query(sql, [usuarioId]).then((r) => r.rows);
+    // Nunca sai: hash da senha e hashes de tokens (não são dados da pessoa, e sim chaves de segurança).
+    const [conta, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas] = await Promise.all([
+      q(`SELECT id, nome, email, whatsapp, profissao, papel, criado_em, aceite_termos_em, email_confirmado_em, bloqueado_em
+           FROM usuario WHERE id = $1`),
+      q('SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id'),
+      q(`SELECT id, produto, nome_produto, valor, status, provedor, criado_em, pago_em, assinatura_id
+           FROM pedido WHERE usuario_id = $1 ORDER BY criado_em`),
+      q(`SELECT id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, status,
+                criada_em, ativada_em, cancelada_em
+           FROM assinatura WHERE usuario_id = $1 ORDER BY criada_em`),
+      q(`SELECT id, cod_car, criada_em, data_referencia, resultado->>'veredito' AS veredito, dossie_liberado_em,
+                documento_hash IS NOT NULL AS consultou_cpf_cnpj, resultado
+           FROM consulta WHERE usuario_id = $1 ORDER BY criada_em`),
+      q(`SELECT id, cod_car, apelido, situacao_car, modulos_fiscais, uso_coletivo, criado_em, verificado_em
+           FROM imovel_monitorado WHERE usuario_id = $1 ORDER BY criado_em`),
+      q('SELECT id, imovel_id, consulta_id, alteracoes, criado_em, lido_em, emailado_em FROM aviso WHERE usuario_id = $1 ORDER BY criado_em'),
+      q(`SELECT criada_em, expira_em, personificado_por IS NOT NULL AS aberta_pelo_suporte
+           FROM sessao WHERE usuario_id = $1 AND expira_em > now() ORDER BY criada_em`),
+    ]);
+    return { conta: conta[0] ?? {}, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas };
+  }
+
+  async excluirConta(usuarioId: string, emailHash: string) {
+    const cliente = await this.pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      await cliente.query('INSERT INTO email_excluido (email_hash) VALUES ($1) ON CONFLICT DO NOTHING', [emailHash]);
+      // Só da pessoa: apaga (aviso e imóvel em cascata).
+      await cliente.query('DELETE FROM imovel_monitorado WHERE usuario_id = $1', [usuarioId]);
+      await cliente.query('DELETE FROM token_email WHERE usuario_id = $1', [usuarioId]);
+      await cliente.query('DELETE FROM sessao WHERE usuario_id = $1 OR personificado_por = $1', [usuarioId]);
+      // Consultas: o QR do relatório que foi ao banco continua abrindo, mas sem dono e sem o código do CPF/CNPJ.
+      await cliente.query('UPDATE consulta SET usuario_id = NULL, documento_hash = NULL WHERE usuario_id = $1', [usuarioId]);
+      // A linha fica (pedidos e créditos apontam para ela), sem nenhum dado pessoal.
+      await cliente.query(
+        `UPDATE usuario
+            SET nome = 'Conta excluída', email = 'excluida-' || id || '@excluida.invalid', whatsapp = NULL, profissao = NULL,
+                senha_hash = 'excluida', papel = 'usuario', excluida_em = now(), bloqueado_em = coalesce(bloqueado_em, now())
+          WHERE id = $1`,
+        [usuarioId],
+      );
+      await cliente.query('COMMIT');
+    } catch (e) {
+      await cliente.query('ROLLBACK');
+      throw e;
+    } finally {
+      cliente.release();
+    }
+  }
+
+  async emailJaExcluido(emailHash: string) {
+    const { rowCount } = await this.pool.query('SELECT 1 FROM email_excluido WHERE email_hash = $1', [emailHash]);
     return (rowCount ?? 0) > 0;
   }
 }

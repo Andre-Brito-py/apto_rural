@@ -112,4 +112,26 @@ export interface RepositorioContas {
 
   /** Guarda o evento do webhook. Retorna false se já tinha sido recebido. */
   registrarEvento(id: string, provedor: string, payload: unknown): Promise<boolean>;
+
+  /** Tudo o que guardamos sobre a pessoa, para ela baixar (LGPD, art. 18, II e V). */
+  exportarDados(usuarioId: string): Promise<DadosDoTitular>;
+  /**
+   * Exclusão pedida pelo titular (LGPD, art. 18, VI). Apaga os dados pessoais e o
+   * que é só dele (carteira, avisos, sessões, links); desliga as consultas da conta;
+   * mantém pedidos e créditos, que a lei manda guardar, ligados à conta anonimizada.
+   */
+  excluirConta(usuarioId: string, emailHash: string): Promise<void>;
+  /** true se este e-mail já pertenceu a uma conta excluída (sem amostra grátis de novo). */
+  emailJaExcluido(emailHash: string): Promise<boolean>;
+}
+
+export interface DadosDoTitular {
+  conta: Record<string, unknown>;
+  creditos: Record<string, unknown>[];
+  pedidos: Record<string, unknown>[];
+  assinaturas: Record<string, unknown>[];
+  consultas: Record<string, unknown>[];
+  carteira: Record<string, unknown>[];
+  avisos: Record<string, unknown>[];
+  sessoesAbertas: Record<string, unknown>[];
 }

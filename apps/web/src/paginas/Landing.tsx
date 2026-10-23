@@ -1,6 +1,6 @@
 import type { Status } from '@apto/regras';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api, type Plano, type Produto } from '../api';
 import { Icone, type NomeIcone } from '../componentes/Icones';
 import { SeloStatus } from '../componentes/SeloStatus';
@@ -146,6 +146,7 @@ function Vitrine() {
 export function Landing() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [planos, setPlanos] = useState<Plano[]>([]);
+  const [busca] = useSearchParams();
 
   useEffect(() => {
     api
@@ -160,6 +161,11 @@ export function Landing() {
 
   return (
     <div className="landing">
+      {busca.get('conta') === 'excluida' && (
+        <div className="aviso-excluida" role="status">
+          <div className="l-container">Sua conta foi excluída. Enviamos um comprovante para o seu e-mail.</div>
+        </div>
+      )}
       <section className="l-hero">
         <div className="l-container l-hero-grade">
           <div className="l-hero-texto">

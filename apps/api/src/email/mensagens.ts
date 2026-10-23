@@ -64,6 +64,23 @@ export function mensagemConfirmacao(nome: string, para: string, link: string): M
   };
 }
 
+/** Comprovante da exclusão, mandado para o e-mail antigo antes de ele ser apagado. */
+export function mensagemContaExcluida(nome: string, para: string, link: string): Mensagem {
+  const primeiro = nome.split(' ')[0];
+  const paragrafos = [
+    `Olá, ${primeiro}. Sua conta no Apto Rural foi excluída, como você pediu.`,
+    'Apagamos seu nome, e-mail, WhatsApp, profissão, senha, carteira de imóveis e avisos. Se havia assinatura, ela foi cancelada e não haverá novas cobranças.',
+    'Por obrigação legal, os registros das compras (valor, data e situação) ficam guardados pelo prazo da lei, sem seus dados de contato. Os relatórios já emitidos continuam abrindo pelo código QR, sem indicar quem os gerou.',
+  ];
+  const rodape = 'Se não foi você quem pediu a exclusão, responda a este e-mail.';
+  return {
+    para,
+    assunto: 'Sua conta no Apto Rural foi excluída',
+    texto: `${paragrafos.join('\n\n')}\n\n${rodape}`,
+    html: html('Conta excluída', paragrafos, { texto: 'Visitar o Apto Rural', link }, rodape),
+  };
+}
+
 export function mensagemRedefinirSenha(nome: string, para: string, link: string): Mensagem {
   const primeiro = nome.split(' ')[0];
   const paragrafos = [`Olá, ${primeiro}! Recebemos um pedido para criar uma nova senha na sua conta.`];
