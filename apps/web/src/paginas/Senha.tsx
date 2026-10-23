@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ErroApi } from '../api';
+import { EntradaSenha } from '../componentes/EntradaSenha';
 import { useSessao } from '../sessao';
 
 /** Abre pelo link do e-mail de confirmação. */
@@ -134,11 +135,8 @@ export function RedefinirSenha() {
         <p className="subtitulo">Ao salvar, você sai da conta em outros aparelhos.</p>
       </div>
       <form className="cartao" onSubmit={enviar} noValidate>
-        <label className="campo">
-          <span className="rotulo">Nova senha</span>
-          <input className="entrada" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
-          <span className="ajuda">Pelo menos 10 caracteres.</span>
-        </label>
+        <EntradaSenha rotulo="Nova senha" value={senha} onChange={setSenha} autoComplete="new-password" />
+        <span className="ajuda">Pelo menos 10 caracteres.</span>
         {erro && (
           <p className="alerta alerta-erro" role="alert" style={{ marginTop: 16 }}>
             {erro.mensagem} {erro.campo !== 'senha' && <Link to="/esqueci-senha">Pedir um novo link</Link>}

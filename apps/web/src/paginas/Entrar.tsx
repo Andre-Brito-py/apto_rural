@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ErroApi } from '../api';
+import { EntradaSenha } from '../componentes/EntradaSenha';
 import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 
@@ -145,24 +146,14 @@ export function Entrar() {
                 </label>
               </>
             )}
-            <label className="campo">
-              <span className="rotulo">Senha</span>
-              <input
-                className="entrada"
-                type="password"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                autoComplete={criar ? 'new-password' : 'current-password'}
-                required
-              />
-              {criar ? (
-                <span className="ajuda">Pelo menos 10 caracteres.</span>
-              ) : (
-                <Link to="/esqueci-senha" className="ajuda">
-                  Esqueci minha senha
-                </Link>
-              )}
-            </label>
+            <EntradaSenha rotulo="Senha" value={senha} onChange={setSenha} autoComplete={criar ? 'new-password' : 'current-password'} />
+            {criar ? (
+              <span className="ajuda">Pelo menos 10 caracteres.</span>
+            ) : (
+              <Link to="/esqueci-senha" className="ajuda">
+                Esqueci minha senha
+              </Link>
+            )}
             {criar && (
               <label className="marcar campo">
                 <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />

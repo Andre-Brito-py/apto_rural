@@ -11,6 +11,19 @@ import { hashEmail } from '../documento.js';
 import { contaEmUso } from '../equipe/conta.js';
 import { mensagemContaExcluida } from '../email/mensagens.js';
 
+/**
+ * Senha nova: sem espaço no começo nem no fim. Assim o login pode ignorar os
+ * espaços que vêm sem querer ao copiar e colar, sem confundir duas senhas.
+ */
+const senhaNova = z
+  .string()
+  .min(10, 'A senha precisa de pelo menos 10 caracteres.')
+  .max(200)
+  .refine((s) => s === s.trim(), 'A senha não pode começar nem terminar com espaço.');
+
+/** Senha digitada para entrar ou confirmar: espaços nas pontas são ignorados (copiar e colar). */
+const senhaDigitada = (vazia: string) => z.string().max(200).trim().min(1, vazia);
+
 const cadastro = z.object({
   nome: z.string().trim().min(2, 'Informe seu nome.').max(120),
   email: z.string().trim().email('E-mail inválido.').max(200),
@@ -21,20 +34,20 @@ const cadastro = z.object({
     .refine((v) => v === '' || (v.length >= 10 && v.length <= 13), 'WhatsApp inválido.')
     .optional(),
   profissao: z.string().trim().max(80).optional(),
-  senha: z.string().min(10, 'A senha precisa de pelo menos 10 caracteres.').max(200),
+  senha: senhaNova,
   aceiteTermos: z.literal(true, { error: 'É preciso aceitar os termos de uso e a política de privacidade.' }),
 });
 
 const entrada = z.object({
   email: z.string().trim().email('E-mail inválido.'),
-  senha: z.string().min(1, 'Informe a senha.').max(200),
+  senha: senhaDigitada('Informe a senha.'),
 });
 
 const LIMITE_LOGIN = { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } };
 const LIMITE_EMAIL = { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } };
 
 const comToken = z.object({ token: z.string().min(20).max(200) });
-const redefinir = comToken.extend({ senha: z.string().min(10, 'A senha precisa de pelo menos 10 caracteres.').max(200) });
+const redefinir = comToken.extend({ senha: senhaNova });
 
 export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   const tentativas = new TentativasLogin();
@@ -194,7 +207,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   });
 
   const exclusao = z.object({
-    senha: z.string().min(1, 'Informe sua senha para confirmar.').max(200),
+    senha: senhaDigitada('Informe sua senha para confirmar.'),
     confirmo: z.literal(true, { error: 'Marque que entende o que acontece com a exclusão.' }),
   });
 

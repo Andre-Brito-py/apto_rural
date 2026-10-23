@@ -75,6 +75,18 @@ describe('contas', () => {
     expect(r2.statusCode).toBe(400);
   });
 
+  it('login ignora espaços nas pontas da senha (copiar e colar); cadastro não aceita senha com espaço nas pontas', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: ' TECNICO@exemplo.com ', senha: '  senha-bem-longa \n' } });
+    expect(r.statusCode).toBe(200);
+    const comEspaco = await app.inject({
+      method: 'POST',
+      url: '/v1/conta',
+      payload: { nome: 'Com Espaço', email: 'espaco@exemplo.com', senha: 'senha-bem-longa ', aceiteTermos: true },
+    });
+    expect(comEspaco.statusCode).toBe(400);
+    expect(comEspaco.json().erro.mensagem).toMatch(/espaço/);
+  });
+
   it('senha errada e e-mail inexistente têm a mesma resposta', async () => {
     const a = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'errada-errada' } });
     const b = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'ninguem@exemplo.com', senha: 'errada-errada' } });

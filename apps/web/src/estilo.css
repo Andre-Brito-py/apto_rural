@@ -134,7 +134,19 @@ a { color: var(--marca); text-underline-offset: 2px; }
 .entrada:hover { border-color: #b9b4a4; }
 .entrada:focus { border-color: var(--marca); outline: none; box-shadow: 0 0 0 4px rgb(20 83 45 / 0.12); }
 .entrada[aria-invalid='true'] { border-color: var(--impedimento); }
-.entrada-car { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; letter-spacing: 0.02em; text-transform: uppercase; font-size: 0.95rem; }
+/* Campo de senha com o botão "Mostrar" dentro, à direita */
+.entrada-senha { position: relative; }
+.entrada-senha .entrada { padding-right: 112px; }
+.ver-senha {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px;
+  font: inherit; font-size: 0.85rem; font-weight: 650; color: var(--marca-forte);
+  background: var(--papel); border: 1px solid var(--linha); border-radius: 8px; cursor: pointer;
+}
+.ver-senha:hover { border-color: var(--marca); }
+.ver-senha svg { width: 18px; height: 18px; }
+.aviso-caps { color: var(--atencao); font-weight: 650; }
+.entrada-car {font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; letter-spacing: 0.02em; text-transform: uppercase; font-size: 0.95rem; }
 
 .opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; border: 0; padding: 0; margin: 0; }
 .opcao { position: relative; }

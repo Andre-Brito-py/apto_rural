@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, type Pedido } from '../api';
+import { EntradaSenha } from '../componentes/EntradaSenha';
 import { Icone } from '../componentes/Icones';
 import { NOME_PAPEL } from './Equipe';
 import { useSessao } from '../sessao';
@@ -54,10 +55,7 @@ function ExcluirConta({ aoCancelar }: { aoCancelar: () => void }) {
         </li>
       </ul>
       <p className="fonte-suave">Antes de excluir, se quiser, baixe seus dados.</p>
-      <label className="campo">
-        <span className="rotulo">Sua senha</span>
-        <input className="entrada" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required />
-      </label>
+      <EntradaSenha rotulo="Sua senha" value={senha} onChange={setSenha} autoComplete="current-password" />
       <label className="marcar">
         <input type="checkbox" checked={entendo} onChange={(e) => setEntendo(e.target.checked)} />
         <span>Entendo que a exclusão não pode ser desfeita.</span>

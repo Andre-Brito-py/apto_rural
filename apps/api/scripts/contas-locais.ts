@@ -10,7 +10,7 @@
  * Uso (com o banco local rodando e as bases carregadas):
  *   npm run contas-locais -w @apto/api
  */
-import { randomBytes } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import pg from 'pg';
@@ -35,8 +35,13 @@ const CONTAS = {
   tecnica: { nome: 'Bia Técnica', email: 'tecnica@apto.local' },
 };
 
-/** Senha legível e forte, nova a cada execução. */
-const novaSenha = () => `local-${randomBytes(6).toString('base64url')}-${randomBytes(6).toString('base64url')}`;
+/**
+ * Senha nova a cada execução, fácil de ler e digitar: só maiúsculas e números que
+ * não se confundem (sem I, L, O, 0 e 1), em três blocos. Ex.: Apto-7KQ3-M9XF-2HTP.
+ */
+const SEM_AMBIGUIDADE = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const bloco = () => Array.from({ length: 4 }, () => SEM_AMBIGUIDADE[randomInt(SEM_AMBIGUIDADE.length)]).join('');
+const novaSenha = () => `Apto-${bloco()}-${bloco()}-${bloco()}`;
 const cookieDe = (r: { headers: Record<string, unknown> }) => String(r.headers['set-cookie']).split(';')[0]!;
 
 /** Cria a conta ou troca a senha da que já existe; deixa o e-mail confirmado. Devolve id e cookie de sessão. */
@@ -106,6 +111,7 @@ async function main() {
     [
       'ACESSO LOCAL DO APTO RURAL — só para o seu computador. Não envie a ninguém nem ao GitHub.',
       `Gerado em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}. Rodar o script de novo troca as senhas.`,
+      'A senha tem só letras maiúsculas, números e hífens. No login, use o botão "Mostrar" para conferir o que foi digitado.',
       '',
       `Site: ${config.webOrigin}`,
       '',
