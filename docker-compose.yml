@@ -7,7 +7,8 @@ services:
       POSTGRES_DB: apto_rural
     ports:
       # 5433 no host: evita conflito com um PostgreSQL já instalado na máquina.
-      - "${APTO_DB_PORTA:-5433}:5432"
+      # 127.0.0.1: só este computador acessa (a senha "apto" não fica exposta na rede).
+      - "127.0.0.1:${APTO_DB_PORTA:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     # As tabelas são criadas por "npm run migrar -w @apto/api" (o mesmo executor da produção).

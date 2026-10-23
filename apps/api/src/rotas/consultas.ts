@@ -32,7 +32,8 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     atualizacoes: ctx.banco ? await ctx.banco.atualizacoes() : ctx.demo ? await ctx.demo.atualizacoes() : {},
   }));
 
-  app.post('/v1/consultas', async (req, reply) => {
+  // Contornos de fazendas grandes passam de 1 MB (o padrão do Fastify).
+  app.post('/v1/consultas', { bodyLimit: 8 * 1024 * 1024 }, async (req, reply) => {
     const corpo = novaConsulta.safeParse(req.body);
     if (!corpo.success) {
       const p = corpo.error.issues[0]!;

@@ -103,3 +103,4 @@ docker compose -f docker-compose.prod.yml exec backup sh -c \
 - **Não troque** o `DOCUMENTO_HASH_SECRET` depois de carregar o cadastro do MTE. Se trocar, rode o coletor do MTE de novo com `--forcar`.
 - Em produção a API se recusa a subir sem banco e sem as chaves do Asaas, e o modo demonstração fica desligado.
 - Os backups ficam no próprio servidor. Para segurança extra, copie-os periodicamente para fora dele.
+- Antes de lançar, faça a lista "O que depende de você" de [seguranca.md](seguranca.md) (duas etapas nas contas, SSH só por chave, firewall com 22, 80 e 443).

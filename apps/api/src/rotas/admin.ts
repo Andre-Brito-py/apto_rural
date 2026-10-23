@@ -50,7 +50,7 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
     return u;
   }
 
-  const idValido = (id: string) => /^[0-9a-f-]{36}$/i.test(id);
+  const idValido = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
   // ---- consulta (suporte e admin) ----
 

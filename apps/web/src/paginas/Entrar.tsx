@@ -18,7 +18,9 @@ export function Entrar() {
   const [enviando, setEnviando] = useState(false);
   const { definir } = useSessao();
   const navegar = useNavigate();
-  const destino = busca.get('voltar') ?? '/';
+  // Só caminhos deste site: "//outro.com" ou "/\outro.com" levariam para fora (golpe de phishing).
+  const pedido = busca.get('voltar') ?? '/';
+  const destino = /^\/(?![/\\])/.test(pedido) ? pedido : '/';
 
   async function enviar(ev: FormEvent) {
     ev.preventDefault();
@@ -30,7 +32,7 @@ export function Entrar() {
           ? await api.entrar(email, senha)
           : await api.criarConta({ nome, email, whatsapp: whatsapp || undefined, profissao: profissao || undefined, senha, aceiteTermos: aceite });
       definir(sessao);
-      navegar(destino.startsWith('/') ? destino : '/', { replace: true });
+      navegar(destino, { replace: true });
     } catch (e) {
       const err = e as ErroApi;
       setErro({ mensagem: err.message, campo: err.campo });

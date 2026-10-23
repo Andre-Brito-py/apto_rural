@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 
 export interface Mensagem {
   para: string;
@@ -13,7 +13,7 @@ export interface Enviador {
 
 /** SMTP: funciona com qualquer provedor (Brevo, Amazon SES, Resend, Workspace…). */
 export class EnviadorSmtp implements Enviador {
-  private transporte: nodemailer.Transporter;
+  private transporte: Transporter;
 
   constructor(
     opcoes: { host: string; porta: number; usuario?: string; senha?: string },

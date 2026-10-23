@@ -1,9 +1,11 @@
+import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../contas/senha.js';
 import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
 import { enviarLinkEmail } from '../contas/links.js';
+import { TentativasLogin } from '../contas/tentativas.js';
 import { COOKIE_SESSAO, erro, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 
 const cadastro = z.object({
@@ -32,6 +34,9 @@ const comToken = z.object({ token: z.string().min(20).max(200) });
 const redefinir = comToken.extend({ senha: z.string().min(10, 'A senha precisa de pelo menos 10 caracteres.').max(200) });
 
 export function rotasContas(app: FastifyInstance, ctx: Contexto) {
+  const tentativas = new TentativasLogin();
+  // Conferir contra um hash qualquer quando o e-mail não existe gasta o mesmo tempo do scrypt.
+  const hashFalso = gerarHashSenha(randomBytes(16).toString('hex'));
   async function abrirSessao(usuarioId: string, reply: Parameters<typeof erro>[0]) {
     const { token, hash } = novoTokenSessao();
     const expira = new Date(Date.now() + config.sessaoDias * 24 * 3600 * 1000);
@@ -79,11 +84,18 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   app.post('/v1/sessao', LIMITE_LOGIN, async (req, reply) => {
     const corpo = entrada.safeParse(req.body);
     if (!corpo.success) return erro(reply, 400, corpo.error.issues[0]!.message);
-    const u = await ctx.contas.buscarPorEmail(corpo.data.email);
-    // Mesma mensagem para e-mail inexistente e senha errada.
-    if (!u || !(await conferirSenha(corpo.data.senha, u.senhaHash))) {
+    const { email, senha } = corpo.data;
+    if (tentativas.bloqueado(email)) {
+      return erro(reply, 429, 'Muitas tentativas com este e-mail. Aguarde 15 minutos ou crie uma nova senha.');
+    }
+    const u = await ctx.contas.buscarPorEmail(email);
+    // Mesma mensagem e o mesmo tempo de resposta para e-mail inexistente e senha errada.
+    const certa = await conferirSenha(senha, u?.senhaHash ?? (await hashFalso));
+    if (!u || !certa) {
+      tentativas.falhou(email);
       return erro(reply, 401, 'E-mail ou senha incorretos.');
     }
+    tentativas.acertou(email);
     // Só depois da senha certa, para não revelar quais contas estão bloqueadas.
     if (u.bloqueado) return erro(reply, 403, 'Esta conta está bloqueada. Fale com o suporte do Apto Rural.');
     await abrirSessao(u.id, reply);
@@ -148,6 +160,8 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     const usuarioId = await ctx.contas.consumirTokenEmail(hashToken(corpo.data.token), 'senha');
     if (!usuarioId) return erro(reply, 400, 'Este link é inválido, já foi usado ou venceu. Peça um novo.');
     await ctx.contas.definirSenha(usuarioId, await gerarHashSenha(corpo.data.senha));
+    const dono = await ctx.contas.buscarPorId(usuarioId);
+    if (dono) tentativas.acertou(dono.email);
     // Senha nova derruba as sessões abertas em outros aparelhos.
     await ctx.contas.apagarSessoesDoUsuario(usuarioId);
     // Quem recebeu o link no e-mail provou que ele é seu.

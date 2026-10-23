@@ -146,7 +146,7 @@ export class RepositorioPostgis implements Repositorio {
   }
 
   async buscar(id: string): Promise<ConsultaSalva | null> {
-    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
     const { rows } = await this.pool.query(
       `SELECT id, usuario_id, criada_em, resultado, dossie_liberado_em, ST_AsGeoJSON(geom)::json AS geometria
          FROM consulta WHERE id = $1`,

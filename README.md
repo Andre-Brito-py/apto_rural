@@ -351,6 +351,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Painel administrativo com papéis (suporte e administrador), ficha do usuário, "entrar como", bloqueio, auditoria e monitoramento de erros com alerta por e-mail.
 - [x] Carteira de fazendas com reconferência diária e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
 - [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
+- [x] Revisão de segurança antes do lançamento: bibliotecas sem falhas conhecidas, freio de tentativas de senha, proteções do navegador e faxina diária de dados vencidos (veja [docs/seguranca.md](docs/seguranca.md)).
 
 **Falta para lançar**
 
@@ -359,6 +360,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [ ] Revisão de um advogado: termos de uso, privacidade (LGPD) e linguagem do dossiê.
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
+- [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.
 
 **Depois do lançamento**
 
@@ -389,4 +391,5 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 | [docs/frontend.md](docs/frontend.md) | Decisões de interface para o técnico do campo. |
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
+| [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |

@@ -45,9 +45,13 @@ async function main() {
         AND NOT EXISTS (SELECT 1 FROM funai_ti f WHERE ST_Intersects(f.geom, t.geom))
         AND NOT EXISTS (SELECT 1 FROM cnuc_uc u WHERE ST_Intersects(u.geom, t.geom))
         AND NOT EXISTS (SELECT 1 FROM sfb_floresta_tipo_b s WHERE ST_Intersects(s.geom, t.geom))
+        -- Fazendas que já estão na carteira de alguém (ex.: testes manuais) mudariam junto.
+        AND NOT EXISTS (SELECT 1 FROM imovel_monitorado m WHERE m.cod_car = t.cod_car)
       ORDER BY md5(t.cod_car) LIMIT 2`,
   );
   assert.equal(fazendas.length, 2, 'amostra sem fazendas suficientes');
+  // Acerta antes as carteiras que já existem no banco, para contar só as do teste.
+  await monitorarCarteira(ctx);
 
   for (const [i, f] of fazendas.entries()) {
     const c = await app.inject({ method: 'POST', url: '/v1/consultas', headers: { cookie }, payload: { car: f.cod_car, geometria: f.geojson } });
@@ -94,8 +98,11 @@ async function main() {
   console.log('✓ segunda rodada: sem aviso repetido');
 
   // 4) Virada de data do Prodes para imóveis de 4 a 15 MF (01/07/2027).
-  r = await monitorarCarteira(ctx, '2027-07-01');
-  assert.equal(r.comMudanca, 2, 'as duas fazendas estão na lista do MMA e passam a impedimento');
+  // A virada vale para todas as carteiras do banco; conta só os avisos novos da conta de teste.
+  const antes = (await pool.query('SELECT count(*)::int AS n FROM aviso WHERE usuario_id = $1', [usuarioId])).rows[0].n;
+  await monitorarCarteira(ctx, '2027-07-01');
+  const depois = (await pool.query('SELECT count(*)::int AS n FROM aviso WHERE usuario_id = $1', [usuarioId])).rows[0].n;
+  assert.equal(depois - antes, 2, 'as duas fazendas estão na lista do MMA e passam a impedimento');
   console.log('✓ em 01/07/2027 o Prodes vira impedimento nas duas fazendas');
 }
 

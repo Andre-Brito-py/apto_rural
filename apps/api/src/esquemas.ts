@@ -1,12 +1,24 @@
 import { z } from 'zod';
 
-const posicao = z.tuple([z.number(), z.number()]).rest(z.number());
+/** Teto de vértices por imóvel: sobra para qualquer CAR e barra geometrias feitas para travar o banco. */
+export const MAX_PONTOS_GEOMETRIA = 100_000;
+
+const posicao = z
+  .tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)])
+  .rest(z.number());
 const anel = z.array(posicao).min(4);
 
-export const geometriaImovel = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('Polygon'), coordinates: z.array(anel).min(1) }),
-  z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(z.array(anel).min(1)).min(1) }),
-]);
+const contarPontos = (poligonos: unknown[][][]) => poligonos.reduce((t, p) => t + p.reduce((s, a) => s + a.length, 0), 0);
+
+export const geometriaImovel = z
+  .discriminatedUnion('type', [
+    z.object({ type: z.literal('Polygon'), coordinates: z.array(anel).min(1).max(1000) }),
+    z.object({ type: z.literal('MultiPolygon'), coordinates: z.array(z.array(anel).min(1).max(1000)).min(1).max(1000) }),
+  ])
+  .refine(
+    (g) => contarPontos(g.type === 'Polygon' ? [g.coordinates] : g.coordinates) <= MAX_PONTOS_GEOMETRIA,
+    `O contorno do imóvel tem pontos demais (máximo ${MAX_PONTOS_GEOMETRIA.toLocaleString('pt-BR')}).`,
+  );
 
 export const novaConsulta = z
   .object({

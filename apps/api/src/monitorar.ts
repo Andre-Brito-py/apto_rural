@@ -102,10 +102,12 @@ async function rodar(ctx: Contexto) {
   const inicio = Date.now();
   const r = await monitorarCarteira(ctx);
   const basesComProblema = await verificarBases(ctx);
+  const limpos = await ctx.admin?.limparVencidos();
   console.log(
     `[${new Date().toISOString()}] Carteira: ${r.imoveis} imóveis reconferidos, ${r.comMudanca} com mudança, ` +
       `${r.falhas} falhas, ${r.emails} e-mails, em ${Math.round((Date.now() - inicio) / 1000)}s. ` +
-      `Bases com problema: ${basesComProblema}.`,
+      `Bases com problema: ${basesComProblema}.` +
+      (limpos ? ` Limpeza: ${limpos.sessoes} sessões, ${limpos.tokens} links e ${limpos.erros} erros antigos.` : ''),
   );
   await ctx.erros.enviarAgora();
 }

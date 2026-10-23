@@ -48,7 +48,9 @@ export function criarContexto(): Contexto {
 export function criarServidor(ctx: Contexto = criarContexto()) {
   const app = Fastify({
     logger: { level: process.env.LOG_LEVEL ?? 'info', redact: ['req.headers.cookie', 'req.headers["asaas-access-token"]'] },
-    trustProxy: config.producao,
+    // Só confia no Caddy, que fala com a API pela rede interna do Docker (endereços privados).
+    // Um X-Forwarded-For forjado pelo visitante não engana o limite de tentativas.
+    trustProxy: config.producao ? 'loopback,uniquelocal' : false,
   });
   app.register(cors, { origin: config.webOrigin, credentials: true });
   app.register(cookie);
@@ -84,7 +86,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
       cacheControl: false, // o cabeçalho é definido abaixo
       // Arquivos em assets/ têm hash no nome: podem ficar em cache por muito tempo.
       setHeaders: (res, caminho) => {
-        res.setHeader('Cache-Control', /[\\/]assets[\\/]/.test(caminho) ? 'public, max-age=31536000, immutable' : 'no-cache');
+        res.header('Cache-Control', /[\\/]assets[\\/]/.test(caminho) ? 'public, max-age=31536000, immutable' : 'no-cache');
       },
     });
     app.setNotFoundHandler((req, reply) => {

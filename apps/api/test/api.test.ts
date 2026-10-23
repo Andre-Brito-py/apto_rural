@@ -417,3 +417,69 @@ describe('consultas', () => {
     expect(r.statusCode).toBe(503);
   });
 });
+
+/** Quadrado com `n` vértices no contorno, perto de Cuiabá. */
+function poligono(n: number, deslocar = 0) {
+  const anel = Array.from({ length: n }, (_, i) => {
+    const t = (2 * Math.PI * i) / n;
+    return [-56.1 + 0.01 * Math.cos(t) + deslocar, -15.6 + 0.01 * Math.sin(t)];
+  });
+  anel.push(anel[0]!);
+  return { type: 'Polygon', coordinates: [anel] };
+}
+
+describe('segurança', () => {
+  it('senha errada demais no mesmo e-mail trava o login, mesmo trocando de IP', async () => {
+    const { app } = servidorComEmail();
+    await novaConta(app, 'alvo@exemplo.com');
+    for (let i = 0; i < 8; i++) {
+      const r = await app.inject({ method: 'POST', url: '/v1/sessao', remoteAddress: `10.0.0.${i}`, payload: { email: 'alvo@exemplo.com', senha: 'chute-errado' } });
+      expect(r.statusCode).toBe(401);
+    }
+    const certa = await app.inject({ method: 'POST', url: '/v1/sessao', remoteAddress: '10.0.1.1', payload: { email: 'ALVO@exemplo.com', senha: 'senha-bem-longa' } });
+    expect(certa.statusCode).toBe(429);
+    // Outro e-mail segue normal.
+    const outro = await app.inject({ method: 'POST', url: '/v1/sessao', remoteAddress: '10.0.1.1', payload: { email: 'outro@exemplo.com', senha: 'chute-errado' } });
+    expect(outro.statusCode).toBe(401);
+  });
+
+  it('o freio por e-mail some depois da janela de 15 minutos', async () => {
+    const { TentativasLogin } = await import('../src/contas/tentativas.js');
+    let agora = 0;
+    const t = new TentativasLogin(() => agora);
+    for (let i = 0; i < 8; i++) t.falhou('a@b.com');
+    expect(t.bloqueado('A@B.com')).toBe(true);
+    agora += 16 * 60 * 1000;
+    expect(t.bloqueado('a@b.com')).toBe(false);
+  });
+
+  it('recusa coordenadas fora do planeta e contornos com pontos demais', async () => {
+    const app = criarServidor();
+    const fora = await app.inject({
+      method: 'POST',
+      url: '/v1/consultas',
+      payload: { car: CARS_DEMO.limpo, geometria: { type: 'Polygon', coordinates: [[[0, 0], [500, 0], [0, 1], [0, 0]]] } },
+    });
+    expect(fora.statusCode).toBe(400);
+    const enorme = await app.inject({ method: 'POST', url: '/v1/consultas', payload: { car: CARS_DEMO.limpo, geometria: poligono(100_001) } });
+    expect(enorme.statusCode).toBe(400);
+  });
+
+  it('aceita contorno de fazenda grande (mais de 1 MB)', async () => {
+    const app = criarServidor();
+    const corpo = JSON.stringify({ car: CARS_DEMO.limpo, geometria: poligono(60_000) });
+    expect(corpo.length).toBeGreaterThan(1024 * 1024);
+    const r = await app.inject({ method: 'POST', url: '/v1/consultas', headers: { 'content-type': 'application/json' }, payload: corpo });
+    expect(r.statusCode).not.toBe(413);
+  });
+
+  it('erro interno não vaza detalhes para quem chamou', async () => {
+    const app = criarServidor();
+    app.get('/v1/teste-falha', async () => {
+      throw new Error('senha do banco: segredo');
+    });
+    const r = await app.inject({ method: 'GET', url: '/v1/teste-falha' });
+    expect(r.statusCode).toBe(500);
+    expect(r.body).not.toContain('segredo');
+  });
+});

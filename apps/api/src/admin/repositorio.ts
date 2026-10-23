@@ -68,6 +68,19 @@ export class RepositorioAdmin {
     };
   }
 
+  /**
+   * Faxina diária: sessões vencidas, links de e-mail usados ou vencidos há mais
+   * de 7 dias e erros com mais de 90 dias. Guardar menos é parte da LGPD (art. 15).
+   */
+  async limparVencidos(): Promise<{ sessoes: number; tokens: number; erros: number }> {
+    const sessoes = await this.pool.query('DELETE FROM sessao WHERE expira_em < now()');
+    const tokens = await this.pool.query(
+      `DELETE FROM token_email WHERE COALESCE(usado_em, expira_em) < now() - interval '7 days'`,
+    );
+    const erros = await this.pool.query(`DELETE FROM erro_registro WHERE quando < now() - interval '90 days'`);
+    return { sessoes: sessoes.rowCount ?? 0, tokens: tokens.rowCount ?? 0, erros: erros.rowCount ?? 0 };
+  }
+
   async saudeBases(): Promise<SaudeBase[]> {
     const { rows } = await this.pool.query(
       `SELECT fonte_id, registros, referencia_em, conferido_em,
