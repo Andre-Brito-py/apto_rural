@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { api, type ErroRegistrado, type PainelResumo, type RegistroAuditoria, type UsuarioAdmin } from '../api';
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
+import { ConfiguracoesPainel } from './ConfiguracoesPainel';
 
 export const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const dataHora = (iso: string | null) =>
@@ -139,28 +140,78 @@ export function Admin() {
                 <th>Produto</th>
                 <th>Valor</th>
                 <th>Situação</th>
+                {nivel === 'admin' && <th />}
               </tr>
             </thead>
             <tbody>
               {pedidos.map((p) => (
                 <tr key={p.id}>
                   <td>{dataHora(p.criadoEm)}</td>
-                  <td>{p.email}</td>
+                  <td>
+                    <Link to={`/admin/usuarios/${p.usuarioId}`}>{p.email}</Link>
+                  </td>
                   <td>{p.produto}</td>
                   <td>{reais(p.valor)}</td>
                   <td>
-                    {p.status}
+                    {SITUACAO_PEDIDO[p.status] ?? p.status}
                     {p.provedor === 'simulado' ? ' (simulado)' : ''}
+                    {p.motivoEstorno && <span className="fonte-suave"> — {p.motivoEstorno}</span>}
                   </td>
+                  {nivel === 'admin' && (
+                    <td>
+                      {p.status === 'pago' && (
+                        <button type="button" className="link-botao" onClick={() => estornar(p)}>
+                          Estornar
+                        </button>
+                      )}
+                      {p.status === 'pendente' && (
+                        <button type="button" className="link-botao" onClick={() => cancelar(p)}>
+                          Cancelar
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+
+      <ConfiguracoesPainel podeAlterar={nivel === 'admin'} />
     </div>
   );
+
+  async function estornar(p: { id: string; email: string; valor: number; produto: string }) {
+    const motivo = window.prompt(
+      `Estornar ${reais(p.valor)} (${p.produto}) de ${p.email}?\nO dinheiro volta pelo Asaas e os créditos do pacote saem da conta (o saldo pode ficar negativo).\n\nMotivo:`,
+    );
+    if (!motivo) return;
+    try {
+      await api.admin.estornar(p.id, motivo);
+      await carregar();
+    } catch (e) {
+      setFalha((e as Error).message);
+    }
+  }
+
+  async function cancelar(p: { id: string; email: string; valor: number }) {
+    if (!window.confirm(`Cancelar a cobrança pendente de ${reais(p.valor)} de ${p.email}?`)) return;
+    try {
+      await api.admin.cancelarPedido(p.id);
+      await carregar();
+    } catch (e) {
+      setFalha((e as Error).message);
+    }
+  }
 }
+
+const SITUACAO_PEDIDO: Record<string, string> = {
+  pendente: 'Aguardando pagamento',
+  pago: 'Pago',
+  estornado: 'Estornado',
+  cancelado: 'Cancelado',
+};
 
 function Indicador({ titulo, valor, detalhe, alerta }: { titulo: string; valor: number | string; detalhe: string; alerta?: boolean }) {
   return (
@@ -182,11 +233,16 @@ export const NOME_ACAO: Record<string, string> = {
   desbloqueou: 'Desbloqueou a conta',
   mudou_papel: 'Mudou o papel',
   reenviou_confirmacao: 'Reenviou a confirmação de e-mail',
+  estornou_pedido: 'Estornou um pedido',
+  cancelou_pedido: 'Cancelou um pedido',
+  mudou_configuracao: 'Mudou uma configuração',
 };
 
 export function descreverDetalhes(d: Record<string, unknown>): string {
+  // Mudança de configuração guarda o antes e o depois inteiros: mostra só a chave.
+  if (d.chave && ('antes' in d || 'depois' in d)) return `configuração: ${String(d.chave)}`;
   return Object.entries(d)
-    .map(([k, v]) => `${k}: ${String(v)}`)
+    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
     .join(' · ');
 }
 

@@ -15,11 +15,16 @@ function paraCliente(c: ConsultaSalva, usuarioId?: string) {
 }
 
 export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
-  app.get('/v1/saude', async () => ({
-    ok: true,
-    banco: ctx.banco != null,
-    demo: ctx.demo != null ? CARS_DEMO : null,
-  }));
+  app.get('/v1/saude', async () => {
+    const aviso = (await ctx.config.obter()).aviso_site;
+    return {
+      ok: true,
+      banco: ctx.banco != null,
+      demo: ctx.demo != null ? CARS_DEMO : null,
+      // Aviso no topo do site, definido pelo painel (ex.: manutenção, novidade).
+      aviso: aviso.ativo && aviso.texto ? { texto: aviso.texto, tipo: aviso.tipo } : null,
+    };
+  });
 
   app.get('/v1/regras', async () => ({
     regras: REGRAS.map(({ id, titulo, pergunta, normas, fontes }) => ({ id, titulo, pergunta, normas, fontes })),

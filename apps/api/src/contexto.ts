@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { hashToken } from './contas/senha.js';
 import type { RepositorioAdmin } from './admin/repositorio.js';
 import type { RepositorioCarteira } from './carteira/repositorio.js';
+import type { Configuracoes } from './configuracoes.js';
 import type { RegistroErros } from './monitoramento/erros.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { Enviador } from './email/enviador.js';
@@ -20,6 +21,8 @@ export interface Contexto {
   /** Carteira de imóveis acompanhados; null sem banco. */
   carteira: RepositorioCarteira | null;
   erros: RegistroErros;
+  /** Preços, limites e aviso do site, editáveis pelo painel. */
+  config: Configuracoes;
   /** Consultas do painel administrativo; null sem banco. */
   admin: RepositorioAdmin | null;
 }

@@ -5,6 +5,8 @@ import { enviarLinkEmail } from '../contas/links.js';
 import { hashToken, novoTokenSessao } from '../contas/senha.js';
 import type { Usuario } from '../contas/tipos.js';
 import { config } from '../config.js';
+import { ErroConfiguracao, ESQUEMAS, type ChaveConfig } from '../configuracoes.js';
+import { aplicarEvento } from '../pagamentos/aplicar.js';
 import { COOKIE_SESSAO, erro, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto, type NivelAdmin } from '../contexto.js';
 
 /** "Entrar como" vale por pouco tempo. */
@@ -182,6 +184,76 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
     await ctx.admin!.definirPapel(alvo.id, corpo.data.papel);
     await ctx.admin!.auditar(admin.id, 'mudou_papel', alvo.id, { de: alvo.papel, para: corpo.data.papel });
     return { ok: true };
+  });
+
+  // ---- pedidos: estorno e cancelamento (só admin) ----
+
+  app.post<{ Params: { id: string } }>('/v1/admin/pedidos/:id/estornar', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    const corpo = comMotivo.safeParse(req.body);
+    if (!corpo.success) return erro(reply, 400, corpo.error.issues[0]!.message);
+    const pedido = await ctx.contas.buscarPedido(req.params.id);
+    if (!pedido) return erro(reply, 404, 'Pedido não encontrado.');
+    if (pedido.status !== 'pago') return erro(reply, 409, 'Só dá para estornar pedido pago.');
+    if (!ctx.pagamento || ctx.pagamento.nome !== pedido.provedor || !pedido.provedorId) {
+      return erro(reply, 409, 'Este pedido foi pago por outro meio; estorne pelo painel do provedor.');
+    }
+    try {
+      await ctx.pagamento.estornar(pedido.provedorId, `Apto Rural: ${corpo.data.motivo}`);
+    } catch (e) {
+      return erro(
+        reply,
+        502,
+        `O Asaas recusou o estorno: ${(e as Error).message}. Boleto pago e Pix sem saldo na conta precisam ser estornados pelo painel do Asaas.`,
+      );
+    }
+    // Retira os créditos já; o webhook PAYMENT_REFUNDED, quando chegar, não lança de novo.
+    await aplicarEvento(ctx.contas, pedido, 'estornado');
+    await ctx.admin!.registrarMotivoEstorno(pedido.id, corpo.data.motivo);
+    await ctx.admin!.auditar(admin.id, 'estornou_pedido', pedido.usuarioId, { pedido: pedido.id, valor: pedido.valor, motivo: corpo.data.motivo });
+    return { ok: true, saldo: await ctx.contas.saldo(pedido.usuarioId) };
+  });
+
+  app.post<{ Params: { id: string } }>('/v1/admin/pedidos/:id/cancelar', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    const pedido = await ctx.contas.buscarPedido(req.params.id);
+    if (!pedido) return erro(reply, 404, 'Pedido não encontrado.');
+    if (pedido.status !== 'pendente') return erro(reply, 409, 'Só dá para cancelar pedido que ainda não foi pago.');
+    if (ctx.pagamento && ctx.pagamento.nome === pedido.provedor && pedido.provedorId) {
+      try {
+        await ctx.pagamento.cancelar(pedido.provedorId);
+      } catch (e) {
+        return erro(reply, 502, `O Asaas recusou o cancelamento: ${(e as Error).message}`);
+      }
+    }
+    await aplicarEvento(ctx.contas, pedido, 'cancelado');
+    await ctx.admin!.auditar(admin.id, 'cancelou_pedido', pedido.usuarioId, { pedido: pedido.id, valor: pedido.valor });
+    return { ok: true };
+  });
+
+  // ---- configurações do negócio (ver: suporte; mudar: admin) ----
+
+  app.get('/v1/admin/configuracoes', async (req, reply) => {
+    if (!(await exigir(req, reply, 'suporte'))) return reply;
+    return ctx.config.obter();
+  });
+
+  app.put<{ Params: { chave: string } }>('/v1/admin/configuracoes/:chave', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    const chave = req.params.chave as ChaveConfig;
+    if (!(chave in ESQUEMAS)) return erro(reply, 404, 'Configuração desconhecida.');
+    const antes = (await ctx.config.obter())[chave];
+    try {
+      const depois = await ctx.config.salvar(chave, (req.body as { valor?: unknown })?.valor, admin.id);
+      await ctx.admin!.auditar(admin.id, 'mudou_configuracao', null, { chave, antes, depois });
+      return { ok: true, valor: depois };
+    } catch (e) {
+      if (e instanceof ErroConfiguracao) return erro(reply, 400, e.message);
+      throw e;
+    }
   });
 
   // Erros do navegador (tela quebrada, falha de JavaScript). Sem login obrigatório.

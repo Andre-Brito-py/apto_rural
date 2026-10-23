@@ -4,7 +4,6 @@ import { config } from '../config.js';
 import { normalizarDocumento } from '../documento.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { aplicarEvento } from '../pagamentos/aplicar.js';
-import { PRODUTOS, produto } from '../produtos.js';
 
 const novoPedido = z.object({
   produto: z.string(),
@@ -14,7 +13,7 @@ const novoPedido = z.object({
 
 export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
   app.get('/v1/produtos', async () => ({
-    produtos: PRODUTOS,
+    produtos: (await ctx.config.obter()).produtos.filter((p) => p.ativo),
     pagamentoDisponivel: ctx.pagamento != null,
     exigeDocumento: ctx.pagamento?.exigeDocumento ?? false,
     simulado: ctx.pagamento?.nome === 'simulado',
@@ -26,7 +25,8 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
     if (!ctx.pagamento) return erro(reply, 503, 'Pagamentos ainda não estão disponíveis.');
 
     const corpo = novoPedido.safeParse(req.body);
-    const p = corpo.success ? produto(corpo.data.produto) : undefined;
+    const produtos = (await ctx.config.obter()).produtos;
+    const p = corpo.success ? produtos.find((x) => x.id === corpo.data.produto && x.ativo) : undefined;
     if (!corpo.success || !p) return erro(reply, 400, 'Produto inválido.');
 
     let cpfCnpj: string | undefined;
@@ -35,7 +35,15 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
       if (!cpfCnpj) return erro(reply, 400, 'Informe um CPF ou CNPJ válido para a cobrança.', 'documento');
     }
 
-    const pedido = await ctx.contas.criarPedido({ usuarioId: u.id, produto: p.id, valor: p.valor, provedor: ctx.pagamento.nome });
+    // Preço, créditos e nome ficam fixados no pedido: mudar o pacote depois não muda esta compra.
+    const pedido = await ctx.contas.criarPedido({
+      usuarioId: u.id,
+      produto: p.id,
+      valor: p.valor,
+      provedor: ctx.pagamento.nome,
+      creditos: p.creditos,
+      nomeProduto: p.nome,
+    });
     try {
       const cobranca = await ctx.pagamento.criarCobranca({
         pedidoId: pedido.id,
@@ -63,7 +71,7 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
     const u = await usuarioDaRequisicao(ctx, req);
     const pedido = await ctx.contas.buscarPedido(req.params.id);
     if (!u || !pedido || pedido.usuarioId !== u.id) return erro(reply, 404, 'Pedido não encontrado.');
-    return { pedido, produto: produto(pedido.produto) };
+    return { pedido, produto: { nome: pedido.nomeProduto ?? pedido.produto } };
   });
 
   // Webhook do Asaas: valida o token, guarda o evento (dedup) e aplica.

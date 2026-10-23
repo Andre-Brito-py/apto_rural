@@ -114,13 +114,16 @@ export class RepositorioAdmin {
 
   async pedidos(limite = 100) {
     const { rows } = await this.pool.query(
-      `SELECT p.id, p.produto, p.valor, p.status, p.provedor, p.criado_em, p.pago_em, u.email
+      `SELECT p.id, p.produto, p.nome_produto, p.valor, p.status, p.provedor, p.criado_em, p.pago_em, p.motivo_estorno,
+              u.email, u.id AS usuario_id
          FROM pedido p JOIN usuario u ON u.id = p.usuario_id ORDER BY p.criado_em DESC LIMIT $1`,
       [limite],
     );
     return rows.map((r) => ({
       id: r.id,
-      produto: r.produto,
+      usuarioId: r.usuario_id,
+      produto: r.nome_produto ?? r.produto,
+      motivoEstorno: r.motivo_estorno ?? undefined,
       valor: Number(r.valor),
       status: r.status,
       provedor: r.provedor,
@@ -188,6 +191,10 @@ export class RepositorioAdmin {
       pedidos: pedidos.rows.map((p) => ({ id: p.id, produto: p.produto, valor: Number(p.valor), status: p.status, criadoEm: dia(p.criado_em) })),
       auditoria: auditoria.rows.map((a) => ({ quando: dia(a.quando), acao: a.acao, detalhes: a.detalhes, adminEmail: a.admin_email })),
     };
+  }
+
+  async registrarMotivoEstorno(pedidoId: string, motivo: string) {
+    await this.pool.query('UPDATE pedido SET motivo_estorno = $2 WHERE id = $1', [pedidoId, motivo]);
   }
 
   async definirPapel(id: string, papel: 'usuario' | 'suporte' | 'admin') {

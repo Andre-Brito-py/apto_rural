@@ -20,6 +20,10 @@ export class ProvedorSimulado implements ProvedorPagamento {
     };
   }
 
+  async estornar() {}
+
+  async cancelar() {}
+
   lerWebhook(): EventoPagamento | null {
     return null;
   }

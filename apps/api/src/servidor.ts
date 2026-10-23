@@ -7,6 +7,7 @@ import pg from 'pg';
 import { RepositorioAdmin } from './admin/repositorio.js';
 import { RepositorioCarteira } from './carteira/repositorio.js';
 import { config } from './config.js';
+import { Configuracoes } from './configuracoes.js';
 import { RegistroErros } from './monitoramento/erros.js';
 import { rotasAdmin } from './rotas/admin.js';
 import { rotasCarteira } from './rotas/carteira.js';
@@ -33,6 +34,7 @@ export function criarContexto(): Contexto {
     carteira: pool ? new RepositorioCarteira(pool) : null,
     admin: pool ? new RepositorioAdmin(pool) : null,
     erros: new RegistroErros(pool, email, config.adminEmails, config.webOrigin),
+    config: new Configuracoes(pool),
     email,
     pagamento: config.asaas.chave
       ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook)

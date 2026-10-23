@@ -32,6 +32,9 @@ export interface Pedido {
   provedorId?: string;
   link?: string;
   criadoEm: string;
+  /** Créditos e nome do pacote fixados na compra (pedidos antigos podem não ter). */
+  creditos?: Saldo;
+  nomeProduto?: string;
 }
 
 export interface Lancamento {

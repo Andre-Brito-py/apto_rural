@@ -169,7 +169,7 @@ O técnico compra **créditos**:
 
 - Quem cria a conta ganha **1 consulta grátis** assim que **confirma o e-mail** (isso evita contas falsas em série).
 - O pagamento é pelo **Asaas** (Pix, cartão ou boleto). O Apto Rural nunca vê dados de cartão.
-- Os preços são valores de partida, a ajustar depois de conversar com técnicos.
+- Os preços são valores de partida, a ajustar depois de conversar com técnicos. Eles podem ser mudados pelo painel, sem mexer no código.
 
 ---
 
@@ -265,12 +265,15 @@ O painel fica em `/admin` e tem dois níveis de acesso:
 | Nível | O que pode |
 | --- | --- |
 | **Suporte** | Ver tudo (indicadores, bases, erros, usuários, pedidos), abrir a ficha de qualquer usuário, **entrar como** ele (só leitura) e reenviar a confirmação de e-mail. |
-| **Administrador** | Tudo do suporte, mais: ajustar créditos, bloquear e desbloquear contas, mudar o papel de alguém e ver a auditoria. |
+| **Administrador** | Tudo do suporte, mais: ajustar créditos, bloquear e desbloquear contas, mudar o papel de alguém, estornar e cancelar pedidos, mudar preços e limites e ver a auditoria. |
 
 - **Primeiro acesso:** coloque seu e-mail em `ADMIN_EMAILS` no `.env`. Quem está ali é sempre administrador, desde que tenha confirmado o e-mail. Os demais papéis são dados pela ficha do usuário no próprio painel.
 - **Entrar como:** você vê o site exatamente como o cliente vê, por até 1 hora, com uma faixa marrom no topo. Nada pode ser alterado nesse modo: nenhuma compra, consulta ou mudança. O botão "Voltar ao painel" encerra o modo.
 - **Bloquear conta:** o cliente sai na hora de todos os aparelhos e não consegue mais entrar.
 - **Auditoria:** toda ação administrativa fica registrada (quem fez, o quê, em quem, quando).
+- **Estornar pedido pago:** o dinheiro volta pelo Asaas (Pix ou cartão; no cartão pode levar até 10 dias úteis para aparecer na fatura) e os créditos do pacote saem da conta do cliente na hora. O saldo pode ficar negativo se ele já tiver usado os créditos. Boleto pago, e Pix quando falta saldo na conta Asaas, precisam ser estornados pelo painel do próprio Asaas: o Apto Rural avisa quando for o caso.
+- **Cancelar pedido pendente:** remove a cobrança no Asaas, antes de o cliente pagar.
+- **Configurações sem mexer no código:** na seção "Configurações" do painel, o administrador muda nome, descrição, preço e créditos de cada pacote, cria pacotes novos, tira pacotes de venda (desmarcando "Ativo"), muda o limite da carteira, a amostra grátis e o aviso no topo do site. Tudo é validado antes de salvar e vale em até 30 segundos. **Pedidos já feitos mantêm o preço e os créditos da hora da compra.**
 - **Monitoramento de erros:** falhas da API, das telas do site, do monitor e dos coletores vão para o painel. Os administradores recebem um e-mail de alerta, no máximo um a cada 15 minutos. Toda manhã o monitor também confere se alguma base oficial atrasou.
 
 ### Pagamentos
@@ -330,6 +333,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Contas, créditos e pagamento (Asaas real + simulado para desenvolvimento).
 - [x] Confirmação de e-mail e recuperação de senha por e-mail (SMTP).
 - [x] Landing page de vendas para quem chega sem conta (quem tem conta vai direto para a consulta).
+- [x] Estorno e cancelamento de pedidos pelo painel (Asaas) e preços, limites e aviso do site editáveis sem mexer no código.
 - [x] Painel administrativo com papéis (suporte e administrador), ficha do usuário, "entrar como", bloqueio, auditoria e monitoramento de erros com alerta por e-mail.
 - [x] Carteira de fazendas com reconferência diária e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
 - [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
@@ -344,8 +348,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 **Depois do lançamento**
 
-- [ ] Estorno e cancelamento de pedido pelo painel (integrado ao Asaas).
-- [ ] Ajustar preços, limite da carteira e aviso no topo do site pelo painel, sem mexer no código.
+- [ ] Assinatura mensal (hoje os créditos são pacotes avulsos).
 - [ ] Imagens de satélite antes e depois de 2019 no dossiê.
 - [ ] Definir se a carteira entra nos pacotes pagos (hoje: grátis, até 50 imóveis por conta).
 - [ ] Consulta pelo WhatsApp, inclusive a consulta grátis para o produtor.

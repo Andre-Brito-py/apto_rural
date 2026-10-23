@@ -95,12 +95,45 @@ async function main() {
   assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/usuarios/${admin.id}/papel`, headers: { cookie: adm }, payload: { papel: 'usuario' } })).statusCode, 400);
   assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/usuarios/${admin.id}/bloquear`, headers: { cookie: adm }, payload: { motivo: 'teste' } })).statusCode, 400);
 
+  // Configurações: preço novo vale na hora; suporte não muda.
+  const cfg = (await app.inject({ method: 'GET', url: '/v1/admin/configuracoes', headers: { cookie: adm } })).json();
+  const novos = cfg.produtos.map((p: { id: string; valor: number }) => (p.id === 'consulta-avulsa' ? { ...p, valor: 45 } : p));
+  assert.equal((await app.inject({ method: 'PUT', url: '/v1/admin/configuracoes/produtos', headers: { cookie: suporte }, payload: { valor: novos } })).statusCode, 403);
+  const salvo = await app.inject({ method: 'PUT', url: '/v1/admin/configuracoes/produtos', headers: { cookie: adm }, payload: { valor: novos } });
+  assert.equal(salvo.statusCode, 200, salvo.body);
+  const precos = (await app.inject({ method: 'GET', url: '/v1/produtos' })).json().produtos;
+  assert.equal(precos.find((p: { id: string }) => p.id === 'consulta-avulsa').valor, 45);
+  console.log('✓ preço alterado pelo painel vale na hora; suporte não altera');
+
+  // Compra (pagamento simulado), estorno e cancelamento.
+  const pedido = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie: suporte }, payload: { produto: 'pacote-projetista' } })).json();
+  await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${pedido.id}/pagar`, headers: { cookie: suporte } });
+  const antes = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie: suporte } })).json().saldo.consulta;
+  const est = await app.inject({ method: 'POST', url: `/v1/admin/pedidos/${pedido.id}/estornar`, headers: { cookie: adm }, payload: { motivo: 'Cliente desistiu' } });
+  assert.equal(est.statusCode, 200, est.body);
+  assert.equal(est.json().saldo.consulta, antes - 20);
+  assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/pedidos/${pedido.id}/estornar`, headers: { cookie: adm }, payload: { motivo: 'de novo' } })).statusCode, 409);
+  const pendente = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie: suporte }, payload: { produto: 'consulta-avulsa' } })).json();
+  assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/pedidos/${pendente.id}/cancelar`, headers: { cookie: adm } })).statusCode, 200);
+  const situacoes = await pool.query('SELECT id, status, motivo_estorno, valor FROM pedido WHERE id = ANY($1)', [[pedido.id, pendente.id]]);
+  const porId = Object.fromEntries(situacoes.rows.map((r) => [r.id, r]));
+  assert.equal(porId[pedido.id].status, 'estornado');
+  assert.equal(porId[pedido.id].motivo_estorno, 'Cliente desistiu');
+  assert.equal(porId[pendente.id].status, 'cancelado');
+  assert.equal(Number(porId[pendente.id].valor), 45, 'pedido usa o preço novo');
+  console.log('✓ estorno retira os créditos e não repete; pedido pendente cancelado');
+
+  // Volta o preço padrão.
+  await pool.query("DELETE FROM configuracao WHERE chave = 'produtos'");
+
   // Auditoria registrou tudo.
   const acoes = (await app.inject({ method: 'GET', url: '/v1/admin/auditoria', headers: { cookie: adm } }))
     .json()
     .auditoria.filter((a: { alvoId?: string }) => a.alvoId === cliente.id)
     .map((a: { acao: string }) => a.acao);
-  for (const a of ['entrou_como', 'saiu_do_modo_entrar_como', 'bloqueou', 'desbloqueou', 'mudou_papel']) assert.ok(acoes.includes(a), `faltou ${a}`);
+  for (const a of ['entrou_como', 'saiu_do_modo_entrar_como', 'bloqueou', 'desbloqueou', 'mudou_papel', 'estornou_pedido', 'cancelou_pedido']) {
+    assert.ok(acoes.includes(a), `faltou ${a}`);
+  }
   console.log('✓ auditoria:', acoes.reverse().join(' → '));
 }
 
@@ -111,9 +144,11 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
+    await pool.query("DELETE FROM configuracao WHERE chave = 'produtos'");
     for (const id of ids) {
       await pool.query('DELETE FROM auditoria_admin WHERE admin_id = $1 OR alvo_usuario_id = $1', [id]);
       await pool.query('DELETE FROM credito_lancamento WHERE usuario_id = $1', [id]);
+      await pool.query('DELETE FROM pedido WHERE usuario_id = $1', [id]);
       await pool.query('DELETE FROM usuario WHERE id = $1', [id]);
     }
     await pool.end();

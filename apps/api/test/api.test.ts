@@ -254,6 +254,46 @@ describe('painel administrativo e erros', () => {
   });
 });
 
+describe('configurações editáveis', () => {
+  const { app, ctx } = servidorComEmail();
+
+  it('recusa configuração inválida com mensagem clara', async () => {
+    await expect(ctx.config.salvar('produtos', [], 'admin')).rejects.toThrow();
+    const semAtivo = (await ctx.config.obter()).produtos.map((p) => ({ ...p, ativo: false }));
+    await expect(ctx.config.salvar('produtos', semAtivo, 'admin')).rejects.toThrow('pelo menos um pacote ativo');
+    await expect(ctx.config.salvar('limite_carteira', -1, 'admin')).rejects.toThrow();
+  });
+
+  it('preço novo aparece na página de preços; pacote inativo some', async () => {
+    const produtos = (await ctx.config.obter()).produtos.map((p) =>
+      p.id === 'consulta-avulsa' ? { ...p, valor: 49.9 } : p.id === 'dossie-avulso' ? { ...p, ativo: false } : p,
+    );
+    await ctx.config.salvar('produtos', produtos, 'admin');
+    const lista = (await app.inject({ method: 'GET', url: '/v1/produtos' })).json().produtos;
+    expect(lista.find((p: { id: string }) => p.id === 'consulta-avulsa').valor).toBe(49.9);
+    expect(lista.some((p: { id: string }) => p.id === 'dossie-avulso')).toBe(false);
+  });
+
+  it('créditos ficam fixados no pedido: mudar o pacote depois não muda a compra', async () => {
+    const { cookie } = await novaConta(app, 'fixado@exemplo.com');
+    const pedido = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'pacote-projetista' } })).json();
+    const outros = (await ctx.config.obter()).produtos.map((p) =>
+      p.id === 'pacote-projetista' ? { ...p, creditos: { consulta: 999, dossie: 99 } } : p,
+    );
+    await ctx.config.salvar('produtos', outros, 'admin');
+    await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${pedido.id}/pagar`, headers: { cookie } });
+    const saldo = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).json().saldo;
+    expect(saldo).toEqual({ consulta: 20, dossie: 2 });
+  });
+
+  it('aviso do site aparece na rota de saúde só quando ativo', async () => {
+    await ctx.config.salvar('aviso_site', { ativo: true, texto: 'Manutenção às 22h', tipo: 'alerta' }, 'admin');
+    expect((await app.inject({ method: 'GET', url: '/v1/saude' })).json().aviso).toEqual({ texto: 'Manutenção às 22h', tipo: 'alerta' });
+    await ctx.config.salvar('aviso_site', { ativo: false, texto: 'Manutenção às 22h', tipo: 'alerta' }, 'admin');
+    expect((await app.inject({ method: 'GET', url: '/v1/saude' })).json().aviso).toBeNull();
+  });
+});
+
 describe('consultas', () => {
   const app = criarServidor();
 

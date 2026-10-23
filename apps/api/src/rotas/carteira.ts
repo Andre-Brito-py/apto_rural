@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { LIMITE_CARTEIRA } from '../carteira/repositorio.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 
 const adicionar = z.object({
@@ -9,11 +8,13 @@ const adicionar = z.object({
 });
 
 export function rotasCarteira(app: FastifyInstance, ctx: Contexto) {
+  const limite = async () => (await ctx.config.obter()).limite_carteira;
+
   app.get('/v1/carteira', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
-    if (!ctx.carteira) return { imoveis: [], limite: LIMITE_CARTEIRA, disponivel: false };
-    return { imoveis: await ctx.carteira.listar(u.id), limite: LIMITE_CARTEIRA, disponivel: true };
+    if (!ctx.carteira) return { imoveis: [], limite: await limite(), disponivel: false };
+    return { imoveis: await ctx.carteira.listar(u.id), limite: await limite(), disponivel: true };
   });
 
   app.post('/v1/carteira', async (req, reply) => {
@@ -22,9 +23,10 @@ export function rotasCarteira(app: FastifyInstance, ctx: Contexto) {
     if (!ctx.carteira) return erro(reply, 503, 'A carteira precisa das bases reais carregadas.');
     const corpo = adicionar.safeParse(req.body);
     if (!corpo.success) return erro(reply, 400, 'Dados inválidos.');
-    const r = await ctx.carteira.adicionarDeConsulta(u.id, corpo.data.consultaId, corpo.data.apelido);
+    const max = await limite();
+    const r = await ctx.carteira.adicionarDeConsulta(u.id, corpo.data.consultaId, corpo.data.apelido, max);
     if (r === 'nao_encontrada') return erro(reply, 404, 'Só dá para acompanhar imóveis de consultas reais feitas por você.');
-    if (r === 'limite') return erro(reply, 409, `A carteira comporta até ${LIMITE_CARTEIRA} imóveis. Remova um para incluir outro.`);
+    if (r === 'limite') return erro(reply, 409, `A carteira comporta até ${max} imóveis. Remova um para incluir outro.`);
     return reply.status(201).send(r);
   });
 

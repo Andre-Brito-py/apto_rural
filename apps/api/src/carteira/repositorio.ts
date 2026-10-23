@@ -2,9 +2,6 @@ import type { Alteracao, ResultadoConsulta, SituacaoCar } from '@apto/regras';
 import pg from 'pg';
 import type { GeometriaImovel } from '../esquemas.js';
 
-/** Quantos imóveis cada conta pode acompanhar nesta versão. */
-export const LIMITE_CARTEIRA = 50;
-
 export interface ImovelCarteira {
   id: string;
   codCar: string;
@@ -45,7 +42,9 @@ export class RepositorioCarteira {
   async adicionarDeConsulta(
     usuarioId: string,
     consultaId: string,
-    apelido?: string,
+    apelido: string | undefined,
+    /** Quantos imóveis a conta pode acompanhar (configuração do painel). */
+    limite: number,
   ): Promise<ImovelCarteira | 'nao_encontrada' | 'limite'> {
     if (!/^[0-9a-f-]{36}$/i.test(consultaId)) return 'nao_encontrada';
     const cliente = await this.pool.connect();
@@ -64,7 +63,7 @@ export class RepositorioCarteira {
         'SELECT count(*)::int AS n, bool_or(cod_car = $2) AS ja FROM imovel_monitorado WHERE usuario_id = $1',
         [usuarioId, origem[0].cod_car],
       );
-      if (!total[0].ja && total[0].n >= LIMITE_CARTEIRA) {
+      if (!total[0].ja && total[0].n >= limite) {
         await cliente.query('ROLLBACK');
         return 'limite';
       }

@@ -128,6 +128,7 @@ export interface Produto {
   valor: number;
   creditos: Saldo;
   destaque?: boolean;
+  ativo: boolean;
 }
 
 export interface Catalogo {
@@ -181,6 +182,15 @@ export interface Saude {
   ok: boolean;
   banco: boolean;
   demo: Record<string, string> | null;
+  /** Aviso no topo do site, definido pelo painel. */
+  aviso: { texto: string; tipo: 'info' | 'alerta' } | null;
+}
+
+export interface Configs {
+  produtos: Produto[];
+  limite_carteira: number;
+  creditos_boas_vindas: Saldo;
+  aviso_site: { ativo: boolean; texto: string; tipo: 'info' | 'alerta' };
 }
 
 export interface CatalogoRegras {
@@ -249,7 +259,15 @@ export const api = {
   admin: {
     resumo: () => pedir<PainelResumo>('/v1/admin/resumo'),
     usuarios: (busca = '') => pedir<{ usuarios: UsuarioAdmin[] }>(`/v1/admin/usuarios?busca=${encodeURIComponent(busca)}`),
-    pedidos: () => pedir<{ pedidos: (Pedido & { email: string; provedor: string; pagoEm: string | null })[] }>('/v1/admin/pedidos'),
+    pedidos: () =>
+      pedir<{ pedidos: (Pedido & { email: string; usuarioId: string; provedor: string; pagoEm: string | null; motivoEstorno?: string })[] }>(
+        '/v1/admin/pedidos',
+      ),
+    estornar: (id: string, motivo: string) => pedir<{ ok: boolean }>(`/v1/admin/pedidos/${encodeURIComponent(id)}/estornar`, post({ motivo })),
+    cancelarPedido: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/pedidos/${encodeURIComponent(id)}/cancelar`, post()),
+    configuracoes: () => pedir<Configs>('/v1/admin/configuracoes'),
+    salvarConfiguracao: <K extends keyof Configs>(chave: K, valor: Configs[K]) =>
+      pedir<{ ok: boolean; valor: Configs[K] }>(`/v1/admin/configuracoes/${chave}`, { method: 'PUT', body: JSON.stringify({ valor }) }),
     erros: () => pedir<{ erros: ErroRegistrado[] }>('/v1/admin/erros'),
     ajustarCreditos: (usuarioId: string, tipo: 'consulta' | 'dossie', quantidade: number, motivo: string) =>
       pedir<{ ok: boolean; saldo: Saldo }>(`/v1/admin/usuarios/${encodeURIComponent(usuarioId)}/creditos`, post({ tipo, quantidade, motivo })),

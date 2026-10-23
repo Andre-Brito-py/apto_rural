@@ -33,6 +33,10 @@ export interface ProvedorPagamento {
   /** Precisa do CPF/CNPJ do pagador para criar o cliente. */
   exigeDocumento: boolean;
   criarCobranca(dados: DadosCobranca): Promise<Cobranca>;
+  /** Devolve o dinheiro de uma cobrança paga (total). */
+  estornar(provedorId: string, descricao: string): Promise<void>;
+  /** Remove uma cobrança ainda não paga. */
+  cancelar(provedorId: string): Promise<void>;
   /** Valida a origem e traduz o corpo do webhook. null = origem inválida. */
   lerWebhook(cabecalhos: Record<string, string | string[] | undefined>, corpo: unknown): EventoPagamento | null;
 }

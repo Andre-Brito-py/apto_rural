@@ -39,11 +39,11 @@ export class ProvedorAsaas implements ProvedorPagamento {
     this.base = BASE[ambiente];
   }
 
-  private async chamar<T>(caminho: string, corpo: unknown): Promise<T> {
+  private async chamar<T>(caminho: string, corpo?: unknown, metodo: 'POST' | 'DELETE' = 'POST'): Promise<T> {
     const r = await fetch(`${this.base}${caminho}`, {
-      method: 'POST',
+      method: metodo,
       headers: { 'Content-Type': 'application/json', access_token: this.chave, 'User-Agent': 'AptoRural' },
-      body: JSON.stringify(corpo),
+      body: corpo === undefined ? undefined : JSON.stringify(corpo),
     });
     const json = (await r.json().catch(() => ({}))) as { errors?: { description: string }[] } & T;
     if (!r.ok) {
@@ -74,6 +74,20 @@ export class ProvedorAsaas implements ProvedorPagamento {
       externalReference: d.pedidoId,
     });
     return { provedorId: pagamento.id, link: pagamento.invoiceUrl, clienteId };
+  }
+
+  /**
+   * POST /payments/{id}/refund sem valor = estorno total. Vale para Pix e cartão;
+   * boleto pago tem fluxo próprio (dados bancários do cliente) e deve ser
+   * estornado pelo painel do Asaas. Pix exige saldo na conta Asaas.
+   */
+  async estornar(provedorId: string, descricao: string) {
+    await this.chamar(`/payments/${encodeURIComponent(provedorId)}/refund`, { description: descricao.slice(0, 500) });
+  }
+
+  /** DELETE /payments/{id}: remove a cobrança pendente (gera PAYMENT_DELETED). */
+  async cancelar(provedorId: string) {
+    await this.chamar(`/payments/${encodeURIComponent(provedorId)}`, undefined, 'DELETE');
   }
 
   lerWebhook(cabecalhos: Record<string, string | string[] | undefined>, corpo: unknown): EventoPagamento | null {

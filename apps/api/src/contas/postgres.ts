@@ -29,6 +29,8 @@ function pedido(r: Record<string, unknown>): Pedido {
     provedorId: (r.provedor_id as string) ?? undefined,
     link: (r.link as string) ?? undefined,
     criadoEm: (r.criado_em as Date).toISOString(),
+    creditos: r.creditos_consulta == null ? undefined : { consulta: r.creditos_consulta as number, dossie: (r.creditos_dossie as number) ?? 0 },
+    nomeProduto: (r.nome_produto as string) ?? undefined,
   };
 }
 
@@ -169,8 +171,9 @@ export class RepositorioContasPostgres implements RepositorioContas {
 
   async criarPedido(p: Omit<Pedido, 'id' | 'status' | 'criadoEm'>) {
     const { rows } = await this.pool.query(
-      `INSERT INTO pedido (usuario_id, produto, valor, provedor) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [p.usuarioId, p.produto, p.valor, p.provedor],
+      `INSERT INTO pedido (usuario_id, produto, valor, provedor, creditos_consulta, creditos_dossie, nome_produto)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [p.usuarioId, p.produto, p.valor, p.provedor, p.creditos?.consulta ?? null, p.creditos?.dossie ?? null, p.nomeProduto ?? null],
     );
     return pedido(rows[0]);
   }

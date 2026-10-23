@@ -5,7 +5,6 @@ import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../co
 import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
 import { enviarLinkEmail } from '../contas/links.js';
 import { COOKIE_SESSAO, erro, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
-import { CREDITOS_BOAS_VINDAS } from '../produtos.js';
 
 const cadastro = z.object({
   nome: z.string().trim().min(2, 'Informe seu nome.').max(120),
@@ -45,7 +44,8 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   /** Confirma o e-mail e, na primeira vez, libera a amostra grátis. */
   async function confirmar(usuarioId: string) {
     if (!(await ctx.contas.confirmarEmail(usuarioId))) return;
-    for (const [tipo, quantidade] of Object.entries(CREDITOS_BOAS_VINDAS) as [TipoCredito, number][]) {
+    const boasVindas = (await ctx.config.obter()).creditos_boas_vindas;
+    for (const [tipo, quantidade] of Object.entries(boasVindas) as [TipoCredito, number][]) {
       if (quantidade > 0) {
         await ctx.contas.lancar({ usuarioId, tipo, quantidade, motivo: 'Amostra grátis', referencia: `boas-vindas:${usuarioId}:${tipo}` });
       }

@@ -68,6 +68,12 @@ export function App() {
         </div>
       )}
 
+      {saude?.aviso && (
+        <div className={`faixa-aviso faixa-aviso-${saude.aviso.tipo}`} role="status">
+          <div className="pagina">{saude.aviso.texto}</div>
+        </div>
+      )}
+
       <AvisoConfirmarEmail />
 
       <main>
