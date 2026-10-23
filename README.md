@@ -1,15 +1,15 @@
-﻿# Apto Rural
+# Apto Rural
 
-**Em uma frase:** o Apto Rural diz, em poucos segundos, se uma fazenda tem algum problema socioambiental que vai fazer o banco negar o crÃ©dito rural, e mostra o caminho para resolver.
+**Em uma frase:** o Apto Rural diz, em poucos segundos, se uma fazenda tem algum problema socioambiental que vai fazer o banco negar o crédito rural, e mostra o caminho para resolver.
 
-Este README explica o problema do zero (nÃ£o precisa saber nada de crÃ©dito rural), depois como o sistema funciona e, por fim, como rodar o cÃ³digo.
+Este README explica o problema do zero (não precisa saber nada de crédito rural), depois como o sistema funciona e, por fim, como rodar o código.
 
 ---
 
-## SumÃ¡rio
+## Sumário
 
 1. [O problema, em linguagem simples](#1-o-problema-em-linguagem-simples)
-2. [GlossÃ¡rio: os termos que aparecem no projeto](#2-glossÃ¡rio-os-termos-que-aparecem-no-projeto)
+2. [Glossário: os termos que aparecem no projeto](#2-glossário-os-termos-que-aparecem-no-projeto)
 3. [O que o Apto Rural verifica](#3-o-que-o-apto-rural-verifica)
 4. [As datas que importam](#4-as-datas-que-importam)
 5. [Como o sistema funciona](#5-como-o-sistema-funciona)
@@ -17,7 +17,7 @@ Este README explica o problema do zero (nÃ£o precisa saber nada de crÃ©dito 
 7. [Como o produto ganha dinheiro](#7-como-o-produto-ganha-dinheiro)
 8. [Rodar no seu computador](#8-rodar-no-seu-computador)
 9. [Mapa das pastas](#9-mapa-das-pastas)
-10. [SituaÃ§Ã£o do projeto](#10-situaÃ§Ã£o-do-projeto)
+10. [Situação do projeto](#10-situação-do-projeto)
 11. [Regras de ouro do projeto](#11-regras-de-ouro-do-projeto)
 12. [Documentos de apoio](#12-documentos-de-apoio)
 
@@ -25,120 +25,120 @@ Este README explica o problema do zero (nÃ£o precisa saber nada de crÃ©dito 
 
 ## 1. O problema, em linguagem simples
 
-**CrÃ©dito rural** Ã© o emprÃ©stimo que o produtor rural pega no banco para plantar, comprar gado, mÃ¡quinas etc. Grande parte dele tem juros subsidiados pelo governo, e por isso segue regras do **Banco Central**, reunidas no **Manual de CrÃ©dito Rural (MCR)**.
+**Crédito rural** é o empréstimo que o produtor rural pega no banco para plantar, comprar gado, máquinas etc. Grande parte dele tem juros subsidiados pelo governo, e por isso segue regras do **Banco Central**, reunidas no **Manual de Crédito Rural (MCR)**.
 
-Desde 2025 essas regras ficaram bem mais rÃ­gidas na parte ambiental e social. O banco Ã© **obrigado a negar** o crÃ©dito se a fazenda, por exemplo:
+Desde 2025 essas regras ficaram bem mais rígidas na parte ambiental e social. O banco é **obrigado a negar** o crédito se a fazenda, por exemplo:
 
 - tem o cadastro ambiental (CAR) **cancelado ou suspenso**;
-- tem uma Ã¡rea **embargada pelo Ibama** por desmatamento ilegal;
-- fica **dentro de uma terra indÃ­gena**, de uma **unidade de conservaÃ§Ã£o** ou de uma **floresta pÃºblica** ainda sem destino;
-- pertence a alguÃ©m que estÃ¡ na **"lista suja" do trabalho escravo**;
-- teve **vegetaÃ§Ã£o nativa derrubada depois de 31/07/2019** (detectado por satÃ©lite), sem a autorizaÃ§Ã£o ou o documento de regularizaÃ§Ã£o.
+- tem uma área **embargada pelo Ibama** por desmatamento ilegal;
+- fica **dentro de uma terra indígena**, de uma **unidade de conservação** ou de uma **floresta pública** ainda sem destino;
+- pertence a alguém que está na **"lista suja" do trabalho escravo**;
+- teve **vegetação nativa derrubada depois de 31/07/2019** (detectado por satélite), sem a autorização ou o documento de regularização.
 
-**Quem sofre com isso:** o tÃ©cnico agrÃ­cola ou o projetista que monta a proposta de crÃ©dito para o produtor. Hoje ele junta documentos, visita a fazenda, espera semanasâ€¦ e sÃ³ descobre o problema quando o banco nega. Perde tempo, perde a comissÃ£o e perde a confianÃ§a do cliente.
+**Quem sofre com isso:** o técnico agrícola ou o projetista que monta a proposta de crédito para o produtor. Hoje ele junta documentos, visita a fazenda, espera semanas… e só descobre o problema quando o banco nega. Perde tempo, perde a comissão e perde a confiança do cliente.
 
-**O que o Apto Rural faz:** antes de comeÃ§ar a proposta, o tÃ©cnico digita o cÃ³digo do CAR da fazenda e envia o desenho do imÃ³vel. O sistema cruza esse desenho com os mapas e listas oficiais do governo, as mesmas bases que o banco usa, e devolve um **semÃ¡foro**, item por item:
+**O que o Apto Rural faz:** antes de começar a proposta, o técnico digita o código do CAR da fazenda e envia o desenho do imóvel. O sistema cruza esse desenho com os mapas e listas oficiais do governo, as mesmas bases que o banco usa, e devolve um **semáforo**, item por item:
 
 | Cor | Significado |
 | --- | --- |
 | Vermelho (**Impedimento**) | Pela regra, o banco vai negar. |
-| Amarelo (**AtenÃ§Ã£o**) | Ainda nÃ£o impede, mas pode travar a anÃ¡lise. Vale resolver antes. |
+| Amarelo (**Atenção**) | Ainda não impede, mas pode travar a análise. Vale resolver antes. |
 | Verde (**OK**) | Nada encontrado nessa regra. |
-| Cinza (**NÃ£o verificado**) | Faltou dado para checar. O sistema nunca mostra verde quando nÃ£o verificou. |
+| Cinza (**Não verificado**) | Faltou dado para checar. O sistema nunca mostra verde quando não verificou. |
 
-Quando dÃ¡ vermelho, o sistema explica **o que a prÃ³pria norma permite fazer** (as exceÃ§Ãµes e os documentos aceitos) e gera um **dossiÃª** para o tÃ©cnico levar ao banco.
+Quando dá vermelho, o sistema explica **o que a própria norma permite fazer** (as exceções e os documentos aceitos) e gera um **dossiê** para o técnico levar ao banco.
 
-> O Apto Rural **nÃ£o aprova crÃ©dito** e **nÃ£o substitui** o banco, um laudo tÃ©cnico ou um advogado. Ele antecipa o que a checagem do banco vai encontrar.
+> O Apto Rural **não aprova crédito** e **não substitui** o banco, um laudo técnico ou um advogado. Ele antecipa o que a checagem do banco vai encontrar.
 
 ---
 
-## 2. GlossÃ¡rio: os termos que aparecem no projeto
+## 2. Glossário: os termos que aparecem no projeto
 
-| Termo | O que Ã© |
+| Termo | O que é |
 | --- | --- |
-| **CrÃ©dito rural** | EmprÃ©stimo para atividade agropecuÃ¡ria, com regras do Banco Central. |
-| **MCR** | Manual de CrÃ©dito Rural, o livro de regras do Banco Central para o crÃ©dito rural. As regras ambientais e sociais ficam no **CapÃ­tulo 2, SeÃ§Ã£o 9** (por isso o cÃ³digo fala em "MCR 2-9-10" = capÃ­tulo 2, seÃ§Ã£o 9, item 10). |
-| **CMN / ResoluÃ§Ã£o CMN** | O Conselho MonetÃ¡rio Nacional cria e muda as regras do MCR por meio de resoluÃ§Ãµes (ex.: ResoluÃ§Ã£o CMN 5.303/2026). |
-| **CAR** | Cadastro Ambiental Rural, o "RG ambiental" da fazenda. Todo imÃ³vel rural tem um cÃ³digo, no formato `UF-cÃ³digo do municÃ­pio-32 letras e nÃºmeros` (ex.: `MT-5107925-1A2Bâ€¦`). O cadastro pode estar **ativo, pendente, suspenso ou cancelado**. |
+| **Crédito rural** | Empréstimo para atividade agropecuária, com regras do Banco Central. |
+| **MCR** | Manual de Crédito Rural, o livro de regras do Banco Central para o crédito rural. As regras ambientais e sociais ficam no **Capítulo 2, Seção 9** (por isso o código fala em "MCR 2-9-10" = capítulo 2, seção 9, item 10). |
+| **CMN / Resolução CMN** | O Conselho Monetário Nacional cria e muda as regras do MCR por meio de resoluções (ex.: Resolução CMN 5.303/2026). |
+| **CAR** | Cadastro Ambiental Rural, o "RG ambiental" da fazenda. Todo imóvel rural tem um código, no formato `UF-código do município-32 letras e números` (ex.: `MT-5107925-1A2B…`). O cadastro pode estar **ativo, pendente, suspenso ou cancelado**. |
 | **Sicar** | O sistema do governo onde ficam os CARs. |
-| **MÃ³dulo fiscal (MF)** | Unidade de tamanho de terra fixada pelo Incra para cada municÃ­pio, de 5 a 110 hectares ([Embrapa](https://www.embrapa.br/en/codigo-florestal/area-de-reserva-legal-arl/modulo-fiscal); valor por municÃ­pio na [consulta do Incra](https://www.gov.br/pt-br/servicos/consultar-indices-basicos)). Serve para classificar o imÃ³vel em pequeno (atÃ© 4 MF), mÃ©dio ou grande. |
-| **Prodes** | Programa do Inpe que mede o desmatamento por satÃ©lite, todo ano. |
-| **Lista do MMA** | Lista oficial do MinistÃ©rio do Meio Ambiente com os CARs onde o Prodes encontrou desmatamento depois de 31/07/2019. Ã‰ o que o banco consulta para a regra do Prodes. |
-| **Embargo** | PuniÃ§Ã£o do Ibama (ou do Ã³rgÃ£o estadual) que proÃ­be usar uma Ã¡rea, geralmente por desmatamento ilegal. |
-| **UC** | Unidade de ConservaÃ§Ã£o (parque, reserva, APAâ€¦). Existem as de **ProteÃ§Ã£o Integral** (quase nada Ã© permitido) e as de **Uso SustentÃ¡vel** (permitem atividades, conforme o Plano de Manejo). |
-| **TI** | Terra IndÃ­gena, demarcada pela Funai. |
-| **Floresta pÃºblica Tipo B** | Floresta em terra do governo que ainda nÃ£o recebeu destino. |
-| **ASV / UAS** | AutorizaÃ§Ãµes oficiais para derrubar vegetaÃ§Ã£o legalmente. |
-| **PRAD / PRA / TAC** | Planos e acordos oficiais de recuperaÃ§Ã£o ou regularizaÃ§Ã£o ambiental. |
-| **DossiÃª** | O documento que o Apto Rural gera para o tÃ©cnico levar ao banco, com o que foi encontrado, a regra e o caminho de saÃ­da. |
-| **PostGIS** | ExtensÃ£o do banco de dados PostgreSQL que entende mapas. Ã‰ ela que responde "este desenho encosta naquela Ã¡rea?". |
+| **Módulo fiscal (MF)** | Unidade de tamanho de terra fixada pelo Incra para cada município, de 5 a 110 hectares ([Embrapa](https://www.embrapa.br/en/codigo-florestal/area-de-reserva-legal-arl/modulo-fiscal); valor por município na [consulta do Incra](https://www.gov.br/pt-br/servicos/consultar-indices-basicos)). Serve para classificar o imóvel em pequeno (até 4 MF), médio ou grande. |
+| **Prodes** | Programa do Inpe que mede o desmatamento por satélite, todo ano. |
+| **Lista do MMA** | Lista oficial do Ministério do Meio Ambiente com os CARs onde o Prodes encontrou desmatamento depois de 31/07/2019. É o que o banco consulta para a regra do Prodes. |
+| **Embargo** | Punição do Ibama (ou do órgão estadual) que proíbe usar uma área, geralmente por desmatamento ilegal. |
+| **UC** | Unidade de Conservação (parque, reserva, APA…). Existem as de **Proteção Integral** (quase nada é permitido) e as de **Uso Sustentável** (permitem atividades, conforme o Plano de Manejo). |
+| **TI** | Terra Indígena, demarcada pela Funai. |
+| **Floresta pública Tipo B** | Floresta em terra do governo que ainda não recebeu destino. |
+| **ASV / UAS** | Autorizações oficiais para derrubar vegetação legalmente. |
+| **PRAD / PRA / TAC** | Planos e acordos oficiais de recuperação ou regularização ambiental. |
+| **Dossiê** | O documento que o Apto Rural gera para o técnico levar ao banco, com o que foi encontrado, a regra e o caminho de saída. |
+| **PostGIS** | Extensão do banco de dados PostgreSQL que entende mapas. É ela que responde "este desenho encosta naquela área?". |
 | **SIRGAS 2000** | O sistema de coordenadas oficial do Brasil, usado em todos os mapas do projeto. |
 
 ---
 
 ## 3. O que o Apto Rural verifica
 
-Cada linha do semÃ¡foro corresponde a um item do MCR e usa uma base oficial:
+Cada linha do semáforo corresponde a um item do MCR e usa uma base oficial:
 
 | O que checa | Regra (MCR) | Base oficial usada | Como cruza |
 | --- | --- | --- | --- |
-| CAR ativo (nÃ£o cancelado nem suspenso) | 2-9-3 | Demonstrativo do CAR + lista do MMA | cÃ³digo do CAR |
-| Embargo ambiental | 2-9-10 a 13 | Ibama: termos de embargo (atualizaÃ§Ã£o diÃ¡ria) | mapa |
-| Desmatamento apÃ³s 31/07/2019 | 2-9-17 e 18 | MMA: lista baseada no Prodes/Inpe | cÃ³digo do CAR |
-| Terra indÃ­gena | 2-9-7 | Funai | mapa |
-| Unidade de ConservaÃ§Ã£o | 2-9-5 e 6 | MMA: CNUC | mapa |
-| TerritÃ³rio quilombola | 2-9-8 | Incra | **sem fonte aberta ainda** (sai "NÃ£o verificado") |
-| Floresta pÃºblica Tipo B | 2-9-14 e 15 | ServiÃ§o Florestal: CNFP | mapa |
-| Trabalho escravo | 2-9-4 | MinistÃ©rio do Trabalho: Cadastro de Empregadores | CPF/CNPJ (sÃ³ com autorizaÃ§Ã£o do produtor) |
+| CAR ativo (não cancelado nem suspenso) | 2-9-3 | Demonstrativo do CAR + lista do MMA | código do CAR |
+| Embargo ambiental | 2-9-10 a 13 | Ibama: termos de embargo (atualização diária) | mapa |
+| Desmatamento após 31/07/2019 | 2-9-17 e 18 | MMA: lista baseada no Prodes/Inpe | código do CAR |
+| Terra indígena | 2-9-7 | Funai | mapa |
+| Unidade de Conservação | 2-9-5 e 6 | MMA: CNUC | mapa |
+| Território quilombola | 2-9-8 | Incra | **sem fonte aberta ainda** (sai "Não verificado") |
+| Floresta pública Tipo B | 2-9-14 e 15 | Serviço Florestal: CNFP | mapa |
+| Trabalho escravo | 2-9-4 | Ministério do Trabalho: Cadastro de Empregadores | CPF/CNPJ (só com autorização do produtor) |
 
-"Cruza pelo mapa" quer dizer: o sistema sobrepÃµe o desenho da fazenda aos mapas oficiais, como duas folhas transparentes, e mede quantos hectares se encostam.
+"Cruza pelo mapa" quer dizer: o sistema sobrepõe o desenho da fazenda aos mapas oficiais, como duas folhas transparentes, e mede quantos hectares se encostam.
 
-Detalhes que o sistema jÃ¡ trata:
+Detalhes que o sistema já trata:
 
-- **Encosta de divisa:** sobreposiÃ§Ã£o menor que 0,1 ha costuma ser erro de desenho e sai como **AtenÃ§Ã£o**, nÃ£o Impedimento. Isso Ã© critÃ©rio do produto, nÃ£o da norma, e estÃ¡ documentado.
-- **ExceÃ§Ãµes da norma:** por exemplo, atÃ© 30/06/2027 o embargo tem uma exceÃ§Ã£o se a Ã¡rea embargada for pequena (atÃ© 5% do imÃ³vel, ou 5%/20 ha nos embargos mais novos). O sistema faz essa conta sozinho.
-- **Cada item mostra** a norma, a base usada e a data de atualizaÃ§Ã£o dessa base.
+- **Encosta de divisa:** sobreposição menor que 0,1 ha costuma ser erro de desenho e sai como **Atenção**, não Impedimento. Isso é critério do produto, não da norma, e está documentado.
+- **Exceções da norma:** por exemplo, até 30/06/2027 o embargo tem uma exceção se a área embargada for pequena (até 5% do imóvel, ou 5%/20 ha nos embargos mais novos). O sistema faz essa conta sozinho.
+- **Cada item mostra** a norma, a base usada e a data de atualização dessa base.
 
 ---
 
 ## 4. As datas que importam
 
-A checagem de desmatamento (Prodes) entra em vigor aos poucos, pela **ResoluÃ§Ã£o CMN 5.303/2026**:
+A checagem de desmatamento (Prodes) entra em vigor aos poucos, pela **Resolução CMN 5.303/2026**:
 
-| A partir de | Vale para imÃ³veis com |
+| A partir de | Vale para imóveis com |
 | --- | --- |
-| **04/01/2027** | mais de 15 mÃ³dulos fiscais (grandes) |
-| **01/07/2027** | de 4 a 15 mÃ³dulos fiscais (mÃ©dios) |
-| **03/01/2028** | atÃ© 4 mÃ³dulos fiscais (pequenos, a maioria das propriedades) |
+| **04/01/2027** | mais de 15 módulos fiscais (grandes) |
+| **01/07/2027** | de 4 a 15 módulos fiscais (médios) |
+| **03/01/2028** | até 4 módulos fiscais (pequenos, a maioria das propriedades) |
 
-As outras regras (CAR, embargo, terra indÃ­gena, UC etc.) **jÃ¡ valem hoje**.
+As outras regras (CAR, embargo, terra indígena, UC etc.) **já valem hoje**.
 
 ---
 
 ## 5. Como o sistema funciona
 
 ```
-  Bases oficiais do governo (MMA, Ibama, Funai, ServiÃ§o Florestal, MinistÃ©rio do Trabalho)
-           â”‚   os "coletores" baixam tudo e guardam com data e origem
-           â–¼
+  Bases oficiais do governo (MMA, Ibama, Funai, Serviço Florestal, Ministério do Trabalho)
+           │   os "coletores" baixam tudo e guardam com data e origem
+           ▼
   Banco de dados com mapas (PostgreSQL + PostGIS)
-           â–²
-           â”‚   a API pergunta: "este desenho encosta em quÃª?"
-  API (o "balcÃ£o")  â”€â”€â–º  Motor de regras (aplica o MCR item por item)
-           â–²
-           â”‚
-  Site (o tÃ©cnico usa no celular ou no computador)
+           ▲
+           │   a API pergunta: "este desenho encosta em quê?"
+  API (o "balcão")  ──►  Motor de regras (aplica o MCR item por item)
+           ▲
+           │
+  Site (o técnico usa no celular ou no computador)
 ```
 
 O caminho de uma consulta:
 
-1. O tÃ©cnico digita o **cÃ³digo do CAR**, informa a situaÃ§Ã£o do CAR e os mÃ³dulos fiscais e envia o **arquivo do contorno** da fazenda (KML ou GeoJSON).
+1. O técnico digita o **código do CAR**, informa a situação do CAR e os módulos fiscais e envia o **arquivo do contorno** da fazenda (KML ou GeoJSON).
 2. O site manda isso para a **API**.
-3. A API pergunta ao **banco de mapas** o que se sobrepÃµe Ã  fazenda e consulta as listas pelo cÃ³digo do CAR.
-4. O **motor de regras** transforma o que foi encontrado em semÃ¡foro, aplicando cada item do MCR e suas exceÃ§Ãµes.
-5. O resultado volta para a tela e fica guardado, para poder ser conferido depois pelo **cÃ³digo QR** do relatÃ³rio.
+3. A API pergunta ao **banco de mapas** o que se sobrepõe à fazenda e consulta as listas pelo código do CAR.
+4. O **motor de regras** transforma o que foi encontrado em semáforo, aplicando cada item do MCR e suas exceções.
+5. O resultado volta para a tela e fica guardado, para poder ser conferido depois pelo **código QR** do relatório.
 
-**A carteira funciona assim:** Ã s 4h os coletores atualizam as bases; Ã s 6h o **monitor** reconfere cada fazenda acompanhada, compara com o resultado anterior e, se algo mudou, grava um resultado novo (com dossiÃª e QR), cria um aviso e manda **um e-mail por tÃ©cnico** com todas as mudanÃ§as do dia. MudanÃ§a causada por uma base que falhou ao atualizar (item virando "NÃ£o verificado") nÃ£o gera alarme.
+**A carteira funciona assim:** às 4h os coletores atualizam as bases; às 6h o **monitor** reconfere cada fazenda acompanhada, compara com o resultado anterior e, se algo mudou, grava um resultado novo (com dossiê e QR), cria um aviso e manda **um e-mail por técnico** com todas as mudanças do dia. Mudança causada por uma base que falhou ao atualizar (item virando "Não verificado") não gera alarme.
 
 Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md)).
 
@@ -146,30 +146,30 @@ Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/t
 
 ## 6. O diferencial: do vermelho ao verde
 
-Mostrar o problema qualquer mapa pÃºblico mostra. O Apto Rural vai alÃ©m:
+Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 
-- **Separa o vermelho real do contestÃ¡vel** (por exemplo, encosta de divisa ou desmatamento que tinha autorizaÃ§Ã£o).
-- **Gera o dossiÃª**: o que foi encontrado, a regra, as saÃ­das que a norma admite e a **lista de documentos** a juntar. Para o Prodes, por exemplo, o item 18 do MCR aceita ASV, PRAD, TAC, Termo de Compromisso Ambiental ou laudo de satÃ©lite do banco.
-- **RelatÃ³rio verificÃ¡vel**: o cÃ³digo QR abre a consulta original, para o gerente do banco conferir.
-- **Carteira com avisos**: o tÃ©cnico coloca as fazendas que atende na carteira e o sistema **reconfere todas, todo dia**. Se aparecer um embargo novo, se o CAR for suspenso ou se chegar a data do Prodes daquele imÃ³vel, o tÃ©cnico recebe um aviso no site e por e-mail. Isso importa porque o banco pode desclassificar um contrato jÃ¡ assinado se a fazenda deixar de cumprir as regras (item 19 do MCR).
+- **Separa o vermelho real do contestável** (por exemplo, encosta de divisa ou desmatamento que tinha autorização).
+- **Gera o dossiê**: o que foi encontrado, a regra, as saídas que a norma admite e a **lista de documentos** a juntar. Para o Prodes, por exemplo, o item 18 do MCR aceita ASV, PRAD, TAC, Termo de Compromisso Ambiental ou laudo de satélite do banco.
+- **Relatório verificável**: o código QR abre a consulta original, para o gerente do banco conferir.
+- **Carteira com avisos**: o técnico coloca as fazendas que atende na carteira e o sistema **reconfere todas, todo dia**. Se aparecer um embargo novo, se o CAR for suspenso ou se chegar a data do Prodes daquele imóvel, o técnico recebe um aviso no site e por e-mail. Isso importa porque o banco pode desclassificar um contrato já assinado se a fazenda deixar de cumprir as regras (item 19 do MCR).
 - **Feito para o campo**: funciona bem no celular, com sol forte e internet fraca, e envia o resumo pelo WhatsApp.
 
 ---
 
 ## 7. Como o produto ganha dinheiro
 
-O tÃ©cnico compra **crÃ©ditos**:
+O técnico compra **créditos**:
 
-| Pacote | PreÃ§o | Inclui |
+| Pacote | Preço | Inclui |
 | --- | --- | --- |
 | Consulta avulsa | R$ 39 | 1 consulta |
-| DossiÃª avulso | R$ 190 | 1 dossiÃª |
-| Pacote Projetista | R$ 199 | 20 consultas + 2 dossiÃªs |
-| Pacote EscritÃ³rio | R$ 499 | 100 consultas + 10 dossiÃªs |
+| Dossiê avulso | R$ 190 | 1 dossiê |
+| Pacote Projetista | R$ 199 | 20 consultas + 2 dossiês |
+| Pacote Escritório | R$ 499 | 100 consultas + 10 dossiês |
 
-- Quem cria a conta ganha **1 consulta grÃ¡tis** assim que **confirma o e-mail** (isso evita contas falsas em sÃ©rie).
-- O pagamento Ã© pelo **Asaas** (Pix, cartÃ£o ou boleto). O Apto Rural nunca vÃª dados de cartÃ£o.
-- Os preÃ§os sÃ£o valores de partida, a ajustar depois de conversar com tÃ©cnicos.
+- Quem cria a conta ganha **1 consulta grátis** assim que **confirma o e-mail** (isso evita contas falsas em série).
+- O pagamento é pelo **Asaas** (Pix, cartão ou boleto). O Apto Rural nunca vê dados de cartão.
+- Os preços são valores de partida, a ajustar depois de conversar com técnicos.
 
 ---
 
@@ -181,7 +181,7 @@ O tÃ©cnico compra **crÃ©ditos**:
 - **Python 3.11 ou mais novo**: roda os coletores das bases.
 - **Docker Desktop**: roda o banco de mapas (PostGIS).
 
-### OpÃ§Ã£o A â€” sÃ³ para ver as telas (sem banco)
+### Opção A — só para ver as telas (sem banco)
 
 ```bash
 npm install
@@ -189,21 +189,21 @@ npm run dev:api
 npm run dev:web
 ```
 
-Abra http://localhost:5173. No modo demonstraÃ§Ã£o (`APTO_DEMO=1` no arquivo `.env`) aparecem trÃªs fazendas **fictÃ­cias** para testar as telas.
+Abra http://localhost:5173. No modo demonstração (`APTO_DEMO=1` no arquivo `.env`) aparecem três fazendas **fictícias** para testar as telas.
 
-### OpÃ§Ã£o B â€” com as bases reais
+### Opção B — com as bases reais
 
-1. **Suba o banco de mapas.** Ele fica na porta **5433**, para nÃ£o brigar com outro PostgreSQL que jÃ¡ exista no computador.
+1. **Suba o banco de mapas.** Ele fica na porta **5433**, para não brigar com outro PostgreSQL que já exista no computador.
 
    ```bash
    docker compose up -d
    ```
 
-2. **Crie o arquivo `.env`** copiando o `.env.example` e preencha (no mÃ­nimo):
+2. **Crie o arquivo `.env`** copiando o `.env.example` e preencha (no mínimo):
    - `DATABASE_URL=postgres://apto:apto@localhost:5433/apto_rural`
-   - `DOCUMENTO_HASH_SECRET=` um texto longo e aleatÃ³rio (protege os CPFs)
+   - `DOCUMENTO_HASH_SECRET=` um texto longo e aleatório (protege os CPFs)
 
-3. **Carregue as bases oficiais.** Leva alguns minutos; o Ibama e o ServiÃ§o Florestal sÃ£o os maiores.
+3. **Carregue as bases oficiais.** Leva alguns minutos; o Ibama e o Serviço Florestal são os maiores.
 
    ```bash
    cd coletores
@@ -216,25 +216,25 @@ Abra http://localhost:5173. No modo demonstraÃ§Ã£o (`APTO_DEMO=1` no arquivo
    python -m coletores.mte_empregadores
    ```
 
-   Dicas: `--simular` sÃ³ lÃª e conta, sem gravar; `--arquivo caminho` usa um arquivo jÃ¡ baixado. Se uma carga falhar no meio, a anterior continua valendo.
+   Dicas: `--simular` só lê e conta, sem gravar; `--arquivo caminho` usa um arquivo já baixado. Se uma carga falhar no meio, a anterior continua valendo.
 
-4. **Crie as tabelas do banco** (rode de novo sempre que baixar uma versÃ£o nova do cÃ³digo):
+4. **Crie as tabelas do banco** (rode de novo sempre que baixar uma versão nova do código):
 
    ```bash
    npm run migrar -w @apto/api
    ```
 
-5. **Rode a API e o site** como na opÃ§Ã£o A e crie uma conta em "Entrar". Sem servidor de e-mail configurado, o e-mail de confirmaÃ§Ã£o aparece no terminal da API: abra o link de lÃ¡ para confirmar a conta.
+5. **Rode a API e o site** como na opção A e crie uma conta em "Entrar". Sem servidor de e-mail configurado, o e-mail de confirmação aparece no terminal da API: abra o link de lá para confirmar a conta.
 
 ### Testes
 
 ```bash
 npm test            # regras do MCR + API (contas, compras, pagamentos)
-npm run typecheck   # confere os tipos do cÃ³digo
-npm run build       # gera a versÃ£o de produÃ§Ã£o do site e da API
+npm run typecheck   # confere os tipos do código
+npm run build       # gera a versão de produção do site e da API
 ```
 
-Teste com fazendas reais (precisa da opÃ§Ã£o B):
+Teste com fazendas reais (precisa da opção B):
 
 ```bash
 cd coletores
@@ -245,7 +245,7 @@ npx tsx --env-file=../../.env scripts/testar-carteira.ts         # carteira + mo
 npx tsx --env-file=../../.env scripts/testar-god-mode.ts         # painel: entrar como, bloqueio, papéis, auditoria
 ```
 
-Rodar a reconferÃªncia da carteira na hora (sem esperar as 6h):
+Rodar a reconferência da carteira na hora (sem esperar as 6h):
 
 ```bash
 npm run monitorar -w @apto/api
@@ -253,94 +253,113 @@ npm run monitorar -w @apto/api
 
 ### Contas e e-mail
 
-- A conta usa e-mail e senha. A senha Ã© guardada sÃ³ como cÃ³digo irreversÃ­vel, e hÃ¡ limite de tentativas de login.
-- Ao criar a conta, o sistema manda um **link de confirmaÃ§Ã£o** (vale 48 horas). Confirmado o e-mail, entra a consulta grÃ¡tis.
-- **Esqueci minha senha**: manda um link que vale 1 hora e sÃ³ funciona uma vez. Ao criar a senha nova, a conta sai de todos os outros aparelhos.
+- A conta usa e-mail e senha. A senha é guardada só como código irreversível, e há limite de tentativas de login.
+- Ao criar a conta, o sistema manda um **link de confirmação** (vale 48 horas). Confirmado o e-mail, entra a consulta grátis.
+- **Esqueci minha senha**: manda um link que vale 1 hora e só funciona uma vez. Ao criar a senha nova, a conta sai de todos os outros aparelhos.
 - O e-mail sai por **SMTP** (qualquer provedor). Configure `SMTP_HOST`, `SMTP_PORTA`, `SMTP_USUARIO`, `SMTP_SENHA` e `EMAIL_REMETENTE`. Sem isso, no desenvolvimento, o e-mail aparece no terminal da API.
+
+### Painel administrativo e monitoramento
+
+O painel fica em `/admin` e tem dois níveis de acesso:
+
+| Nível | O que pode |
+| --- | --- |
+| **Suporte** | Ver tudo (indicadores, bases, erros, usuários, pedidos), abrir a ficha de qualquer usuário, **entrar como** ele (só leitura) e reenviar a confirmação de e-mail. |
+| **Administrador** | Tudo do suporte, mais: ajustar créditos, bloquear e desbloquear contas, mudar o papel de alguém e ver a auditoria. |
+
+- **Primeiro acesso:** coloque seu e-mail em `ADMIN_EMAILS` no `.env`. Quem está ali é sempre administrador, desde que tenha confirmado o e-mail. Os demais papéis são dados pela ficha do usuário no próprio painel.
+- **Entrar como:** você vê o site exatamente como o cliente vê, por até 1 hora, com uma faixa marrom no topo. Nada pode ser alterado nesse modo: nenhuma compra, consulta ou mudança. O botão "Voltar ao painel" encerra o modo.
+- **Bloquear conta:** o cliente sai na hora de todos os aparelhos e não consegue mais entrar.
+- **Auditoria:** toda ação administrativa fica registrada (quem fez, o quê, em quem, quando).
+- **Monitoramento de erros:** falhas da API, das telas do site, do monitor e dos coletores vão para o painel. Os administradores recebem um e-mail de alerta, no máximo um a cada 15 minutos. Toda manhã o monitor também confere se alguma base oficial atrasou.
 
 ### Pagamentos
 
-- Sem chave do Asaas e com `APTO_DEMO=1`, a compra abre uma **fatura simulada**, que nÃ£o cobra nada.
+- Sem chave do Asaas e com `APTO_DEMO=1`, a compra abre uma **fatura simulada**, que não cobra nada.
 - Para cobrar de verdade, preencha `ASAAS_API_KEY`, `ASAAS_AMBIENTE` (`sandbox` para testes, `producao` para valer) e `ASAAS_WEBHOOK_TOKEN`.
-- No painel do Asaas, aponte o webhook de cobranÃ§as para `https://<seu-domÃ­nio>/v1/webhooks/asaas`.
+- No painel do Asaas, aponte o webhook de cobranças para `https://<seu-domínio>/v1/webhooks/asaas`.
 
-### Colocar no ar (produÃ§Ã£o)
+### Colocar no ar (produção)
 
 Tudo que roda no servidor sobe com um comando:
 
-| PeÃ§a | O que faz |
+| Peça | O que faz |
 | --- | --- |
 | Banco de mapas | PostgreSQL + PostGIS. |
-| API + site | No mesmo endereÃ§o; atualiza a estrutura do banco sozinha ao subir. |
-| Coletores | Todo dia Ã s 4h conferem as bases oficiais e sÃ³ recarregam o que mudou. |
-| Monitor | Todo dia Ã s 6h reconfere as carteiras e manda os avisos por e-mail. |
-| Caddy | HTTPS (o cadeado) automÃ¡tico e renovado sozinho. |
-| Backup | CÃ³pia diÃ¡ria do banco, guardando 14 dias. |
+| API + site | No mesmo endereço; atualiza a estrutura do banco sozinha ao subir. |
+| Coletores | Todo dia às 4h conferem as bases oficiais e só recarregam o que mudou. |
+| Monitor | Todo dia às 6h reconfere as carteiras e manda os avisos por e-mail. |
+| Caddy | HTTPS (o cadeado) automático e renovado sozinho. |
+| Backup | Cópia diária do banco, guardando 14 dias. |
 
 ```bash
-cp .env.producao.example .env.producao   # preencha domÃ­nio, senhas e Asaas
+cp .env.producao.example .env.producao   # preencha domínio, senhas e Asaas
 docker compose -f docker-compose.prod.yml --env-file .env.producao up -d --build
 ```
 
-O passo a passo completo (servidor, domÃ­nio, webhook do Asaas, backups) estÃ¡ em [docs/implantacao.md](docs/implantacao.md).
+O passo a passo completo (servidor, domínio, webhook do Asaas, backups) está em [docs/implantacao.md](docs/implantacao.md).
 
 ---
 
 ## 9. Mapa das pastas
 
 ```
-packages/regras   O coraÃ§Ã£o: cada regra do MCR em cÃ³digo, com a norma citada e testes.
-apps/api          A API (o "balcÃ£o"): contas, consultas, crÃ©ditos e pagamentos.
+packages/regras   O coração: cada regra do MCR em código, com a norma citada e testes.
+apps/api          A API (o "balcão"): contas, consultas, créditos e pagamentos.
 apps/web          O site, pensado para o celular no campo.
 coletores         Scripts que baixam as bases oficiais e guardam a origem de cada arquivo.
 db/migrations     A estrutura do banco de dados (aplicada em ordem, uma vez cada).
-db/teste          Consultas SQL usadas sÃ³ para testar com dados reais.
-deploy            ConfiguraÃ§Ã£o do HTTPS (Caddy) e do backup diÃ¡rio.
-Dockerfile        Imagem de produÃ§Ã£o da API + site.
-docs              Fontes oficiais, cuidados legais, arquitetura, interface e relatÃ³rios de teste.
+db/teste          Consultas SQL usadas só para testar com dados reais.
+deploy            Configuração do HTTPS (Caddy) e do backup diário.
+Dockerfile        Imagem de produção da API + site.
+docs              Fontes oficiais, cuidados legais, arquitetura, interface e relatórios de teste.
 ```
 
 Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python nos coletores, PostgreSQL + PostGIS no banco.
 
 ---
 
-## 10. SituaÃ§Ã£o do projeto
+## 10. Situação do projeto
 
 **Pronto e testado**
 
-- [x] Motor com as regras do MCR 2-9, incluindo as ResoluÃ§Ãµes 5.193/2024, 5.268/2025 e 5.303/2026.
-- [x] Seis bases oficiais carregadas e testadas com fazendas reais de MT e PA, sem divergÃªncia.
-- [x] Site para celular: consulta, semÃ¡foro, relatÃ³rio em PDF, resumo por WhatsApp e pÃ¡gina de fontes.
-- [x] DossiÃª v1, com checklist de documentos e cÃ³digo QR.
-- [x] Contas, crÃ©ditos e pagamento (Asaas real + simulado para desenvolvimento).
-- [x] ConfirmaÃ§Ã£o de e-mail e recuperaÃ§Ã£o de senha por e-mail (SMTP).
-- [x] Carteira de fazendas com reconferÃªncia diÃ¡ria e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
-- [x] Pacote de produÃ§Ã£o: imagem Docker, HTTPS automÃ¡tico, backup diÃ¡rio, migraÃ§Ãµes e atualizaÃ§Ã£o automÃ¡tica das bases.
+- [x] Motor com as regras do MCR 2-9, incluindo as Resoluções 5.193/2024, 5.268/2025 e 5.303/2026.
+- [x] Seis bases oficiais carregadas e testadas com fazendas reais de MT e PA, sem divergência.
+- [x] Site para celular: consulta, semáforo, relatório em PDF, resumo por WhatsApp e página de fontes.
+- [x] Dossiê v1, com checklist de documentos e código QR.
+- [x] Contas, créditos e pagamento (Asaas real + simulado para desenvolvimento).
+- [x] Confirmação de e-mail e recuperação de senha por e-mail (SMTP).
+- [x] Landing page de vendas para quem chega sem conta (quem tem conta vai direto para a consulta).
+- [x] Painel administrativo com papéis (suporte e administrador), ficha do usuário, "entrar como", bloqueio, auditoria e monitoramento de erros com alerta por e-mail.
+- [x] Carteira de fazendas com reconferência diária e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
+- [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
 
-**Falta para lanÃ§ar**
+**Falta para lançar**
 
-- [ ] Contratar o servidor e o domÃ­nio e subir seguindo [docs/implantacao.md](docs/implantacao.md).
-- [ ] Contratar um provedor de e-mail (SMTP) e verificar o domÃ­nio nele (o cÃ³digo jÃ¡ estÃ¡ pronto).
-- [ ] RevisÃ£o de um advogado: termos de uso, privacidade (LGPD) e linguagem do dossiÃª.
-- [ ] Conta no Asaas aprovada (chaves de sandbox e de produÃ§Ã£o).
-- [ ] Confirmar as licenÃ§as de uso das bases da Funai e do MMA.
+- [ ] Contratar o servidor e o domínio e subir seguindo [docs/implantacao.md](docs/implantacao.md).
+- [ ] Contratar um provedor de e-mail (SMTP) e verificar o domínio nele (o código já está pronto).
+- [ ] Revisão de um advogado: termos de uso, privacidade (LGPD) e linguagem do dossiê.
+- [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
+- [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
 
-**Depois do lanÃ§amento**
+**Depois do lançamento**
 
-- [ ] Imagens de satÃ©lite antes e depois de 2019 no dossiÃª.
-- [ ] Definir se a carteira entra nos pacotes pagos (hoje: grÃ¡tis, atÃ© 50 imÃ³veis por conta).
-- [ ] Consulta pelo WhatsApp, inclusive a consulta grÃ¡tis para o produtor.
-- [ ] Fonte aberta para territÃ³rios quilombolas.
+- [ ] Estorno e cancelamento de pedido pelo painel (integrado ao Asaas).
+- [ ] Ajustar preços, limite da carteira e aviso no topo do site pelo painel, sem mexer no código.
+- [ ] Imagens de satélite antes e depois de 2019 no dossiê.
+- [ ] Definir se a carteira entra nos pacotes pagos (hoje: grátis, até 50 imóveis por conta).
+- [ ] Consulta pelo WhatsApp, inclusive a consulta grátis para o produtor.
+- [ ] Fonte aberta para territórios quilombolas.
 
 ---
 
 ## 11. Regras de ouro do projeto
 
-1. **SÃ³ fonte oficial.** Nenhuma regra entra no cÃ³digo sem a norma oficial citada (Banco Central, ministÃ©rios, Ibama, Inpeâ€¦). O que nÃ£o foi confirmado fica marcado "A CONFIRMAR".
-2. **Nunca verde sem checar.** Se uma base nÃ£o foi consultada, o item aparece como "NÃ£o verificado".
-3. **Linguagem cuidadosa.** O sistema nÃ£o chama ninguÃ©m de "irregular" nem "ilegal": mostra o que consta nas bases.
-4. **Dados pessoais protegidos (LGPD).** CPF/CNPJ sÃ³ com autorizaÃ§Ã£o e guardado apenas como cÃ³digo irreversÃ­vel. O CPF de cobranÃ§a vai direto ao Asaas.
-5. **Regras mudam.** Quando sair uma nova resoluÃ§Ã£o, atualizam-se a regra, os testes e a documentaÃ§Ã£o juntos.
+1. **Só fonte oficial.** Nenhuma regra entra no código sem a norma oficial citada (Banco Central, ministérios, Ibama, Inpe…). O que não foi confirmado fica marcado "A CONFIRMAR".
+2. **Nunca verde sem checar.** Se uma base não foi consultada, o item aparece como "Não verificado".
+3. **Linguagem cuidadosa.** O sistema não chama ninguém de "irregular" nem "ilegal": mostra o que consta nas bases.
+4. **Dados pessoais protegidos (LGPD).** CPF/CNPJ só com autorização e guardado apenas como código irreversível. O CPF de cobrança vai direto ao Asaas.
+5. **Regras mudam.** Quando sair uma nova resolução, atualizam-se a regra, os testes e a documentação juntos.
 
 ---
 
@@ -348,10 +367,10 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 | Documento | Para que serve |
 | --- | --- |
-| [docs/fontes-oficiais.md](docs/fontes-oficiais.md) | Cada norma e cada base, com link oficial e situaÃ§Ã£o. |
-| [docs/conformidade-legal.md](docs/conformidade-legal.md) | Cuidados legais e critÃ©rios do produto que precisam de revisÃ£o jurÃ­dica. |
-| [docs/arquitetura.md](docs/arquitetura.md) | Como as peÃ§as se encaixam e por quÃª. |
-| [docs/frontend.md](docs/frontend.md) | DecisÃµes de interface para o tÃ©cnico do campo. |
-| [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | RelatÃ³rio do teste com fazendas reais. |
+| [docs/fontes-oficiais.md](docs/fontes-oficiais.md) | Cada norma e cada base, com link oficial e situação. |
+| [docs/conformidade-legal.md](docs/conformidade-legal.md) | Cuidados legais e critérios do produto que precisam de revisão jurídica. |
+| [docs/arquitetura.md](docs/arquitetura.md) | Como as peças se encaixam e por quê. |
+| [docs/frontend.md](docs/frontend.md) | Decisões de interface para o técnico do campo. |
+| [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
-| [Plano de negÃ³cio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preÃ§os, riscos e plano de lanÃ§amento. |
+| [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |
