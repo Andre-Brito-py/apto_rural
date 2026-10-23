@@ -465,6 +465,18 @@ describe('segurança', () => {
     expect(enorme.statusCode).toBe(400);
   });
 
+  it('lista enorme de pontos inválidos é recusada rápido, sem esgotar a memória (GHSA-mrhx-c7xc-m3w5)', async () => {
+    const app = criarServidor();
+    const lixo = Array.from({ length: 600_000 }, () => 'x');
+    const corpo = JSON.stringify({ car: CARS_DEMO.limpo, geometria: { type: 'Polygon', coordinates: [lixo] } });
+    const antes = process.memoryUsage().heapUsed;
+    const inicio = Date.now();
+    const r = await app.inject({ method: 'POST', url: '/v1/consultas', headers: { 'content-type': 'application/json' }, payload: corpo });
+    expect(r.statusCode).toBe(400);
+    expect(Date.now() - inicio).toBeLessThan(5000);
+    expect(process.memoryUsage().heapUsed - antes).toBeLessThan(300 * 1024 * 1024);
+  });
+
   it('aceita contorno de fazenda grande (mais de 1 MB)', async () => {
     const app = criarServidor();
     const corpo = JSON.stringify({ car: CARS_DEMO.limpo, geometria: poligono(60_000) });

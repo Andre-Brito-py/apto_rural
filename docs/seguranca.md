@@ -30,6 +30,7 @@ O Apto Rural guarda contas, senhas (em forma irreversível), pedidos pagos e dad
 8. **Identificadores.** Ids que não são UUID de verdade são recusados antes de chegar ao banco.
 9. **Banco do computador de desenvolvimento.** Antes ficava aberto para a rede local (com a senha `apto`); agora só o próprio computador acessa.
 10. **Faxina diária (LGPD, art. 15 e 16: guardar só pelo tempo necessário).** O monitor das 6h apaga sessões vencidas, links de e-mail usados ou vencidos há mais de 7 dias e registros de erro com mais de 90 dias.
+12. **Alerta novo na biblioteca de validação (zod), em 23/10/2026.** Um alerta publicado depois da revisão ([GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)) mostrou que uma lista enorme de itens inválidos podia esgotar a memória do servidor; no Apto Rural, a porta de entrada seria o contorno da fazenda. A zod foi atualizada para a versão 4.6.7, e o contorno agora passa antes por uma conferência rápida que para no primeiro ponto inválido (`conferirGeometriaRapido`, em `apps/api/src/esquemas.ts`), porque mesmo a versão nova falha com listas gigantes (dá erro de pilha). Um teste automático manda 600 mil pontos inválidos e confere que a resposta é uma recusa rápida.
 11. **Excluir a conta e baixar os dados (adicionado depois da revisão).** A exclusão pede a senha de novo e não funciona no modo "entrar como"; o arquivo de dados nunca traz a senha nem chaves de acesso. Detalhes em [conformidade-legal.md](conformidade-legal.md).
 
 ## O que foi conferido e já estava certo

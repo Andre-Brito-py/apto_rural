@@ -22,7 +22,7 @@ const cadastro = z.object({
     .optional(),
   profissao: z.string().trim().max(80).optional(),
   senha: z.string().min(10, 'A senha precisa de pelo menos 10 caracteres.').max(200),
-  aceiteTermos: z.literal(true, { errorMap: () => ({ message: 'É preciso aceitar os termos de uso e a política de privacidade.' }) }),
+  aceiteTermos: z.literal(true, { error: 'É preciso aceitar os termos de uso e a política de privacidade.' }),
 });
 
 const entrada = z.object({
@@ -195,7 +195,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
 
   const exclusao = z.object({
     senha: z.string().min(1, 'Informe sua senha para confirmar.').max(200),
-    confirmo: z.literal(true, { errorMap: () => ({ message: 'Marque que entende o que acontece com a exclusão.' }) }),
+    confirmo: z.literal(true, { error: 'Marque que entende o que acontece com a exclusão.' }),
   });
 
   /** Exclusão da conta pelo titular. Pede a senha de novo: quem pegou o celular desbloqueado não apaga a conta. */

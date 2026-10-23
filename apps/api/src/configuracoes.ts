@@ -54,7 +54,7 @@ const produto = z.object({
 });
 
 /** Validação de cada configuração antes de salvar. */
-export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], z.ZodTypeDef, unknown> } = {
+export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], unknown> } = {
   produtos: z
     .array(produto)
     .min(1)

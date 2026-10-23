@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { config } from '../config.js';
 import { erro, hojeBrasilia, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { hashDocumento, hashesParaCadastro, normalizarDocumento } from '../documento.js';
-import { novaConsulta } from '../esquemas.js';
+import { conferirGeometriaRapido, novaConsulta } from '../esquemas.js';
 import { CARS_DEMO, ehCarDemo } from '../repositorio/demo.js';
 import type { ConsultaSalva } from '../repositorio/tipos.js';
 import type { Usuario } from '../contas/tipos.js';
@@ -44,6 +44,8 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
 
   // Contornos de fazendas grandes passam de 1 MB (o padrão do Fastify).
   app.post('/v1/consultas', { bodyLimit: 8 * 1024 * 1024 }, async (req, reply) => {
+    const geometriaRuim = conferirGeometriaRapido((req.body as { geometria?: unknown } | null)?.geometria);
+    if (geometriaRuim) return erro(reply, 400, geometriaRuim, 'geometria');
     const corpo = novaConsulta.safeParse(req.body);
     if (!corpo.success) {
       const p = corpo.error.issues[0]!;
