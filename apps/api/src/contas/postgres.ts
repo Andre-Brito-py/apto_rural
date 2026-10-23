@@ -1,7 +1,7 @@
 import pg from 'pg';
 import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
 
-const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em`;
+const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em`;
 
 function usuario(r: Record<string, unknown>): Usuario {
   return {
@@ -12,6 +12,9 @@ function usuario(r: Record<string, unknown>): Usuario {
     profissao: (r.profissao as string) ?? undefined,
     pagamentoClienteId: (r.pagamento_cliente_id as string) ?? undefined,
     emailConfirmado: r.email_confirmado_em != null,
+    papel: (r.papel as Usuario['papel']) ?? 'usuario',
+    bloqueado: r.bloqueado_em != null,
+    personificadoPor: (r.personificado_por as string) ?? undefined,
   };
 }
 
@@ -73,7 +76,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
     return rows[0]?.usuario_id ?? null;
   }
 
-  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado'> & { senhaHash: string }) {
+  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string }) {
     const { rows } = await this.pool.query(
       `INSERT INTO usuario (nome, email, whatsapp, profissao, senha_hash, aceite_termos_em)
        VALUES ($1, lower($2), $3, $4, $5, now())
@@ -93,15 +96,21 @@ export class RepositorioContasPostgres implements RepositorioContas {
     await this.pool.query('UPDATE usuario SET pagamento_cliente_id = $2 WHERE id = $1', [usuarioId, clienteId]);
   }
 
-  async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date) {
-    await this.pool.query('INSERT INTO sessao (token_hash, usuario_id, expira_em) VALUES ($1, $2, $3)', [tokenHash, usuarioId, expiraEm]);
+  async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string) {
+    await this.pool.query('INSERT INTO sessao (token_hash, usuario_id, expira_em, personificado_por) VALUES ($1, $2, $3, $4)', [
+      tokenHash,
+      usuarioId,
+      expiraEm,
+      personificadoPor ?? null,
+    ]);
   }
 
   async usuarioDaSessao(tokenHash: string) {
     const { rows } = await this.pool.query(
-      `SELECT ${USUARIO.split(', ').map((c) => `u.${c}`).join(', ')}
+      `SELECT ${USUARIO.split(', ').map((c) => `u.${c}`).join(', ')}, s.personificado_por
          FROM sessao s JOIN usuario u ON u.id = s.usuario_id
-        WHERE s.token_hash = $1 AND s.expira_em > now()`,
+        WHERE s.token_hash = $1 AND s.expira_em > now()
+          AND (u.bloqueado_em IS NULL OR s.personificado_por IS NOT NULL)`,
       [tokenHash],
     );
     return rows[0] ? usuario(rows[0]) : null;

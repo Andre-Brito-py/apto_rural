@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../contas/senha.js';
 import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
-import { COOKIE_SESSAO, ehAdmin, erro, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
-import { mensagemConfirmacao, mensagemRedefinirSenha } from '../email/mensagens.js';
+import { enviarLinkEmail } from '../contas/links.js';
+import { COOKIE_SESSAO, erro, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { CREDITOS_BOAS_VINDAS } from '../produtos.js';
 
 const cadastro = z.object({
@@ -28,8 +28,6 @@ const entrada = z.object({
 
 const LIMITE_LOGIN = { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } };
 const LIMITE_EMAIL = { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } };
-const HORAS = 3600 * 1000;
-const VALIDADE = { confirmacao: 48 * HORAS, senha: 1 * HORAS };
 
 const comToken = z.object({ token: z.string().min(20).max(200) });
 const redefinir = comToken.extend({ senha: z.string().min(10, 'A senha precisa de pelo menos 10 caracteres.').max(200) });
@@ -42,15 +40,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     reply.setCookie(COOKIE_SESSAO, token, opcoesCookie(expira));
   }
 
-  /** Cria o token, guarda só o hash e manda o link por e-mail. */
-  async function enviarLink(u: Usuario, tipo: TipoTokenEmail) {
-    const { token, hash } = novoTokenSessao();
-    await ctx.contas.criarTokenEmail(u.id, tipo, hash, new Date(Date.now() + VALIDADE[tipo]));
-    const caminho = tipo === 'confirmacao' ? 'confirmar-email' : 'redefinir-senha';
-    const link = `${config.webOrigin}/${caminho}?token=${encodeURIComponent(token)}`;
-    const msg = tipo === 'confirmacao' ? mensagemConfirmacao(u.nome, u.email, link) : mensagemRedefinirSenha(u.nome, u.email, link);
-    await ctx.email.enviar(msg);
-  }
+  const enviarLink = (u: Usuario, tipo: TipoTokenEmail) => enviarLinkEmail(ctx, u, tipo);
 
   /** Confirma o e-mail e, na primeira vez, libera a amostra grátis. */
   async function confirmar(usuarioId: string) {
@@ -94,9 +84,11 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     if (!u || !(await conferirSenha(corpo.data.senha, u.senhaHash))) {
       return erro(reply, 401, 'E-mail ou senha incorretos.');
     }
+    // Só depois da senha certa, para não revelar quais contas estão bloqueadas.
+    if (u.bloqueado) return erro(reply, 403, 'Esta conta está bloqueada. Fale com o suporte do Apto Rural.');
     await abrirSessao(u.id, reply);
     const { senhaHash: _, ...usuario } = u;
-    return { usuario, saldo: await ctx.contas.saldo(u.id), admin: ehAdmin(usuario) };
+    return { usuario, saldo: await ctx.contas.saldo(u.id), nivelAdmin: nivelAdmin(usuario) };
   });
 
   app.delete('/v1/sessao', async (req, reply) => {
@@ -109,7 +101,14 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   app.get('/v1/eu', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
-    return { usuario: u, saldo: await ctx.contas.saldo(u.id), admin: ehAdmin(u) };
+    // No modo "entrar como", a tela mostra quem está olhando e o botão de voltar.
+    const quemOlha = u.personificadoPor ? await ctx.contas.buscarPorId(u.personificadoPor) : null;
+    return {
+      usuario: u,
+      saldo: await ctx.contas.saldo(u.id),
+      nivelAdmin: nivelAdmin(u),
+      personificadoPor: quemOlha ? { nome: quemOlha.nome, email: quemOlha.email } : undefined,
+    };
   });
 
   app.post('/v1/conta/confirmar', LIMITE_EMAIL, async (req, reply) => {

@@ -7,16 +7,16 @@ import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, TipoTok
  */
 export class RepositorioContasMemoria implements RepositorioContas {
   private usuarios = new Map<string, Usuario & { senhaHash: string }>();
-  private sessoes = new Map<string, { usuarioId: string; expiraEm: Date }>();
+  private sessoes = new Map<string, { usuarioId: string; expiraEm: Date; personificadoPor?: string }>();
   private lancamentos: (Lancamento & { criadoEm: Date })[] = [];
   private pedidos = new Map<string, Pedido>();
   private eventos = new Set<string>();
   private tokens = new Map<string, { usuarioId: string; tipo: TipoTokenEmail; expiraEm: Date; usado: boolean }>();
 
-  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado'> & { senhaHash: string }) {
+  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string }) {
     const email = u.email.toLowerCase();
     if ([...this.usuarios.values()].some((x) => x.email === email)) return 'email_existe' as const;
-    const novo = { ...u, email, id: randomUUID(), emailConfirmado: false };
+    const novo: Usuario & { senhaHash: string } = { ...u, email, id: randomUUID(), emailConfirmado: false, papel: 'usuario', bloqueado: false };
     this.usuarios.set(novo.id, novo);
     const { senhaHash: _, ...publico } = novo;
     return publico;
@@ -65,17 +65,17 @@ export class RepositorioContasMemoria implements RepositorioContas {
     if (u) u.pagamentoClienteId = clienteId;
   }
 
-  async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date) {
-    this.sessoes.set(tokenHash, { usuarioId, expiraEm });
+  async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string) {
+    this.sessoes.set(tokenHash, { usuarioId, expiraEm, personificadoPor });
   }
 
   async usuarioDaSessao(tokenHash: string) {
     const s = this.sessoes.get(tokenHash);
     if (!s || s.expiraEm <= new Date()) return null;
     const u = this.usuarios.get(s.usuarioId);
-    if (!u) return null;
+    if (!u || (u.bloqueado && !s.personificadoPor)) return null;
     const { senhaHash: _, ...publico } = u;
-    return publico;
+    return { ...publico, personificadoPor: s.personificadoPor };
   }
 
   async apagarSessao(tokenHash: string) {

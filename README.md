@@ -242,6 +242,7 @@ python -m coletores.amostra_mma --bioma cerrado --uf MT --limite 2000
 cd ../apps/api
 npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts   # consultas de ponta a ponta
 npx tsx --env-file=../../.env scripts/testar-carteira.ts         # carteira + monitor + aviso por e-mail
+npx tsx --env-file=../../.env scripts/testar-god-mode.ts         # painel: entrar como, bloqueio, papéis, auditoria
 ```
 
 Rodar a reconferÃªncia da carteira na hora (sem esperar as 6h):

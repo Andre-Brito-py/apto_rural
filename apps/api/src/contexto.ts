@@ -24,9 +24,21 @@ export interface Contexto {
   admin: RepositorioAdmin | null;
 }
 
-/** Administrador = e-mail listado em ADMIN_EMAILS e já confirmado. */
+export type NivelAdmin = 'admin' | 'suporte';
+
+/**
+ * Nível de acesso ao painel. Exige e-mail confirmado e conta não bloqueada.
+ * E-mails de ADMIN_EMAILS são sempre admin (primeiro acesso, antes de existir
+ * qualquer papel no banco). Sessão de "entrar como" nunca tem poder de admin.
+ */
+export function nivelAdmin(u: Usuario | null): NivelAdmin | null {
+  if (!u || !u.emailConfirmado || u.bloqueado || u.personificadoPor) return null;
+  if (config.adminEmails.includes(u.email.toLowerCase()) || u.papel === 'admin') return 'admin';
+  return u.papel === 'suporte' ? 'suporte' : null;
+}
+
 export function ehAdmin(u: Usuario | null): boolean {
-  return u != null && u.emailConfirmado && config.adminEmails.includes(u.email.toLowerCase());
+  return nivelAdmin(u) === 'admin';
 }
 
 export const COOKIE_SESSAO = 'apto_sessao';

@@ -21,6 +21,12 @@ Decisões que protegem o produto e o cliente. Cada uma deve ser revisada por um 
 - O documento é guardado apenas como hash (SHA-256 com chave secreta) no histórico; o número em claro não é armazenado.
 - Base legal, termo de uso e política de privacidade: **A CONFIRMAR com advogado**.
 
+## Acesso administrativo aos dados dos clientes
+
+- O "entrar como" mostra os dados do cliente a quem tem papel de suporte ou administrador. É só leitura, dura até 1 hora e fica registrado na auditoria.
+- A política de privacidade precisa dizer que a equipe pode acessar a conta para suporte (**A CONFIRMAR** com advogado, junto com o prazo de guarda da auditoria e dos registros de erro).
+- Registros de erro nunca guardam o corpo das requisições (que pode ter CPF/CNPJ): só rota, mensagem e pilha técnica.
+
 ## Coleta de dados públicos
 
 - **Sicar:** o download da consulta pública é protegido por captcha e a licença não é declarada. O Apto Rural **não contorna captcha**. No MVP, o imóvel entra pelo arquivo que o técnico já tem (GeoJSON/KML exportado do CAR) e a situação do CAR é informada a partir do demonstrativo. Acesso automatizado ao Sicar só com autorização ou convênio com o SFB.

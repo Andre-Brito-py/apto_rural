@@ -33,7 +33,42 @@ export interface Saldo {
 export interface Sessao {
   usuario: Usuario;
   saldo: Saldo;
-  admin?: boolean;
+  /** Acesso ao painel: admin altera; suporte só vê e entra como. */
+  nivelAdmin?: 'admin' | 'suporte' | null;
+  /** Preenchido no modo "entrar como" (só leitura). */
+  personificadoPor?: { nome: string; email: string };
+}
+
+export type Papel = 'usuario' | 'suporte' | 'admin';
+
+export interface FichaUsuario {
+  usuario: {
+    id: string;
+    nome: string;
+    email: string;
+    whatsapp?: string;
+    profissao?: string;
+    papel: Papel;
+    criadoEm: string;
+    confirmadoEm: string | null;
+    bloqueadoEm: string | null;
+    bloqueioMotivo?: string;
+  };
+  saldo: Saldo;
+  lancamentos: { tipo: string; quantidade: number; motivo: string; criadoEm: string }[];
+  consultas: { id: string; codCar: string; criadaEm: string; veredito: string }[];
+  carteira: { id: string; codCar: string; apelido?: string; verificadoEm: string; veredito: string; ultimaConsultaId?: string }[];
+  pedidos: { id: string; produto: string; valor: number; status: string; criadoEm: string }[];
+  auditoria: { quando: string; acao: string; detalhes: Record<string, unknown>; adminEmail: string }[];
+}
+
+export interface RegistroAuditoria {
+  quando: string;
+  acao: string;
+  detalhes: Record<string, unknown>;
+  adminEmail: string;
+  alvoEmail?: string;
+  alvoId?: string;
 }
 
 export interface PainelResumo {
@@ -70,6 +105,8 @@ export interface UsuarioAdmin {
   profissao?: string;
   criadoEm: string;
   confirmado: boolean;
+  papel: Papel;
+  bloqueado: boolean;
   saldo: Saldo;
   consultas: number;
   pago: number;
@@ -216,6 +253,14 @@ export const api = {
     erros: () => pedir<{ erros: ErroRegistrado[] }>('/v1/admin/erros'),
     ajustarCreditos: (usuarioId: string, tipo: 'consulta' | 'dossie', quantidade: number, motivo: string) =>
       pedir<{ ok: boolean; saldo: Saldo }>(`/v1/admin/usuarios/${encodeURIComponent(usuarioId)}/creditos`, post({ tipo, quantidade, motivo })),
+    ficha: (id: string) => pedir<FichaUsuario>(`/v1/admin/usuarios/${encodeURIComponent(id)}`),
+    auditoria: () => pedir<{ auditoria: RegistroAuditoria[] }>('/v1/admin/auditoria'),
+    entrarComo: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/entrar-como`, post()),
+    voltar: () => pedir<{ ok: boolean; voltarPara: string }>('/v1/admin/voltar', post()),
+    bloquear: (id: string, motivo: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/bloquear`, post({ motivo })),
+    desbloquear: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/desbloquear`, post()),
+    definirPapel: (id: string, papel: Papel) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/papel`, post({ papel })),
+    reenviarConfirmacao: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/reenviar-confirmacao`, post()),
   },
 
   pagarSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/pedidos/${encodeURIComponent(id)}/pagar`, post()),

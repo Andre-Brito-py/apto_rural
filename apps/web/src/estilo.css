@@ -277,6 +277,16 @@ details.extra[open] > summary::before { content: '−'; }
 .lista-erros summary { cursor: pointer; }
 .detalhe-erro { white-space: pre-wrap; font-size: 0.78rem; background: #f3f2ee; padding: 8px; border-radius: 8px; max-height: 260px; overflow: auto; }
 .ajuste { border: 2px solid var(--marca); }
+.etiqueta { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: var(--marca-clara); color: var(--marca-forte); }
+.etiqueta-vermelha { background: var(--impedimento-fundo); color: var(--impedimento); }
+.acoes-admin { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.acoes-admin .botao { min-height: 44px; }
+.botao-perigo { background: #fff; color: var(--impedimento); border-color: var(--impedimento); }
+.papel { display: flex; flex-direction: column; gap: 2px; }
+.papel .entrada { min-height: 44px; width: auto; }
+.faixa-personificacao { background: #7c2d12; color: #fff; font-size: 0.92rem; position: sticky; top: 0; z-index: 10; }
+.faixa-personificacao .pagina { padding-top: 10px; padding-bottom: 10px; }
+.faixa-personificacao .botao { min-height: 36px; padding: 0 12px; margin-left: 6px; }
 
 /* Dossiê */
 .mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.88rem; }

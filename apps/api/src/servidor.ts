@@ -12,7 +12,7 @@ import { rotasAdmin } from './rotas/admin.js';
 import { rotasCarteira } from './rotas/carteira.js';
 import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
-import type { Contexto } from './contexto.js';
+import { COOKIE_SESSAO, usuarioDaRequisicao, type Contexto } from './contexto.js';
 import { EnviadorConsole, EnviadorSmtp } from './email/enviador.js';
 import { ProvedorAsaas } from './pagamentos/asaas.js';
 import { ProvedorSimulado } from './pagamentos/simulado.js';
@@ -50,6 +50,19 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
   app.register(cors, { origin: config.webOrigin, credentials: true });
   app.register(cookie);
   app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+
+  // "Entrar como" é só leitura: fora sair e voltar, nada que altere dados ou gaste crédito.
+  const LIBERADAS_NA_PERSONIFICACAO = new Set(['DELETE /v1/sessao', 'POST /v1/admin/voltar', 'POST /v1/erros']);
+  app.addHook('preHandler', async (req, reply) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || !req.cookies[COOKIE_SESSAO]) return;
+    if (LIBERADAS_NA_PERSONIFICACAO.has(`${req.method} ${req.routeOptions.url}`)) return;
+    const u = await usuarioDaRequisicao(ctx, req);
+    if (u?.personificadoPor) {
+      return reply.status(403).send({
+        erro: { mensagem: 'Modo visualização: você está vendo a conta de outra pessoa e não pode alterar nada. Volte ao painel para sair.' },
+      });
+    }
+  });
 
   app.after(() => {
     rotasConsultas(app, ctx);

@@ -224,7 +224,7 @@ describe('painel administrativo e erros', () => {
     expect((await app.inject({ method: 'GET', url: '/v1/admin/resumo', headers: { cookie } })).statusCode).toBe(403);
     await app.inject({ method: 'POST', url: '/v1/conta/confirmar', payload: { token: tokenDoUltimoEmail(email) } });
     const eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
-    expect(eu.json().admin).toBe(true);
+    expect(eu.json().nivelAdmin).toBe('admin');
     // Sem banco, o painel avisa que precisa dele (passou pela verificação de acesso).
     expect((await app.inject({ method: 'GET', url: '/v1/admin/resumo', headers: { cookie } })).statusCode).toBe(503);
   });

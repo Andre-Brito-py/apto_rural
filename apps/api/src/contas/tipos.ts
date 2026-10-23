@@ -8,7 +8,13 @@ export interface Usuario {
   profissao?: string;
   pagamentoClienteId?: string;
   emailConfirmado: boolean;
+  papel: Papel;
+  bloqueado: boolean;
+  /** Preenchido quando a sessão é de um administrador "entrando como" este usuário. */
+  personificadoPor?: string;
 }
+
+export type Papel = 'usuario' | 'suporte' | 'admin';
 
 export type TipoTokenEmail = 'confirmacao' | 'senha';
 
@@ -38,7 +44,9 @@ export interface Lancamento {
 }
 
 export interface RepositorioContas {
-  criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado'> & { senhaHash: string }): Promise<Usuario | 'email_existe'>;
+  criarUsuario(
+    u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string },
+  ): Promise<Usuario | 'email_existe'>;
   buscarPorId(id: string): Promise<Usuario | null>;
   /** Marca o e-mail como confirmado. Retorna true só na primeira vez. */
   confirmarEmail(usuarioId: string): Promise<boolean>;
@@ -51,7 +59,9 @@ export interface RepositorioContas {
   buscarPorEmail(email: string): Promise<(Usuario & { senhaHash: string }) | null>;
   definirClientePagamento(usuarioId: string, clienteId: string): Promise<void>;
 
-  criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date): Promise<void>;
+  /** personificadoPor: id do administrador que está "entrando como" (sessão só de leitura). */
+  criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string): Promise<void>;
+  /** Conta bloqueada não tem sessão válida, exceto a de um administrador entrando como ela. */
   usuarioDaSessao(tokenHash: string): Promise<Usuario | null>;
   apagarSessao(tokenHash: string): Promise<void>;
 

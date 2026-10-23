@@ -87,6 +87,7 @@ export class RepositorioAdmin {
   async usuarios(busca = '', limite = 100) {
     const { rows } = await this.pool.query(
       `SELECT u.id, u.nome, u.email, u.profissao, u.criado_em, u.email_confirmado_em IS NOT NULL AS confirmado,
+              u.papel, u.bloqueado_em IS NOT NULL AS bloqueado,
               coalesce((SELECT sum(quantidade) FROM credito_lancamento c WHERE c.usuario_id = u.id AND c.tipo = 'consulta'), 0)::int AS saldo_consulta,
               coalesce((SELECT sum(quantidade) FROM credito_lancamento c WHERE c.usuario_id = u.id AND c.tipo = 'dossie'), 0)::int AS saldo_dossie,
               (SELECT count(*) FROM consulta q WHERE q.usuario_id = u.id)::int AS consultas,
@@ -103,6 +104,8 @@ export class RepositorioAdmin {
       profissao: r.profissao ?? undefined,
       criadoEm: dia(r.criado_em),
       confirmado: r.confirmado,
+      papel: r.papel,
+      bloqueado: r.bloqueado,
       saldo: { consulta: r.saldo_consulta, dossie: r.saldo_dossie },
       consultas: r.consultas,
       pago: Number(r.pago),
@@ -124,6 +127,107 @@ export class RepositorioAdmin {
       email: r.email,
       criadoEm: dia(r.criado_em),
       pagoEm: dia(r.pago_em),
+    }));
+  }
+
+  /** Ficha completa de um usuário para o suporte. */
+  async fichaUsuario(id: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { rows: u } = await this.pool.query(
+      `SELECT id, nome, email, whatsapp, profissao, papel, criado_em, email_confirmado_em, bloqueado_em, bloqueio_motivo
+         FROM usuario WHERE id = $1`,
+      [id],
+    );
+    if (!u[0]) return null;
+    const [lancamentos, consultas, carteira, pedidos, auditoria] = await Promise.all([
+      this.pool.query(
+        `SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id DESC LIMIT 100`,
+        [id],
+      ),
+      this.pool.query(
+        `SELECT id, cod_car, criada_em, resultado->>'veredito' AS veredito FROM consulta WHERE usuario_id = $1 ORDER BY criada_em DESC LIMIT 100`,
+        [id],
+      ),
+      this.pool.query(
+        `SELECT id, cod_car, apelido, verificado_em, resultado->>'veredito' AS veredito, ultima_consulta_id
+           FROM imovel_monitorado WHERE usuario_id = $1 ORDER BY criado_em DESC`,
+        [id],
+      ),
+      this.pool.query(`SELECT id, produto, valor, status, criado_em FROM pedido WHERE usuario_id = $1 ORDER BY criado_em DESC`, [id]),
+      this.pool.query(
+        `SELECT a.quando, a.acao, a.detalhes, adm.email AS admin_email
+           FROM auditoria_admin a JOIN usuario adm ON adm.id = a.admin_id
+          WHERE a.alvo_usuario_id = $1 ORDER BY a.quando DESC LIMIT 100`,
+        [id],
+      ),
+    ]);
+    const r = u[0];
+    return {
+      usuario: {
+        id: r.id,
+        nome: r.nome,
+        email: r.email,
+        whatsapp: r.whatsapp ?? undefined,
+        profissao: r.profissao ?? undefined,
+        papel: r.papel,
+        criadoEm: dia(r.criado_em),
+        confirmadoEm: dia(r.email_confirmado_em),
+        bloqueadoEm: dia(r.bloqueado_em),
+        bloqueioMotivo: r.bloqueio_motivo ?? undefined,
+      },
+      lancamentos: lancamentos.rows.map((l) => ({ tipo: l.tipo, quantidade: l.quantidade, motivo: l.motivo, criadoEm: dia(l.criado_em) })),
+      consultas: consultas.rows.map((c) => ({ id: c.id, codCar: c.cod_car, criadaEm: dia(c.criada_em), veredito: c.veredito })),
+      carteira: carteira.rows.map((c) => ({
+        id: c.id,
+        codCar: c.cod_car,
+        apelido: c.apelido ?? undefined,
+        verificadoEm: dia(c.verificado_em),
+        veredito: c.veredito,
+        ultimaConsultaId: c.ultima_consulta_id ?? undefined,
+      })),
+      pedidos: pedidos.rows.map((p) => ({ id: p.id, produto: p.produto, valor: Number(p.valor), status: p.status, criadoEm: dia(p.criado_em) })),
+      auditoria: auditoria.rows.map((a) => ({ quando: dia(a.quando), acao: a.acao, detalhes: a.detalhes, adminEmail: a.admin_email })),
+    };
+  }
+
+  async definirPapel(id: string, papel: 'usuario' | 'suporte' | 'admin') {
+    await this.pool.query('UPDATE usuario SET papel = $2 WHERE id = $1', [id, papel]);
+  }
+
+  /** Bloqueia e derruba todas as sessões da conta. */
+  async bloquear(id: string, motivo: string) {
+    await this.pool.query('UPDATE usuario SET bloqueado_em = now(), bloqueio_motivo = $2 WHERE id = $1', [id, motivo]);
+    await this.pool.query('DELETE FROM sessao WHERE usuario_id = $1', [id]);
+  }
+
+  async desbloquear(id: string) {
+    await this.pool.query('UPDATE usuario SET bloqueado_em = NULL, bloqueio_motivo = NULL WHERE id = $1', [id]);
+  }
+
+  async auditar(adminId: string, acao: string, alvoUsuarioId: string | null, detalhes: Record<string, unknown> = {}) {
+    await this.pool.query('INSERT INTO auditoria_admin (admin_id, acao, alvo_usuario_id, detalhes) VALUES ($1, $2, $3, $4)', [
+      adminId,
+      acao,
+      alvoUsuarioId,
+      JSON.stringify(detalhes),
+    ]);
+  }
+
+  async auditoria(limite = 200) {
+    const { rows } = await this.pool.query(
+      `SELECT a.quando, a.acao, a.detalhes, adm.email AS admin_email, alvo.email AS alvo_email, a.alvo_usuario_id
+         FROM auditoria_admin a JOIN usuario adm ON adm.id = a.admin_id
+         LEFT JOIN usuario alvo ON alvo.id = a.alvo_usuario_id
+        ORDER BY a.quando DESC LIMIT $1`,
+      [limite],
+    );
+    return rows.map((a) => ({
+      quando: dia(a.quando),
+      acao: a.acao,
+      detalhes: a.detalhes,
+      adminEmail: a.admin_email,
+      alvoEmail: a.alvo_email ?? undefined,
+      alvoId: a.alvo_usuario_id ?? undefined,
     }));
   }
 

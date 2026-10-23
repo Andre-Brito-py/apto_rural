@@ -46,7 +46,7 @@ export function Conta() {
           <Link to="/planos" className="botao botao-secundario">
             Comprar créditos
           </Link>
-          {sessao.admin && (
+          {sessao.nivelAdmin && (
             <Link to="/admin" className="botao botao-secundario">
               Painel administrativo
             </Link>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { api, type Saude } from './api';
+import { FaixaPersonificacao } from './componentes/FaixaPersonificacao';
 import { LimiteErro } from './componentes/LimiteErro';
 import { Admin } from './paginas/Admin';
+import { AdminUsuario } from './paginas/AdminUsuario';
 import { Carteira } from './paginas/Carteira';
 import { Consulta } from './paginas/Consulta';
 import { Conta } from './paginas/Conta';
@@ -28,6 +30,8 @@ export function App() {
 
   return (
     <>
+      <FaixaPersonificacao />
+
       <header className="cabecalho">
         <div className="cabecalho-dentro">
           <Link to="/" className="marca">
@@ -79,6 +83,7 @@ export function App() {
             <Route path="/conta" element={<Conta />} />
             <Route path="/carteira" element={<Carteira />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/usuarios/:id" element={<AdminUsuario />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/pagamento-simulado/:id" element={<PagamentoSimulado />} />
             <Route path="/confirmar-email" element={<ConfirmarEmail />} />

@@ -74,6 +74,10 @@ O sistema manda dois e-mails: **confirmação de conta** (a consulta grátis só
 
 Em produção a API não sobe sem `SMTP_HOST` e `EMAIL_REMETENTE`. No desenvolvimento, sem SMTP, os e-mails aparecem no log da API, com o link clicável.
 
+## 7. Seu acesso de administrador
+
+Coloque seu e-mail em `ADMIN_EMAILS` no `.env.producao` (vários e-mails separados por vírgula), suba de novo, crie sua conta no site com esse e-mail e confirme. O painel fica em `https://seu-dominio/admin`. Os alertas de erro chegam nesses e-mails.
+
 ## Tarefas do dia a dia
 
 | Quero… | Comando |

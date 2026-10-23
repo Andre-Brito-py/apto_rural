@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
-import { api, type ErroRegistrado, type PainelResumo, type UsuarioAdmin } from '../api';
+import { Link, Navigate } from 'react-router-dom';
+import { api, type ErroRegistrado, type PainelResumo, type RegistroAuditoria, type UsuarioAdmin } from '../api';
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
 
-const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const dataHora = (iso: string | null) =>
+export const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+export const dataHora = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }) : '—';
 
 const SITUACAO_BASE = {
@@ -33,18 +33,19 @@ export function Admin() {
     }
   }
 
+  const nivel = sessao?.nivelAdmin;
   useEffect(() => {
-    if (sessao?.admin) carregar();
-  }, [sessao?.admin]);
+    if (nivel) carregar();
+  }, [nivel]);
 
   if (carregando) return <div className="pagina">Carregando…</div>;
-  if (!sessao?.admin) return <Navigate to="/" replace />;
+  if (!nivel) return <Navigate to="/" replace />;
 
   const r = painel?.resumo;
   return (
     <div className="pagina pagina-larga pilha">
       <div className="item-topo">
-        <h1 className="titulo-pagina">Painel</h1>
+        <h1 className="titulo-pagina">Painel {nivel === 'suporte' && <span className="fonte-suave">(suporte: só leitura)</span>}</h1>
         <button type="button" className="botao botao-secundario" onClick={carregar}>
           Atualizar
         </button>
@@ -125,6 +126,8 @@ export function Admin() {
 
       <Usuarios />
 
+      {nivel === 'admin' && <Auditoria />}
+
       <section className="cartao pilha-p">
         <h2 className="secao-titulo">Pedidos</h2>
         <div className="tabela-rolavel">
@@ -171,7 +174,68 @@ function Indicador({ titulo, valor, detalhe, alerta }: { titulo: string; valor: 
   );
 }
 
+export const NOME_ACAO: Record<string, string> = {
+  ajustou_creditos: 'Ajustou créditos',
+  entrou_como: 'Entrou como o usuário',
+  saiu_do_modo_entrar_como: 'Saiu do modo "entrar como"',
+  bloqueou: 'Bloqueou a conta',
+  desbloqueou: 'Desbloqueou a conta',
+  mudou_papel: 'Mudou o papel',
+  reenviou_confirmacao: 'Reenviou a confirmação de e-mail',
+};
+
+export function descreverDetalhes(d: Record<string, unknown>): string {
+  return Object.entries(d)
+    .map(([k, v]) => `${k}: ${String(v)}`)
+    .join(' · ');
+}
+
+function Auditoria() {
+  const [registros, setRegistros] = useState<RegistroAuditoria[]>([]);
+  useEffect(() => {
+    api.admin
+      .auditoria()
+      .then((r) => setRegistros(r.auditoria))
+      .catch(() => undefined);
+  }, []);
+  return (
+    <section className="cartao pilha-p">
+      <h2 className="secao-titulo">Auditoria (ações administrativas)</h2>
+      {registros.length === 0 ? (
+        <p className="ajuda">Nenhuma ação registrada.</p>
+      ) : (
+        <div className="tabela-rolavel">
+          <table className="tabela">
+            <thead>
+              <tr>
+                <th>Quando</th>
+                <th>Quem</th>
+                <th>Ação</th>
+                <th>Em quem</th>
+                <th>Detalhes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {registros.map((a, i) => (
+                <tr key={i}>
+                  <td>{dataHora(a.quando)}</td>
+                  <td>{a.adminEmail}</td>
+                  <td>{NOME_ACAO[a.acao] ?? a.acao}</td>
+                  <td>{a.alvoId ? <Link to={`/admin/usuarios/${a.alvoId}`}>{a.alvoEmail}</Link> : '—'}</td>
+                  <td>{descreverDetalhes(a.detalhes)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Usuarios() {
+  const { sessao } = useSessao();
+  const podeAlterar = sessao?.nivelAdmin === 'admin';
   const [busca, setBusca] = useState('');
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [ajustando, setAjustando] = useState<UsuarioAdmin | null>(null);
@@ -210,7 +274,9 @@ function Usuarios() {
             {usuarios.map((u) => (
               <tr key={u.id}>
                 <td>
-                  {u.nome}
+                  <Link to={`/admin/usuarios/${u.id}`}>{u.nome}</Link>
+                  {u.papel !== 'usuario' && <span className="etiqueta">{u.papel}</span>}
+                  {u.bloqueado && <span className="etiqueta etiqueta-vermelha">bloqueado</span>}
                   <br />
                   <span className="fonte-suave">
                     {u.email} {u.confirmado ? '' : '(não confirmado)'}
@@ -223,9 +289,11 @@ function Usuarios() {
                 </td>
                 <td>{reais(u.pago)}</td>
                 <td>
-                  <button type="button" className="link-botao" onClick={() => setAjustando(u)}>
-                    Ajustar créditos
-                  </button>
+                  {podeAlterar && (
+                    <button type="button" className="link-botao" onClick={() => setAjustando(u)}>
+                      Ajustar créditos
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -245,7 +313,7 @@ function Usuarios() {
   );
 }
 
-function AjusteCreditos({ usuario, aoFechar }: { usuario: UsuarioAdmin; aoFechar: (mudou: boolean) => void }) {
+export function AjusteCreditos({ usuario, aoFechar }: { usuario: { id: string; nome: string }; aoFechar: (mudou: boolean) => void }) {
   const [tipo, setTipo] = useState<'consulta' | 'dossie'>('consulta');
   const [quantidade, setQuantidade] = useState('1');
   const [motivo, setMotivo] = useState('');
