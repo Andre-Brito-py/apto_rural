@@ -50,13 +50,15 @@ export class RepositorioPostgis implements Repositorio {
       this.trabalhoEscravo(e.hashesCadastro, carregada('mte_empregadores')),
     ]);
 
-    // O que o técnico informou prevalece; senão, usa o que o MMA trouxe do Sicar.
+    // Na consulta, o que o técnico informou prevalece; na reconferência da
+    // carteira, prevalece a lista oficial do MMA (mais recente).
+    const oficialPrimeiro = e.preferirBaseOficial === true;
     return {
       imovel: {
         car: e.car,
         areaHa: areaImovel,
-        modulosFiscais: e.modulosFiscais ?? mma?.modulosFiscais,
-        situacaoCar: e.situacaoCar ?? mma?.situacaoCar,
+        modulosFiscais: oficialPrimeiro ? (mma?.modulosFiscais ?? e.modulosFiscais) : (e.modulosFiscais ?? mma?.modulosFiscais),
+        situacaoCar: oficialPrimeiro ? (mma?.situacaoCar ?? e.situacaoCar) : (e.situacaoCar ?? mma?.situacaoCar),
         usoColetivo: e.usoColetivo,
       },
       unidadesConservacao: uc,

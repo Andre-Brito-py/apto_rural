@@ -39,9 +39,14 @@ export function Conta() {
           <dt>Dossiês</dt>
           <dd>{sessao.saldo.dossie}</dd>
         </dl>
-        <Link to="/planos" className="botao botao-primario">
-          Comprar créditos
-        </Link>
+        <div className="botoes">
+          <Link to="/carteira" className="botao botao-primario">
+            Minha carteira de imóveis
+          </Link>
+          <Link to="/planos" className="botao botao-secundario">
+            Comprar créditos
+          </Link>
+        </div>
       </section>
 
       {pedidos.length > 0 && (

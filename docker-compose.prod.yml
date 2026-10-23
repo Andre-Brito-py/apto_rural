@@ -44,6 +44,21 @@ services:
       api:
         condition: service_healthy # a API aplica as migrações antes
 
+  monitor:
+    # Mesma imagem da API: reconfere a carteira todo dia às 6h e manda os avisos.
+    build: .
+    restart: unless-stopped
+    env_file: .env.producao
+    environment:
+      DATABASE_URL: postgres://apto:${POSTGRES_PASSWORD}@db:5432/apto_rural
+      WEB_ORIGIN: https://${DOMINIO}
+    command: ["node", "apps/api/dist/monitorar.js", "--agendar"]
+    healthcheck:
+      disable: true
+    depends_on:
+      api:
+        condition: service_healthy # a API aplica as migrações antes
+
   caddy:
     image: caddy:2.8.4-alpine
     restart: unless-stopped

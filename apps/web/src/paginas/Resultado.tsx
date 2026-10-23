@@ -1,5 +1,5 @@
 import { formatarCar, type Status } from '@apto/regras';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { api, type ConsultaSalva } from '../api';
 import { IconeStatus } from '../componentes/Icones';
@@ -29,6 +29,58 @@ function textoWhatsapp(c: ConsultaSalva): string {
     'Pré-checagem com bases públicas; não substitui a análise do banco.',
   ];
   return linhas.join('\n');
+}
+
+/** Coloca o imóvel na carteira, para ser reconferido todo dia. */
+function Acompanhar({ consultaId }: { consultaId: string }) {
+  const [apelido, setApelido] = useState('');
+  const [estado, setEstado] = useState<'parado' | 'enviando' | 'ok'>('parado');
+  const [erro, setErro] = useState('');
+
+  async function acompanhar(ev: FormEvent) {
+    ev.preventDefault();
+    setEstado('enviando');
+    setErro('');
+    try {
+      await api.acompanhar(consultaId, apelido || undefined);
+      setEstado('ok');
+    } catch (e) {
+      setErro((e as Error).message);
+      setEstado('parado');
+    }
+  }
+
+  if (estado === 'ok') {
+    return (
+      <p className="cartao verificacao sim nao-imprimir">
+        ✓ Imóvel na sua carteira. Vamos reconferir todo dia e avisar se algo mudar. <Link to="/carteira">Ver carteira</Link>
+      </p>
+    );
+  }
+
+  return (
+    <form className="cartao pilha-p nao-imprimir" onSubmit={acompanhar}>
+      <strong>Acompanhar este imóvel</strong>
+      <p className="ajuda" style={{ marginTop: 0 }}>
+        Reconferimos todo dia com as bases oficiais e avisamos por e-mail se surgir um embargo, mudar a situação do CAR ou chegar a data
+        do Prodes.
+      </p>
+      <div className="linha-acompanhar">
+        <input
+          className="entrada"
+          value={apelido}
+          onChange={(e) => setApelido(e.target.value)}
+          placeholder="Apelido (ex.: Fazenda Boa Vista)"
+          maxLength={80}
+          aria-label="Apelido do imóvel"
+        />
+        <button type="submit" className="botao botao-secundario" disabled={estado === 'enviando'}>
+          {estado === 'enviando' ? 'Salvando…' : 'Acompanhar'}
+        </button>
+      </div>
+      {erro && <p className="alerta alerta-erro">{erro}</p>}
+    </form>
+  );
 }
 
 export function Resultado() {
@@ -137,6 +189,8 @@ export function Resultado() {
           </Link>
         )}
       </div>
+
+      {consulta.minha && !consulta.demo && <Acompanhar consultaId={consulta.id} />}
 
       <section className="pilha-p" aria-labelledby="titulo-itens">
         <h2 id="titulo-itens" className="secao-titulo">

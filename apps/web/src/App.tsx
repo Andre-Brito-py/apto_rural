@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { api, type Saude } from './api';
 import { LimiteErro } from './componentes/LimiteErro';
+import { Carteira } from './paginas/Carteira';
 import { Consulta } from './paginas/Consulta';
 import { Conta } from './paginas/Conta';
 import { Dossie } from './paginas/Dossie';
@@ -35,6 +36,11 @@ export function App() {
             <NavLink to="/" end className="so-largo">
               Consultar
             </NavLink>
+            {sessao && (
+              <NavLink to="/carteira" className="so-largo">
+                Carteira
+              </NavLink>
+            )}
             <NavLink to="/planos">Planos</NavLink>
             {!carregando &&
               (sessao ? (
@@ -67,6 +73,7 @@ export function App() {
             <Route path="/fontes" element={<Fontes />} />
             <Route path="/entrar" element={<Entrar />} />
             <Route path="/conta" element={<Conta />} />
+            <Route path="/carteira" element={<Carteira />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/pagamento-simulado/:id" element={<PagamentoSimulado />} />
             <Route path="/confirmar-email" element={<ConfirmarEmail />} />

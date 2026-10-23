@@ -19,6 +19,36 @@ ${paragrafos.map((p) => `<p style="font-size:16px;line-height:1.5;margin:0 0 12p
 </div></body></html>`;
 }
 
+const NOME_STATUS: Record<string, string> = {
+  impedimento: 'Impedimento',
+  atencao: 'Atenção',
+  sem_impedimento: 'OK',
+  nao_verificado: 'Não verificado',
+};
+
+/** Resumo diário do que mudou nos imóveis da carteira. */
+export function mensagemAvisosCarteira(
+  nome: string,
+  para: string,
+  avisos: { codCar: string; apelido?: string; alteracoes: { titulo: string; de: string; para: string; piorou: boolean }[] }[],
+  link: string,
+): Mensagem {
+  const primeiro = nome.split(' ')[0];
+  const piorou = avisos.some((a) => a.alteracoes.some((x) => x.piorou));
+  const linhas = avisos.flatMap((a) => [
+    `${a.apelido ?? 'Imóvel'} (CAR ${a.codCar}):`,
+    ...a.alteracoes.map((x) => `• ${x.titulo}: ${NOME_STATUS[x.de]} → ${NOME_STATUS[x.para]}${x.piorou ? ' ⚠' : ''}`),
+  ]);
+  const abertura = `Olá, ${primeiro}! A reconferência de hoje encontrou mudanças em ${avisos.length === 1 ? '1 imóvel' : `${avisos.length} imóveis`} da sua carteira.`;
+  const rodape = 'Você recebe este e-mail porque acompanha estes imóveis no Apto Rural. Pré-checagem com bases públicas; não substitui a análise do banco.';
+  return {
+    para,
+    assunto: piorou ? 'Atenção: mudança em imóvel da sua carteira' : 'Mudança em imóvel da sua carteira',
+    texto: `${abertura}\n\n${linhas.join('\n')}\n\nVer a carteira: ${link}\n\n${rodape}`,
+    html: html('Mudanças na sua carteira', [abertura, ...linhas], { texto: 'Ver a carteira', link }, rodape),
+  };
+}
+
 export function mensagemConfirmacao(nome: string, para: string, link: string): Mensagem {
   const primeiro = nome.split(' ')[0];
   const paragrafos = [

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   avaliar,
+  compararResultados,
   criterioAreaEmbargo,
   formatarCar,
   inicioExigenciaProdes,
@@ -167,6 +168,34 @@ describe('MCR 2-9-17 — cronograma da Resolução CMN 5.303/2026', () => {
   it('lista do MMA sempre leva o aviso de não presunção de ilegalidade', () => {
     const ev = limpo({ listaMma: { consta: true } }, { modulosFiscais: 20 });
     expect(item(ev, 'prodes').detalhes.join(' ')).toContain('presunção de ilegalidade');
+  });
+});
+
+describe('comparação para a carteira', () => {
+  it('embargo novo aparece como piora', () => {
+    const antes = avaliar(limpo(), '2026-10-23');
+    const depois = avaliar(limpo({ embargos: [{ numero: 'N1', areaHa: 30 }] }), '2026-10-24');
+    const alt = compararResultados(antes, depois);
+    expect(alt).toHaveLength(1);
+    expect(alt[0]).toMatchObject({ regraId: 'embargo', de: 'sem_impedimento', para: 'impedimento', piorou: true });
+  });
+  it('mudança de data do Prodes (atenção → impedimento) é detectada', () => {
+    const ev = limpo({ listaMma: { consta: true, acimaDoCriterio: true } }, { modulosFiscais: 20 });
+    const alt = compararResultados(avaliar(ev, '2027-01-03'), avaliar(ev, '2027-01-04'));
+    expect(alt.map((a) => [a.regraId, a.para])).toEqual([['prodes', 'impedimento']]);
+  });
+  it('melhora também é informada, depois das pioras', () => {
+    const antes = avaliar(limpo({ embargos: [{ numero: 'N1', areaHa: 30 }] }, { situacaoCar: 'ativo' }), '2026-10-23');
+    const depois = avaliar(limpo({}, { situacaoCar: 'suspenso' }), '2026-10-24');
+    const alt = compararResultados(antes, depois);
+    expect(alt.map((a) => [a.regraId, a.piorou])).toEqual([
+      ['car', true],
+      ['embargo', false],
+    ]);
+  });
+  it('base que deixou de ser consultada não gera aviso', () => {
+    const alt = compararResultados(avaliar(limpo(), '2026-10-23'), avaliar(limpo({ embargos: null }), '2026-10-24'));
+    expect(alt).toEqual([]);
   });
 });
 

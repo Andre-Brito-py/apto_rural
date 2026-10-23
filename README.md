@@ -138,6 +138,8 @@ O caminho de uma consulta:
 4. O **motor de regras** transforma o que foi encontrado em semáforo, aplicando cada item do MCR e suas exceções.
 5. O resultado volta para a tela e fica guardado, para poder ser conferido depois pelo **código QR** do relatório.
 
+**A carteira funciona assim:** às 4h os coletores atualizam as bases; às 6h o **monitor** reconfere cada fazenda acompanhada, compara com o resultado anterior e, se algo mudou, grava um resultado novo (com dossiê e QR), cria um aviso e manda **um e-mail por técnico** com todas as mudanças do dia. Mudança causada por uma base que falhou ao atualizar (item virando "Não verificado") não gera alarme.
+
 Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md)).
 
 ---
@@ -149,6 +151,7 @@ Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 - **Separa o vermelho real do contestável** (por exemplo, encosta de divisa ou desmatamento que tinha autorização).
 - **Gera o dossiê**: o que foi encontrado, a regra, as saídas que a norma admite e a **lista de documentos** a juntar. Para o Prodes, por exemplo, o item 18 do MCR aceita ASV, PRAD, TAC, Termo de Compromisso Ambiental ou laudo de satélite do banco.
 - **Relatório verificável**: o código QR abre a consulta original, para o gerente do banco conferir.
+- **Carteira com avisos**: o técnico coloca as fazendas que atende na carteira e o sistema **reconfere todas, todo dia**. Se aparecer um embargo novo, se o CAR for suspenso ou se chegar a data do Prodes daquele imóvel, o técnico recebe um aviso no site e por e-mail. Isso importa porque o banco pode desclassificar um contrato já assinado se a fazenda deixar de cumprir as regras (item 19 do MCR).
 - **Feito para o campo**: funciona bem no celular, com sol forte e internet fraca, e envia o resumo pelo WhatsApp.
 
 ---
@@ -237,7 +240,14 @@ Teste com fazendas reais (precisa da opção B):
 cd coletores
 python -m coletores.amostra_mma --bioma cerrado --uf MT --limite 2000
 cd ../apps/api
-npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts
+npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts   # consultas de ponta a ponta
+npx tsx --env-file=../../.env scripts/testar-carteira.ts         # carteira + monitor + aviso por e-mail
+```
+
+Rodar a reconferência da carteira na hora (sem esperar as 6h):
+
+```bash
+npm run monitorar -w @apto/api
 ```
 
 ### Contas e e-mail
@@ -262,6 +272,7 @@ Tudo que roda no servidor sobe com um comando:
 | Banco de mapas | PostgreSQL + PostGIS. |
 | API + site | No mesmo endereço; atualiza a estrutura do banco sozinha ao subir. |
 | Coletores | Todo dia às 4h conferem as bases oficiais e só recarregam o que mudou. |
+| Monitor | Todo dia às 6h reconfere as carteiras e manda os avisos por e-mail. |
 | Caddy | HTTPS (o cadeado) automático e renovado sozinho. |
 | Backup | Cópia diária do banco, guardando 14 dias. |
 
@@ -302,6 +313,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Dossiê v1, com checklist de documentos e código QR.
 - [x] Contas, créditos e pagamento (Asaas real + simulado para desenvolvimento).
 - [x] Confirmação de e-mail e recuperação de senha por e-mail (SMTP).
+- [x] Carteira de fazendas com reconferência diária e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
 - [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
 
 **Falta para lançar**
@@ -315,7 +327,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 **Depois do lançamento**
 
 - [ ] Imagens de satélite antes e depois de 2019 no dossiê.
-- [ ] Carteira de fazendas com avisos automáticos quando algo mudar.
+- [ ] Definir se a carteira entra nos pacotes pagos (hoje: grátis, até 50 imóveis por conta).
 - [ ] Consulta pelo WhatsApp, inclusive a consulta grátis para o produtor.
 - [ ] Fonte aberta para territórios quilombolas.
 

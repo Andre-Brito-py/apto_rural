@@ -18,6 +18,14 @@
 4. **Proveniência.** Toda carga registra URL, data e hash em `fonte_carga`; cada resultado mostra a data da base usada.
 5. **Consulta guardada.** Evidências e resultado ficam em `consulta`, para o código QR do relatório apontar para a versão original.
 
+## Carteira e monitor
+
+- O técnico coloca na carteira um imóvel de uma consulta sua (até 50 por conta). O contorno e os dados da consulta ficam guardados em `imovel_monitorado`.
+- O monitor (`apps/api/src/monitorar.ts`) roda às 6h, depois dos coletores. Para cada imóvel: coleta as evidências com as bases do dia (situação do CAR e módulos fiscais da lista do MMA têm prioridade, por serem mais recentes), avalia e compara com o resultado anterior (`compararResultados`, em `@apto/regras`).
+- Se mudou: grava uma consulta nova (sem gastar crédito), cria um `aviso` e, no fim, manda um e-mail por usuário com os avisos ainda não enviados. Só recebe e-mail quem confirmou o endereço.
+- Item que vira "Não verificado" não gera aviso: costuma ser base que falhou ao atualizar.
+- A virada de data do Prodes (ex.: 01/07/2027 para 4 a 15 MF) gera aviso naturalmente, porque a avaliação usa a data do dia.
+
 ## Por que o contorno do imóvel vem do técnico
 
 O download da consulta pública do Sicar é protegido por captcha e não declara licença (ver `conformidade-legal.md`). O técnico já tem o arquivo do CAR do cliente; no MVP ele o envia em KML ou GeoJSON. A lista do MMA, por sua vez, é consultada pelo código do CAR e já traz situação e módulos fiscais.

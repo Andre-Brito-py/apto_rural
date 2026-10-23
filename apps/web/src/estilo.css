@@ -219,6 +219,16 @@ details.extra[open] > summary::before { content: '−'; }
 .fonte-rotulo { color: var(--tinta-suave); font-weight: 650; }
 .fonte-suave { color: var(--tinta-suave); }
 
+/* Carteira */
+.avisos-novos { border: 2px solid #d99a2b; background: var(--atencao-fundo); }
+.lista-avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.lista-avisos > li + li { border-top: 1px solid #ecd9ad; padding-top: 12px; }
+.lista-simples li.piorou { color: var(--impedimento); }
+.lista-simples li.melhorou { color: var(--ok); }
+.acoes-imovel { display: flex; gap: 16px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.linha-acompanhar { display: flex; gap: 8px; flex-wrap: wrap; }
+.linha-acompanhar .entrada { flex: 1 1 220px; }
+
 /* Dossiê */
 .mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.88rem; }
 .dossie-cabecalho { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }

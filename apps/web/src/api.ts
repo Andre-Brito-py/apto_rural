@@ -1,4 +1,4 @@
-import type { FonteId, Fonte, Norma, ResultadoConsulta, SituacaoCar } from '@apto/regras';
+import type { FonteId, Fonte, Norma, ResultadoConsulta, SituacaoCar, Status } from '@apto/regras';
 
 export interface GeometriaImovel {
   type: 'Polygon' | 'MultiPolygon';
@@ -49,6 +49,28 @@ export interface Catalogo {
   pagamentoDisponivel: boolean;
   exigeDocumento: boolean;
   simulado: boolean;
+}
+
+export interface ImovelCarteira {
+  id: string;
+  codCar: string;
+  apelido?: string;
+  verificadoEm: string;
+  criadoEm: string;
+  resultado: ResultadoConsulta;
+  ultimaConsultaId?: string;
+  avisosNaoLidos: number;
+}
+
+export interface Aviso {
+  id: string;
+  imovelId: string;
+  codCar: string;
+  apelido?: string;
+  consultaId?: string;
+  alteracoes: { regraId: string; titulo: string; de: Status; para: Status; resumo: string; piorou: boolean }[];
+  criadoEm: string;
+  lido: boolean;
 }
 
 export interface Pedido {
@@ -132,5 +154,11 @@ export const api = {
   comprar: (produto: string, documento?: string) => pedir<{ id: string; link: string }>('/v1/pedidos', post({ produto, documento })),
   pedidos: () => pedir<{ pedidos: Pedido[] }>('/v1/pedidos'),
   pedido: (id: string) => pedir<{ pedido: Pedido; produto?: Produto }>(`/v1/pedidos/${encodeURIComponent(id)}`),
+  carteira: () => pedir<{ imoveis: ImovelCarteira[]; limite: number; disponivel: boolean }>('/v1/carteira'),
+  acompanhar: (consultaId: string, apelido?: string) => pedir<ImovelCarteira>('/v1/carteira', post({ consultaId, apelido })),
+  deixarDeAcompanhar: (id: string) => pedir<{ ok: boolean }>(`/v1/carteira/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  avisos: () => pedir<{ avisos: Aviso[]; naoLidos: number }>('/v1/avisos'),
+  marcarAvisosLidos: () => pedir<{ ok: boolean }>('/v1/avisos/lidos', post()),
+
   pagarSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/pedidos/${encodeURIComponent(id)}/pagar`, post()),
 };

@@ -11,6 +11,11 @@ export interface EntradaColeta {
   documentoHash?: string;
   /** Hashes procurados no cadastro do MTE (CPF, ou CNPJ e sua raiz). */
   hashesCadastro?: string[];
+  /**
+   * Reconferência da carteira: a situação do CAR e os módulos fiscais da lista
+   * oficial do MMA valem mais que o informado pelo técnico no dia da consulta.
+   */
+  preferirBaseOficial?: boolean;
 }
 
 export interface ConsultaSalva {

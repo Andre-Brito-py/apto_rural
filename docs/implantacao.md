@@ -9,6 +9,7 @@ Guia passo a passo, sem pressupor experiência com servidores.
 | **db** | O banco de dados com os mapas (PostgreSQL + PostGIS). |
 | **api** | O site e a API, no mesmo endereço. Ao subir, atualiza a estrutura do banco sozinha. |
 | **coletores** | Todo dia às 4h (Brasília) confere as bases oficiais e só recarrega o que mudou. CNUC e CNFP, que são pesados, aos domingos. |
+| **monitor** | Todo dia às 6h reconfere as fazendas das carteiras e manda os avisos por e-mail (mesma imagem da API). |
 | **caddy** | Recebe as visitas e cuida do **HTTPS** (o cadeado), renovando o certificado sozinho. |
 | **backup** | Todo dia às 3h salva uma cópia do banco e guarda os últimos 14 dias. |
 
@@ -80,6 +81,8 @@ Em produção a API não sobe sem `SMTP_HOST` e `EMAIL_REMETENTE`. No desenvolvi
 | Ver se está tudo rodando | `docker compose -f docker-compose.prod.yml ps` |
 | Ver o que a API está fazendo | `docker compose -f docker-compose.prod.yml logs -f api` |
 | Ver as atualizações das bases | `docker compose -f docker-compose.prod.yml logs coletores` |
+| Ver a reconferência das carteiras | `docker compose -f docker-compose.prod.yml logs monitor` |
+| Reconferir as carteiras agora | `docker compose -f docker-compose.prod.yml exec monitor node apps/api/dist/monitorar.js` |
 | Atualizar para a versão nova do código | `git pull` e depois o comando do passo 4 |
 | Listar os backups | `docker compose -f docker-compose.prod.yml exec backup ls -lh /backups` |
 

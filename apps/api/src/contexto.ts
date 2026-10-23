@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { config } from './config.js';
 import { hashToken } from './contas/senha.js';
+import type { RepositorioCarteira } from './carteira/repositorio.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { Enviador } from './email/enviador.js';
 import type { ProvedorPagamento } from './pagamentos/tipos.js';
@@ -14,6 +15,8 @@ export interface Contexto {
   contas: RepositorioContas;
   pagamento: ProvedorPagamento | null;
   email: Enviador;
+  /** Carteira de imóveis acompanhados; null sem banco. */
+  carteira: RepositorioCarteira | null;
 }
 
 export const COOKIE_SESSAO = 'apto_sessao';

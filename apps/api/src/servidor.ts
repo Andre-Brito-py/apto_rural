@@ -4,7 +4,9 @@ import rateLimit from '@fastify/rate-limit';
 import estatico from '@fastify/static';
 import Fastify from 'fastify';
 import pg from 'pg';
+import { RepositorioCarteira } from './carteira/repositorio.js';
 import { config } from './config.js';
+import { rotasCarteira } from './rotas/carteira.js';
 import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
 import type { Contexto } from './contexto.js';
@@ -24,6 +26,7 @@ export function criarContexto(): Contexto {
     banco: pool ? new RepositorioPostgis(pool) : null,
     demo: config.demo ? new RepositorioDemo() : null,
     contas: pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria(),
+    carteira: pool ? new RepositorioCarteira(pool) : null,
     email: config.smtp.host ? new EnviadorSmtp(config.smtp, config.smtp.remetente) : new EnviadorConsole(),
     pagamento: config.asaas.chave
       ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook)
@@ -46,6 +49,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasConsultas(app, ctx);
     rotasContas(app, ctx);
     rotasPedidos(app, ctx);
+    rotasCarteira(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.
