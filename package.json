@@ -1,0 +1,21 @@
+{
+  "name": "apto-rural",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pré-checagem dos impedimentos socioambientais do crédito rural (MCR 2-9).",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @apto/regras && npm run build -w @apto/api && npm run build -w @apto/web",
+    "dev:api": "npm run build -w @apto/regras && npm run dev -w @apto/api",
+    "dev:web": "npm run build -w @apto/regras && npm run dev -w @apto/web",
+    "test": "npm run test -w @apto/regras",
+    "typecheck": "npm run build -w @apto/regras && npm run typecheck -w @apto/api && npm run typecheck -w @apto/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

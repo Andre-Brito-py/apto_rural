@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "apto-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@apto/api"],
+      "port": 3333
+    },
+    {
+      "name": "apto-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@apto/web"],
+      "port": 5173
+    }
+  ]
+}

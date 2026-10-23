@@ -1,0 +1,23 @@
+{
+  "name": "@apto/regras",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Regras do MCR 2-9 como código, cada uma com a norma oficial citada.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

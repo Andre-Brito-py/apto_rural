@@ -1,0 +1,11 @@
+{
+  "name": "Apto Rural",
+  "short_name": "Apto Rural",
+  "description": "Pré-checagem dos impedimentos socioambientais do crédito rural.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#14532d",
+  "icons": [{ "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
