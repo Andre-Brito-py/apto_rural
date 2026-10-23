@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../contas/senha.js';
 import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
-import { COOKIE_SESSAO, erro, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
+import { COOKIE_SESSAO, ehAdmin, erro, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { mensagemConfirmacao, mensagemRedefinirSenha } from '../email/mensagens.js';
 import { CREDITOS_BOAS_VINDAS } from '../produtos.js';
 
@@ -96,7 +96,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     }
     await abrirSessao(u.id, reply);
     const { senhaHash: _, ...usuario } = u;
-    return { usuario, saldo: await ctx.contas.saldo(u.id) };
+    return { usuario, saldo: await ctx.contas.saldo(u.id), admin: ehAdmin(usuario) };
   });
 
   app.delete('/v1/sessao', async (req, reply) => {
@@ -109,7 +109,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   app.get('/v1/eu', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
-    return { usuario: u, saldo: await ctx.contas.saldo(u.id) };
+    return { usuario: u, saldo: await ctx.contas.saldo(u.id), admin: ehAdmin(u) };
   });
 
   app.post('/v1/conta/confirmar', LIMITE_EMAIL, async (req, reply) => {

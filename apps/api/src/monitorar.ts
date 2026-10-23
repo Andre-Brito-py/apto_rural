@@ -53,7 +53,11 @@ export async function monitorarCarteira(ctx: Contexto, hoje = hojeBrasilia()): P
       resumo.comMudanca++;
     } catch (e) {
       resumo.falhas++;
-      console.error(`Falha ao reconferir ${im.codCar}:`, e);
+      await ctx.erros.registrar({
+        origem: 'monitor',
+        mensagem: `Falha ao reconferir o CAR ${im.codCar}: ${(e as Error).message}`,
+        detalhe: (e as Error).stack,
+      });
     }
   }
 
@@ -63,10 +67,26 @@ export async function monitorarCarteira(ctx: Contexto, hoje = hojeBrasilia()): P
       await ctx.carteira.marcarEmailados(grupo.avisos.map((a) => a.id));
       resumo.emails++;
     } catch (e) {
-      console.error(`Falha ao enviar avisos para ${grupo.email}:`, e);
+      await ctx.erros.registrar({ origem: 'monitor', mensagem: `Falha ao enviar avisos da carteira: ${(e as Error).message}`, detalhe: (e as Error).stack });
     }
   }
   return resumo;
+}
+
+/** Base oficial atrasada ou nunca carregada vira erro (e alerta para os administradores). */
+export async function verificarBases(ctx: Contexto): Promise<number> {
+  if (!ctx.admin) return 0;
+  const problemas = (await ctx.admin.saudeBases()).filter((b) => b.situacao !== 'em_dia');
+  for (const b of problemas) {
+    await ctx.erros.registrar({
+      origem: 'monitor',
+      mensagem:
+        b.situacao === 'nao_carregada'
+          ? `Base "${b.nome}" nunca foi carregada.`
+          : `Base "${b.nome}" está há ${b.diasSemConferir} dias sem conferência (veja o log dos coletores).`,
+    });
+  }
+  return problemas.length;
 }
 
 function proximaExecucao(): number {
@@ -81,10 +101,13 @@ function proximaExecucao(): number {
 async function rodar(ctx: Contexto) {
   const inicio = Date.now();
   const r = await monitorarCarteira(ctx);
+  const basesComProblema = await verificarBases(ctx);
   console.log(
     `[${new Date().toISOString()}] Carteira: ${r.imoveis} imóveis reconferidos, ${r.comMudanca} com mudança, ` +
-      `${r.falhas} falhas, ${r.emails} e-mails, em ${Math.round((Date.now() - inicio) / 1000)}s.`,
+      `${r.falhas} falhas, ${r.emails} e-mails, em ${Math.round((Date.now() - inicio) / 1000)}s. ` +
+      `Bases com problema: ${basesComProblema}.`,
   );
+  await ctx.erros.enviarAgora();
 }
 
 if (process.argv[1]?.endsWith('monitorar.js') || process.argv[1]?.endsWith('monitorar.ts')) {

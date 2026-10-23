@@ -15,6 +15,11 @@ export const config = {
   sessaoDias: 30,
   /** Pasta do site já compilado. Em produção a API entrega o site no mesmo endereço. */
   webDist: process.env.WEB_DIST,
+  /** E-mails com acesso ao painel /admin e que recebem os alertas de erro. */
+  adminEmails: (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
   smtp: {
     host: process.env.SMTP_HOST ?? '',
     porta: Number(process.env.SMTP_PORTA ?? 587),

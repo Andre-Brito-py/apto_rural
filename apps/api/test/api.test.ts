@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 process.env.APTO_DEMO = '1';
+process.env.ADMIN_EMAILS = 'admin@exemplo.com';
 process.env.LOG_LEVEL = 'silent';
 delete process.env.DATABASE_URL;
 delete process.env.ASAAS_API_KEY;
@@ -9,6 +10,7 @@ const { criarServidor, criarContexto } = await import('../src/servidor.js');
 const { ProvedorAsaas } = await import('../src/pagamentos/asaas.js');
 const { CARS_DEMO } = await import('../src/repositorio/demo.js');
 const { EnviadorMemoria } = await import('../src/email/enviador.js');
+const { RegistroErros } = await import('../src/monitoramento/erros.js');
 
 /** Servidor com e-mails guardados em memória, para ler os links nos testes. */
 function servidorComEmail() {
@@ -200,6 +202,55 @@ describe('webhook do Asaas', () => {
     await enviar('PAYMENT_REFUNDED', 'evt_3');
     expect((await ctx.contas.saldo(usuarioId)).dossie).toBe(0);
     expect((await ctx.contas.buscarPedido(pedidoId))!.status).toBe('estornado');
+  });
+});
+
+describe('painel administrativo e erros', () => {
+  const { app, email, ctx } = servidorComEmail();
+  const registrados: { origem: string; mensagem: string; rota?: string }[] = [];
+  ctx.erros = { registrar: async (e) => void registrados.push(e), enviarAgora: async () => {} } as InstanceType<typeof RegistroErros>;
+  app.get('/v1/teste-erro', async () => {
+    throw new Error('falha de teste com CPF 123.456.789-09 no corpo');
+  });
+
+  it('quem não é admin recebe 403, inclusive sem login', async () => {
+    const { cookie } = await novaConta(app, 'comum@exemplo.com');
+    expect((await app.inject({ method: 'GET', url: '/v1/admin/resumo', headers: { cookie } })).statusCode).toBe(403);
+    expect((await app.inject({ method: 'GET', url: '/v1/admin/resumo' })).statusCode).toBe(403);
+  });
+
+  it('admin precisa ter o e-mail confirmado', async () => {
+    const { cookie } = await novaConta(app, 'admin@exemplo.com');
+    expect((await app.inject({ method: 'GET', url: '/v1/admin/resumo', headers: { cookie } })).statusCode).toBe(403);
+    await app.inject({ method: 'POST', url: '/v1/conta/confirmar', payload: { token: tokenDoUltimoEmail(email) } });
+    const eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
+    expect(eu.json().admin).toBe(true);
+    // Sem banco, o painel avisa que precisa dele (passou pela verificação de acesso).
+    expect((await app.inject({ method: 'GET', url: '/v1/admin/resumo', headers: { cookie } })).statusCode).toBe(503);
+  });
+
+  it('erro interno: resposta genérica para o visitante e registro com a rota', async () => {
+    const r = await app.inject({ method: 'GET', url: '/v1/teste-erro' });
+    expect(r.statusCode).toBe(500);
+    expect(r.json().erro.mensagem).toBe('Erro interno. Tente de novo em instantes.');
+    expect(registrados.at(-1)).toMatchObject({ origem: 'api', rota: 'GET /v1/teste-erro' });
+  });
+
+  it('erro do site é registrado', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/erros', payload: { mensagem: 'Tela quebrou', rota: '/consulta/x' } });
+    expect(r.statusCode).toBe(204);
+    expect(registrados.at(-1)).toMatchObject({ origem: 'site', mensagem: 'Tela quebrou' });
+  });
+
+  it('alerta junta os erros do período num e-mail para cada admin', async () => {
+    const caixa = new EnviadorMemoria();
+    const reg = new RegistroErros(null, caixa, ['admin@exemplo.com'], 'https://aptorural.com.br');
+    await reg.registrar({ origem: 'api', mensagem: 'Primeiro' });
+    await reg.registrar({ origem: 'coletor', mensagem: 'Segundo' });
+    await reg.enviarAgora();
+    expect(caixa.enviadas).toHaveLength(1);
+    expect(caixa.enviadas[0]!.assunto).toContain('2 erros');
+    expect(caixa.enviadas[0]!.texto).toContain('https://aptorural.com.br/admin');
   });
 });
 

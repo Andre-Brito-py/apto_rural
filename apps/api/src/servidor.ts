@@ -4,8 +4,11 @@ import rateLimit from '@fastify/rate-limit';
 import estatico from '@fastify/static';
 import Fastify from 'fastify';
 import pg from 'pg';
+import { RepositorioAdmin } from './admin/repositorio.js';
 import { RepositorioCarteira } from './carteira/repositorio.js';
 import { config } from './config.js';
+import { RegistroErros } from './monitoramento/erros.js';
+import { rotasAdmin } from './rotas/admin.js';
 import { rotasCarteira } from './rotas/carteira.js';
 import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
@@ -22,12 +25,15 @@ import { rotasPedidos } from './rotas/pedidos.js';
 export function criarContexto(): Contexto {
   const pool = config.databaseUrl ? new pg.Pool({ connectionString: config.databaseUrl, max: 10 }) : null;
   if (!pool && !config.demo) throw new Error('Sem DATABASE_URL, só o modo demonstração (APTO_DEMO=1) funciona.');
+  const email = config.smtp.host ? new EnviadorSmtp(config.smtp, config.smtp.remetente) : new EnviadorConsole();
   return {
     banco: pool ? new RepositorioPostgis(pool) : null,
     demo: config.demo ? new RepositorioDemo() : null,
     contas: pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria(),
     carteira: pool ? new RepositorioCarteira(pool) : null,
-    email: config.smtp.host ? new EnviadorSmtp(config.smtp, config.smtp.remetente) : new EnviadorConsole(),
+    admin: pool ? new RepositorioAdmin(pool) : null,
+    erros: new RegistroErros(pool, email, config.adminEmails, config.webOrigin),
+    email,
     pagamento: config.asaas.chave
       ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook)
       : config.demo
@@ -50,6 +56,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasContas(app, ctx);
     rotasPedidos(app, ctx);
     rotasCarteira(app, ctx);
+    rotasAdmin(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.
@@ -72,10 +79,19 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     });
   }
 
-  app.setErrorHandler((e: { statusCode?: number; message?: string }, req, reply) => {
+  app.setErrorHandler((e: { statusCode?: number; message?: string; stack?: string }, req, reply) => {
     const status = e.statusCode ?? 500;
     if (status === 429) return reply.status(429).send({ erro: { mensagem: 'Muitas tentativas. Aguarde alguns minutos.' } });
-    if (status >= 500) req.log.error(e);
+    if (status >= 500) {
+      req.log.error(e);
+      // Rota sem o id (ex.: /v1/consultas/:id), para agrupar; nunca o corpo da requisição.
+      void ctx.erros.registrar({
+        origem: 'api',
+        mensagem: e.message ?? 'Erro sem mensagem',
+        detalhe: e.stack,
+        rota: `${req.method} ${req.routeOptions.url ?? req.url}`,
+      });
+    }
     return reply.status(status).send({
       erro: { mensagem: status < 500 ? e.message : 'Erro interno. Tente de novo em instantes.' },
     });

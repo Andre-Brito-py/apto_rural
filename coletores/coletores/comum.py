@@ -81,13 +81,29 @@ def deve_carregar(fonte_id: str, sha256: str, forcar: bool = False) -> bool:
     import psycopg
 
     with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+        # Conferiu a fonte e ela não mudou: a base continua em dia.
         linha = conn.execute(
-            "SELECT 1 FROM fonte_carga WHERE fonte_id = %s AND ativa AND sha256 = %s", (fonte_id, sha256)
+            "UPDATE fonte_carga SET conferido_em = now() WHERE fonte_id = %s AND ativa AND sha256 = %s RETURNING 1",
+            (fonte_id, sha256),
         ).fetchone()
     if linha:
         print(f"{fonte_id}: arquivo oficial igual ao já carregado; nada a fazer.")
         return False
     return True
+
+
+def registrar_erro(mensagem: str, detalhe: str | None = None) -> None:
+    """Grava a falha no registro de erros (aparece no painel administrativo)."""
+    import psycopg
+
+    try:
+        with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+            conn.execute(
+                "INSERT INTO erro_registro (origem, mensagem, detalhe) VALUES ('coletor', %s, %s)",
+                (mensagem[:500], (detalhe or "")[-4000:] or None),
+            )
+    except Exception as e:  # o registro nunca pode derrubar o agendador
+        print(f"Não foi possível registrar o erro: {e}", flush=True)
 
 
 def ler_shapefile(zip_caminho: Path, nome_base: str | None = None, encoding: str = "utf-8"):
@@ -159,6 +175,6 @@ def carga(fonte_id: str, url: str, sha256: str, referencia_em: date | None):
             yield conn, carga_id, contador
             conn.execute("UPDATE fonte_carga SET ativa = false WHERE fonte_id = %s", (fonte_id,))
             conn.execute(
-                "UPDATE fonte_carga SET ativa = true, registros = %s WHERE id = %s",
+                "UPDATE fonte_carga SET ativa = true, registros = %s, conferido_em = now() WHERE id = %s",
                 (contador["registros"], carga_id),
             )

@@ -1,7 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { config } from './config.js';
 import { hashToken } from './contas/senha.js';
+import type { RepositorioAdmin } from './admin/repositorio.js';
 import type { RepositorioCarteira } from './carteira/repositorio.js';
+import type { RegistroErros } from './monitoramento/erros.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { Enviador } from './email/enviador.js';
 import type { ProvedorPagamento } from './pagamentos/tipos.js';
@@ -17,6 +19,14 @@ export interface Contexto {
   email: Enviador;
   /** Carteira de imóveis acompanhados; null sem banco. */
   carteira: RepositorioCarteira | null;
+  erros: RegistroErros;
+  /** Consultas do painel administrativo; null sem banco. */
+  admin: RepositorioAdmin | null;
+}
+
+/** Administrador = e-mail listado em ADMIN_EMAILS e já confirmado. */
+export function ehAdmin(u: Usuario | null): boolean {
+  return u != null && u.emailConfirmado && config.adminEmails.includes(u.email.toLowerCase());
 }
 
 export const COOKIE_SESSAO = 'apto_sessao';

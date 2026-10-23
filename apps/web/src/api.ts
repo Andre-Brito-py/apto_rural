@@ -33,6 +33,55 @@ export interface Saldo {
 export interface Sessao {
   usuario: Usuario;
   saldo: Saldo;
+  admin?: boolean;
+}
+
+export interface PainelResumo {
+  resumo: {
+    usuarios: number;
+    confirmados: number;
+    usuarios7d: number;
+    consultasHoje: number;
+    consultas7d: number;
+    consultas30d: number;
+    receita30d: number;
+    receitaTotal: number;
+    pedidosPendentes: number;
+    creditosEmCirculacao: Saldo;
+    imoveisCarteira: number;
+    avisos7d: number;
+    erros24h: number;
+  };
+  bases: {
+    fonteId: string;
+    nome: string;
+    registros: number | null;
+    referencia: string | null;
+    conferidoEm: string | null;
+    diasSemConferir: number | null;
+    situacao: 'em_dia' | 'atrasada' | 'nao_carregada';
+  }[];
+}
+
+export interface UsuarioAdmin {
+  id: string;
+  nome: string;
+  email: string;
+  profissao?: string;
+  criadoEm: string;
+  confirmado: boolean;
+  saldo: Saldo;
+  consultas: number;
+  pago: number;
+}
+
+export interface ErroRegistrado {
+  id: number;
+  quando: string;
+  origem: string;
+  mensagem: string;
+  detalhe?: string;
+  rota?: string;
 }
 
 export interface Produto {
@@ -159,6 +208,15 @@ export const api = {
   deixarDeAcompanhar: (id: string) => pedir<{ ok: boolean }>(`/v1/carteira/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   avisos: () => pedir<{ avisos: Aviso[]; naoLidos: number }>('/v1/avisos'),
   marcarAvisosLidos: () => pedir<{ ok: boolean }>('/v1/avisos/lidos', post()),
+
+  admin: {
+    resumo: () => pedir<PainelResumo>('/v1/admin/resumo'),
+    usuarios: (busca = '') => pedir<{ usuarios: UsuarioAdmin[] }>(`/v1/admin/usuarios?busca=${encodeURIComponent(busca)}`),
+    pedidos: () => pedir<{ pedidos: (Pedido & { email: string; provedor: string; pagoEm: string | null })[] }>('/v1/admin/pedidos'),
+    erros: () => pedir<{ erros: ErroRegistrado[] }>('/v1/admin/erros'),
+    ajustarCreditos: (usuarioId: string, tipo: 'consulta' | 'dossie', quantidade: number, motivo: string) =>
+      pedir<{ ok: boolean; saldo: Saldo }>(`/v1/admin/usuarios/${encodeURIComponent(usuarioId)}/creditos`, post({ tipo, quantidade, motivo })),
+  },
 
   pagarSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/pedidos/${encodeURIComponent(id)}/pagar`, post()),
 };

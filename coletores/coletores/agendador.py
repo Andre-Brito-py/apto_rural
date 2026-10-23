@@ -22,6 +22,8 @@ import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from .comum import registrar_erro
+
 FUSO = ZoneInfo("America/Sao_Paulo")
 HORA = 4
 DIARIOS = ["ibama_embargos", "mma_lista_mcr", "funai_ti", "mte_empregadores"]
@@ -32,9 +34,13 @@ def rodar(coletores: list[str]) -> None:
     for nome in coletores:
         inicio = time.monotonic()
         print(f"[{datetime.now(FUSO):%Y-%m-%d %H:%M}] {nome}: iniciando", flush=True)
-        r = subprocess.run([sys.executable, "-m", f"coletores.{nome}"])
+        r = subprocess.run([sys.executable, "-m", f"coletores.{nome}"], capture_output=True, text=True)
+        print(r.stdout, end="", flush=True)
+        print(r.stderr, end="", file=sys.stderr, flush=True)
         situacao = "ok" if r.returncode == 0 else f"FALHOU (código {r.returncode})"
         print(f"[{datetime.now(FUSO):%Y-%m-%d %H:%M}] {nome}: {situacao} em {time.monotonic() - inicio:.0f}s", flush=True)
+        if r.returncode != 0:
+            registrar_erro(f"Coletor {nome} falhou (código {r.returncode})", r.stderr or r.stdout)
 
 
 def proxima_execucao(agora: datetime) -> datetime:

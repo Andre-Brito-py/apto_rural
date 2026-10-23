@@ -1,4 +1,5 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { relatarErro } from '../relatarErro';
 
 /** Se uma tela quebrar, o técnico vê uma saída em vez de uma página em branco. */
 export class LimiteErro extends Component<{ children: ReactNode }, { erro: boolean }> {
@@ -6,6 +7,10 @@ export class LimiteErro extends Component<{ children: ReactNode }, { erro: boole
 
   static getDerivedStateFromError() {
     return { erro: true };
+  }
+
+  componentDidCatch(erro: Error, info: ErrorInfo) {
+    relatarErro(erro, info.componentStack ?? undefined);
   }
 
   render() {

@@ -229,6 +229,23 @@ details.extra[open] > summary::before { content: '−'; }
 .linha-acompanhar { display: flex; gap: 8px; flex-wrap: wrap; }
 .linha-acompanhar .entrada { flex: 1 1 220px; }
 
+/* Painel administrativo */
+.pagina-larga { max-width: 1100px; }
+.indicadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.indicador { display: flex; flex-direction: column; gap: 2px; }
+.indicador-valor { font-size: 1.6rem; color: var(--marca-forte); }
+.indicador-alerta { border: 2px solid var(--impedimento); }
+.indicador-alerta .indicador-valor { color: var(--impedimento); }
+.tabela-rolavel { overflow-x: auto; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.tabela th, .tabela td { text-align: left; padding: 8px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.tabela th { color: var(--tinta-suave); font-weight: 650; white-space: nowrap; }
+.lista-erros { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+.lista-erros li { border-bottom: 1px solid var(--linha); padding: 6px 0; }
+.lista-erros summary { cursor: pointer; }
+.detalhe-erro { white-space: pre-wrap; font-size: 0.78rem; background: #f3f2ee; padding: 8px; border-radius: 8px; max-height: 260px; overflow: auto; }
+.ajuste { border: 2px solid var(--marca); }
+
 /* Dossiê */
 .mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.88rem; }
 .dossie-cabecalho { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }

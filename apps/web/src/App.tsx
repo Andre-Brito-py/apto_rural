@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { api, type Saude } from './api';
 import { LimiteErro } from './componentes/LimiteErro';
+import { Admin } from './paginas/Admin';
 import { Carteira } from './paginas/Carteira';
 import { Consulta } from './paginas/Consulta';
 import { Conta } from './paginas/Conta';
@@ -74,6 +75,7 @@ export function App() {
             <Route path="/entrar" element={<Entrar />} />
             <Route path="/conta" element={<Conta />} />
             <Route path="/carteira" element={<Carteira />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/pagamento-simulado/:id" element={<PagamentoSimulado />} />
             <Route path="/confirmar-email" element={<ConfirmarEmail />} />

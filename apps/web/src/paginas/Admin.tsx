@@ -1,0 +1,290 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { Navigate } from 'react-router-dom';
+import { api, type ErroRegistrado, type PainelResumo, type UsuarioAdmin } from '../api';
+import { useSessao } from '../sessao';
+import { dataBr } from '../textos';
+
+const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const dataHora = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }) : '—';
+
+const SITUACAO_BASE = {
+  em_dia: { texto: 'Em dia', classe: 's-sem_impedimento' },
+  atrasada: { texto: 'Atrasada', classe: 's-impedimento' },
+  nao_carregada: { texto: 'Não carregada', classe: 's-impedimento' },
+} as const;
+
+/** Painel interno: saúde do sistema, erros, usuários e vendas. */
+export function Admin() {
+  const { sessao, carregando } = useSessao();
+  const [painel, setPainel] = useState<PainelResumo | null>(null);
+  const [erros, setErros] = useState<ErroRegistrado[]>([]);
+  const [pedidos, setPedidos] = useState<Awaited<ReturnType<typeof api.admin.pedidos>>['pedidos']>([]);
+  const [falha, setFalha] = useState('');
+
+  async function carregar() {
+    try {
+      const [p, e, ped] = await Promise.all([api.admin.resumo(), api.admin.erros(), api.admin.pedidos()]);
+      setPainel(p);
+      setErros(e.erros);
+      setPedidos(ped.pedidos);
+    } catch (e) {
+      setFalha((e as Error).message);
+    }
+  }
+
+  useEffect(() => {
+    if (sessao?.admin) carregar();
+  }, [sessao?.admin]);
+
+  if (carregando) return <div className="pagina">Carregando…</div>;
+  if (!sessao?.admin) return <Navigate to="/" replace />;
+
+  const r = painel?.resumo;
+  return (
+    <div className="pagina pagina-larga pilha">
+      <div className="item-topo">
+        <h1 className="titulo-pagina">Painel</h1>
+        <button type="button" className="botao botao-secundario" onClick={carregar}>
+          Atualizar
+        </button>
+      </div>
+      {falha && <p className="alerta alerta-erro">{falha}</p>}
+
+      {r && (
+        <section className="indicadores" aria-label="Indicadores">
+          <Indicador titulo="Contas" valor={r.usuarios} detalhe={`${r.confirmados} confirmadas · ${r.usuarios7d} nos últimos 7 dias`} />
+          <Indicador titulo="Consultas" valor={r.consultas30d} detalhe={`30 dias · ${r.consultas7d} em 7 dias · ${r.consultasHoje} hoje`} />
+          <Indicador titulo="Receita" valor={reais(r.receita30d)} detalhe={`30 dias · total ${reais(r.receitaTotal)}`} />
+          <Indicador titulo="Pedidos pendentes" valor={r.pedidosPendentes} detalhe="aguardando pagamento" />
+          <Indicador
+            titulo="Créditos em circulação"
+            valor={r.creditosEmCirculacao.consulta}
+            detalhe={`consultas · ${r.creditosEmCirculacao.dossie} dossiês`}
+          />
+          <Indicador titulo="Carteira" valor={r.imoveisCarteira} detalhe={`imóveis · ${r.avisos7d} avisos em 7 dias`} />
+          <Indicador titulo="Erros (24h)" valor={r.erros24h} detalhe="ver lista abaixo" alerta={r.erros24h > 0} />
+        </section>
+      )}
+
+      {painel && (
+        <section className="cartao pilha-p">
+          <h2 className="secao-titulo">Bases oficiais</h2>
+          <div className="tabela-rolavel">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Base</th>
+                  <th>Situação</th>
+                  <th>Registros</th>
+                  <th>Referência do órgão</th>
+                  <th>Última conferência</th>
+                </tr>
+              </thead>
+              <tbody>
+                {painel.bases.map((b) => (
+                  <tr key={b.fonteId}>
+                    <td>{b.nome}</td>
+                    <td>
+                      <span className={`selo ${SITUACAO_BASE[b.situacao].classe}`}>{SITUACAO_BASE[b.situacao].texto}</span>
+                    </td>
+                    <td>{b.registros?.toLocaleString('pt-BR') ?? '—'}</td>
+                    <td>{b.referencia ? dataBr(b.referencia) : 'download diário'}</td>
+                    <td>
+                      {dataHora(b.conferidoEm)}
+                      {b.diasSemConferir ? ` (há ${b.diasSemConferir} d)` : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <section className="cartao pilha-p">
+        <h2 className="secao-titulo">Erros recentes</h2>
+        {erros.length === 0 ? (
+          <p className="ajuda">Nenhum erro registrado.</p>
+        ) : (
+          <ul className="lista-erros">
+            {erros.map((e) => (
+              <li key={e.id}>
+                <details>
+                  <summary>
+                    <span className="fonte-suave">{dataHora(e.quando)}</span> <strong>[{e.origem}]</strong> {e.rota && <code>{e.rota}</code>}{' '}
+                    {e.mensagem}
+                  </summary>
+                  {e.detalhe && <pre className="detalhe-erro">{e.detalhe}</pre>}
+                </details>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <Usuarios />
+
+      <section className="cartao pilha-p">
+        <h2 className="secao-titulo">Pedidos</h2>
+        <div className="tabela-rolavel">
+          <table className="tabela">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Produto</th>
+                <th>Valor</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pedidos.map((p) => (
+                <tr key={p.id}>
+                  <td>{dataHora(p.criadoEm)}</td>
+                  <td>{p.email}</td>
+                  <td>{p.produto}</td>
+                  <td>{reais(p.valor)}</td>
+                  <td>
+                    {p.status}
+                    {p.provedor === 'simulado' ? ' (simulado)' : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Indicador({ titulo, valor, detalhe, alerta }: { titulo: string; valor: number | string; detalhe: string; alerta?: boolean }) {
+  return (
+    <div className={`cartao indicador${alerta ? ' indicador-alerta' : ''}`}>
+      <span className="fonte-suave">{titulo}</span>
+      <strong className="indicador-valor">{typeof valor === 'number' ? valor.toLocaleString('pt-BR') : valor}</strong>
+      <span className="ajuda" style={{ marginTop: 0 }}>
+        {detalhe}
+      </span>
+    </div>
+  );
+}
+
+function Usuarios() {
+  const [busca, setBusca] = useState('');
+  const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
+  const [ajustando, setAjustando] = useState<UsuarioAdmin | null>(null);
+
+  async function buscar(ev?: FormEvent) {
+    ev?.preventDefault();
+    setUsuarios((await api.admin.usuarios(busca)).usuarios);
+  }
+
+  useEffect(() => {
+    buscar();
+  }, []);
+
+  return (
+    <section className="cartao pilha-p">
+      <h2 className="secao-titulo">Usuários</h2>
+      <form onSubmit={buscar} className="linha-acompanhar">
+        <input className="entrada" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário" />
+        <button type="submit" className="botao botao-secundario">
+          Buscar
+        </button>
+      </form>
+      <div className="tabela-rolavel">
+        <table className="tabela">
+          <thead>
+            <tr>
+              <th>Nome / e-mail</th>
+              <th>Desde</th>
+              <th>Consultas feitas</th>
+              <th>Saldo</th>
+              <th>Pago</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {usuarios.map((u) => (
+              <tr key={u.id}>
+                <td>
+                  {u.nome}
+                  <br />
+                  <span className="fonte-suave">
+                    {u.email} {u.confirmado ? '' : '(não confirmado)'}
+                  </span>
+                </td>
+                <td>{dataBr(u.criadoEm)}</td>
+                <td>{u.consultas}</td>
+                <td>
+                  {u.saldo.consulta} consultas · {u.saldo.dossie} dossiês
+                </td>
+                <td>{reais(u.pago)}</td>
+                <td>
+                  <button type="button" className="link-botao" onClick={() => setAjustando(u)}>
+                    Ajustar créditos
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {ajustando && (
+        <AjusteCreditos
+          usuario={ajustando}
+          aoFechar={async (mudou) => {
+            setAjustando(null);
+            if (mudou) await buscar();
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+function AjusteCreditos({ usuario, aoFechar }: { usuario: UsuarioAdmin; aoFechar: (mudou: boolean) => void }) {
+  const [tipo, setTipo] = useState<'consulta' | 'dossie'>('consulta');
+  const [quantidade, setQuantidade] = useState('1');
+  const [motivo, setMotivo] = useState('');
+  const [erro, setErro] = useState('');
+
+  async function salvar(ev: FormEvent) {
+    ev.preventDefault();
+    setErro('');
+    try {
+      await api.admin.ajustarCreditos(usuario.id, tipo, Number(quantidade), motivo);
+      aoFechar(true);
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+
+  return (
+    <form className="cartao pilha-p ajuste" onSubmit={salvar}>
+      <strong>Ajustar créditos de {usuario.nome}</strong>
+      <p className="ajuda" style={{ marginTop: 0 }}>
+        Use número negativo para retirar. O ajuste fica registrado com seu e-mail e o motivo.
+      </p>
+      <div className="linha-acompanhar">
+        <select className="entrada" value={tipo} onChange={(e) => setTipo(e.target.value as 'consulta' | 'dossie')} aria-label="Tipo de crédito">
+          <option value="consulta">Consultas</option>
+          <option value="dossie">Dossiês</option>
+        </select>
+        <input className="entrada" type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} aria-label="Quantidade" />
+      </div>
+      <input className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo (ex.: cortesia para piloto)" aria-label="Motivo" />
+      {erro && <p className="alerta alerta-erro">{erro}</p>}
+      <div className="botoes">
+        <button type="submit" className="botao botao-primario">
+          Salvar ajuste
+        </button>
+        <button type="button" className="botao botao-secundario" onClick={() => aoFechar(false)}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
