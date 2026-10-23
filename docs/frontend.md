@@ -27,7 +27,7 @@ O resultado abre com o veredito e, em seguida, os itens ordenados pelo que trava
 | Preços | Lê planos e preços do painel (nada fixo no código). O plano marcado como destaque aparece como "Recomendado". |
 | Perguntas e chamada final | Tira objeções e repete o convite para a consulta grátis. |
 
-Escolhas de cuidado: nada de depoimentos ou números inventados; fonte do sistema (sem baixar fontes externas, o que a política de segurança do site bloquearia); ícones desenhados no próprio código (`componentes/Icones.tsx`); layout de 1120px no computador e de uma coluna no celular, sem rolagem lateral. Os estilos ficam em `estilo.css`, com o prefixo `l-`.
+Escolhas de cuidado: nada de depoimentos ou números inventados; fonte **Inter** (licença livre OFL) servida pelo próprio site, sem Google Fonts, porque a política de segurança só permite arquivos do próprio site. O navegador baixa só o trecho latino, cerca de 48 KB, e as variantes ligadas deixam "I", "l" e "1" diferentes, o que ajuda a ler códigos do CAR e senhas; ícones desenhados no próprio código (`componentes/Icones.tsx`); layout de 1120px no computador e de uma coluna no celular, sem rolagem lateral. Os estilos ficam em `estilo.css`, com o prefixo `l-`.
 
 ## Telas do app no mesmo padrão
 
@@ -46,5 +46,7 @@ As telas de quem já tem conta seguem o visual da landing, para o produto parece
 - **Dossiê:** aparece como uma folha de documento (cabeçalho com a marca, identificação do imóvel, QR de conferência, resumo numerado e uma seção por item), com uma barra fixa no topo para voltar ou salvar em PDF. Na impressão sai só a folha, sem menus. Antes de gerar, a tela explica o que o dossiê traz e quanto custa.
 - **Painel administrativo:** organizado em abas (Visão geral, Usuários, Pedidos, Preços e limites, Auditoria). A aba fica no endereço (`/admin?aba=usuarios`), então dá para mandar o link direto. A visão geral separa os números de negócio dos de uso e marca na aba quando há erros ou bases atrasadas. A ficha do usuário mostra iniciais, etiquetas (papel, bloqueio, e-mail não confirmado) e os números principais em destaque.
 - **Para quem está numa equipe:** o topo mostra o saldo da equipe e o link "Equipe"; Minha conta e Carteira dizem de quem é a equipe; Planos explica que só o responsável compra; o técnico não vê o botão de tirar imóveis da carteira.
+
+**Identidade visual (versão atual):** cabeçalho branco fixo no topo, com o saldo num selo verde discreto e o botão "Criar conta" para quem chega; topo da landing claro, com uma trama de pontos bem leve e o produto em destaque; verde da marca nos botões principais e no destaque do título; amarelo só no aviso do modo demonstração; rodapé completo, em colunas (Produto, Conta, Legal). Base de 16 px, títulos com peso 650–700 e espaçamento apertado, cantos de 10–12 px e sombras suaves.
 
 A base (cartões, botões, campos, rodapé) mudou para todas as telas: bordas mais suaves, cantos de 14px e cores de texto iguais às da landing.

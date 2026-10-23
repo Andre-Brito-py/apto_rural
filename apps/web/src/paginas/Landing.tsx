@@ -170,7 +170,9 @@ export function Landing() {
         <div className="l-container l-hero-grade">
           <div className="l-hero-texto">
             <p className="l-selo">Para técnicos agrícolas e projetistas de crédito rural</p>
-            <h1>Saiba se a fazenda passa no crédito rural antes de montar a proposta</h1>
+            <h1>
+              Saiba se a fazenda passa no <em>crédito rural</em> antes de montar a proposta
+            </h1>
             <p className="l-lead">
               O Apto Rural confere os impedimentos socioambientais do Manual de Crédito Rural nas mesmas bases oficiais que o banco consulta e,
               quando dá vermelho, mostra o caminho de saída.

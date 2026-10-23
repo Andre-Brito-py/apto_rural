@@ -88,7 +88,11 @@ export function Carteira() {
       <div className="topo-com-acao">
         <div className="topo-pagina">
           <p className="sobretitulo">Carteira</p>
-          <h1 className="titulo-pagina">{sessao?.equipe ? `Carteira da equipe de ${sessao.equipe.donoNome}` : 'Minha carteira'}</h1>
+          <h1 className="titulo-pagina">{!sessao?.equipe
+              ? 'Minha carteira'
+              : sessao.equipe.papel === 'responsavel'
+                ? 'Carteira da equipe'
+                : `Carteira da equipe de ${sessao.equipe.donoNome}`}</h1>
           <p className="subtitulo">
             Reconferimos estes imóveis todos os dias com as bases oficiais. Se algo mudar, avisamos aqui e por e-mail.
           </p>

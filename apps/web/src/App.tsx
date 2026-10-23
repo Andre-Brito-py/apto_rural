@@ -61,7 +61,14 @@ export function App() {
                   {contagem(sessao.saldo.consulta, 'consulta', 'consultas')}
                 </NavLink>
               ) : (
-                <NavLink to="/entrar">Entrar</NavLink>
+                <>
+                  <NavLink to="/entrar" end>
+                    Entrar
+                  </NavLink>
+                  <Link to="/entrar?modo=criar" className="nav-cta">
+                    Criar conta
+                  </Link>
+                </>
               ))}
           </nav>
         </div>
@@ -123,10 +130,48 @@ export function App() {
       </main>
 
       <footer className="rodape">
-        <p>Pré-checagem com bases públicas. Não substitui a análise da instituição financeira.</p>
-        <p className="rodape-links">
-          <Link to="/fontes">Regras e fontes</Link> · <Link to="/termos">Termos</Link> · <Link to="/privacidade">Privacidade</Link>
-        </p>
+        <div className="rodape-dentro">
+          <div className="rodape-marca">
+            <Link to="/" className="marca">
+              <img src="/icone.svg" alt="" />
+              Apto Rural
+            </Link>
+            <p>Pré-checagem dos impedimentos socioambientais do crédito rural (MCR 2-9), com as bases oficiais que o banco usa.</p>
+          </div>
+          <nav className="rodape-colunas" aria-label="Rodapé">
+            <div>
+              <h2>Produto</h2>
+              <Link to="/consultar">Consultar imóvel</Link>
+              <Link to="/planos">Planos e preços</Link>
+              <Link to="/fontes">Regras e fontes</Link>
+            </div>
+            <div>
+              <h2>Conta</h2>
+              {sessao ? (
+                <>
+                  <Link to="/conta">Minha conta</Link>
+                  <Link to="/carteira">Carteira</Link>
+                  <Link to="/equipe">Equipe</Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/entrar">Entrar</Link>
+                  <Link to="/entrar?modo=criar">Criar conta</Link>
+                </>
+              )}
+            </div>
+            <div>
+              <h2>Legal</h2>
+              <Link to="/termos">Termos de uso</Link>
+              <Link to="/privacidade">Privacidade</Link>
+            </div>
+          </nav>
+        </div>
+        <div className="rodape-base">
+          <p>
+            © {new Date().getFullYear()} Apto Rural · Pré-checagem com bases públicas. Não substitui a análise da instituição financeira.
+          </p>
+        </div>
       </footer>
     </>
   );
