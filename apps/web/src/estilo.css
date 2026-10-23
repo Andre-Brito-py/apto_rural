@@ -229,6 +229,38 @@ details.extra[open] > summary::before { content: '−'; }
 .linha-acompanhar { display: flex; gap: 8px; flex-wrap: wrap; }
 .linha-acompanhar .entrada { flex: 1 1 220px; }
 
+/* Landing page */
+.landing { padding-bottom: 0; }
+.hero { background: linear-gradient(160deg, var(--marca) 0%, var(--marca-forte) 100%); color: #fff; }
+.hero .pagina { padding-top: 40px; padding-bottom: 40px; }
+.hero-selo { display: inline-block; background: rgb(255 255 255 / 0.14); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; font-weight: 600; }
+.hero-titulo { font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.15; }
+.hero-texto { font-size: 1.1rem; color: #e3efe6; max-width: 640px; }
+.hero-nota { font-size: 0.9rem; color: #cfe3d4; }
+.hero .botao-primario { background: #facc15; color: #1b1c18; }
+.hero .botao-primario:hover { background: #fde047; }
+.botao-claro { background: transparent; color: #fff; border-color: rgb(255 255 255 / 0.7); }
+.hero-final { margin-top: 32px; }
+.secao-landing { padding-top: 32px; }
+.landing-h2 { font-size: 1.35rem; }
+.grade-3 { display: grid; gap: 12px; }
+@media (min-width: 720px) { .grade-3 { grid-template-columns: repeat(3, 1fr); } }
+.faixa-datas { background: var(--atencao-fundo); border-top: 1px solid #ecd9ad; border-bottom: 1px solid #ecd9ad; margin-top: 32px; }
+.faixa-datas .pagina { padding-top: 24px; padding-bottom: 24px; }
+.datas { display: grid; gap: 10px; }
+@media (min-width: 560px) { .datas { grid-template-columns: repeat(3, 1fr); } }
+.datas div { background: #fff; border: 1px solid #ecd9ad; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; }
+.datas strong { font-size: 1.3rem; color: var(--atencao); }
+.passos { margin: 0; padding-left: 22px; display: grid; gap: 8px; font-size: 1.05rem; }
+.exemplo { border: 2px solid var(--linha); }
+.lista-exemplo { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lista-exemplo li + li { border-top: 1px solid var(--linha); padding-top: 10px; }
+.checagens { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-weight: 600; }
+@media (min-width: 560px) { .checagens { grid-template-columns: 1fr 1fr; } }
+.grade-precos { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.perguntas { display: grid; gap: 8px; }
+.perguntas summary { cursor: pointer; min-height: 32px; }
+
 /* Painel administrativo */
 .pagina-larga { max-width: 1100px; }
 .indicadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }

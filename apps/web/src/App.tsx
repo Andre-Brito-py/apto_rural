@@ -9,6 +9,7 @@ import { Conta } from './paginas/Conta';
 import { Dossie } from './paginas/Dossie';
 import { Entrar } from './paginas/Entrar';
 import { Fontes } from './paginas/Fontes';
+import { Landing } from './paginas/Landing';
 import { Privacidade, Termos } from './paginas/Legal';
 import { PagamentoSimulado } from './paginas/PagamentoSimulado';
 import { Planos } from './paginas/Planos';
@@ -34,7 +35,7 @@ export function App() {
             Apto Rural
           </Link>
           <nav className="nav" aria-label="Principal">
-            <NavLink to="/" end className="so-largo">
+            <NavLink to="/consultar" className="so-largo">
               Consultar
             </NavLink>
             {sessao && (
@@ -68,7 +69,9 @@ export function App() {
       <main>
         <LimiteErro>
           <Routes>
-            <Route path="/" element={<Consulta saude={saude} />} />
+            {/* Visitante vê a página de vendas; quem tem conta vai direto para a consulta. */}
+            <Route path="/" element={carregando ? null : sessao ? <Consulta saude={saude} /> : <Landing />} />
+            <Route path="/consultar" element={<Consulta saude={saude} />} />
             <Route path="/consulta/:id" element={<Resultado />} />
             <Route path="/consulta/:id/dossie" element={<Dossie />} />
             <Route path="/fontes" element={<Fontes />} />
