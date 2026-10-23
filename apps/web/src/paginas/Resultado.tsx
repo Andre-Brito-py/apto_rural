@@ -136,6 +136,9 @@ export function Resultado() {
 
   return (
     <div className="pagina pilha">
+      <div className="topo-pagina nao-imprimir">
+        <p className="sobretitulo">Resultado da consulta</p>
+      </div>
       {consulta.demo && (
         <p className="alerta" style={{ background: '#fef3c7', borderColor: '#f2d27a' }}>
           Resultado de <strong>demonstração com dados fictícios</strong>.
@@ -171,14 +174,14 @@ export function Resultado() {
         {consulta.geometria && <MapaImovel geometria={consulta.geometria} />}
       </section>
 
-      <div className="botoes nao-imprimir">
+      <div className="acoes-resultado nao-imprimir">
         <a
           className="botao botao-whatsapp"
           href={`https://wa.me/?text=${encodeURIComponent(textoWhatsapp(consulta))}`}
           target="_blank"
           rel="noreferrer"
         >
-          Enviar resumo no WhatsApp
+          Enviar no WhatsApp
         </a>
         <button type="button" className="botao botao-secundario" onClick={() => window.print()}>
           Salvar relatório em PDF
@@ -192,7 +195,7 @@ export function Resultado() {
 
       {consulta.minha && !consulta.demo && <Acompanhar consultaId={consulta.id} />}
 
-      <section className="pilha-p" aria-labelledby="titulo-itens">
+      <section className="pilha-p secao-itens" aria-labelledby="titulo-itens">
         <h2 id="titulo-itens" className="secao-titulo">
           Item por item do MCR 2-9
         </h2>

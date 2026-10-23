@@ -27,4 +27,17 @@ O resultado abre com o veredito e, em seguida, os itens ordenados pelo que trava
 | Preços | Lê planos e preços do painel (nada fixo no código). O plano marcado como destaque aparece como "Recomendado". |
 | Perguntas e chamada final | Tira objeções e repete o convite para a consulta grátis. |
 
-Escolhas de cuidado: nada de depoimentos ou números inventados; fonte do sistema (sem baixar fontes externas, o que a política de segurança do site bloquearia); ícones desenhados no próprio código (`componentes/Icones.tsx`); layout de 1120px no computador e de uma coluna no celular, sem rolagem lateral. Os estilos ficam no fim de `estilo.css`, com o prefixo `l-`.
+Escolhas de cuidado: nada de depoimentos ou números inventados; fonte do sistema (sem baixar fontes externas, o que a política de segurança do site bloquearia); ícones desenhados no próprio código (`componentes/Icones.tsx`); layout de 1120px no computador e de uma coluna no celular, sem rolagem lateral. Os estilos ficam em `estilo.css`, com o prefixo `l-`.
+
+## Telas do app no mesmo padrão
+
+As telas de quem já tem conta seguem o visual da landing, para o produto parecer uma coisa só:
+
+- **Topo de cada página:** sobretítulo verde em maiúsculas, título grande e uma linha de explicação (classes `topo-pagina` e `sobretitulo`).
+- **Entrar / criar conta:** no computador, um painel verde ao lado do formulário lembra o que o Apto Rural entrega; no celular, só o formulário.
+- **Planos:** os mesmos cartões de preço da landing; a compra avulsa aparece em dois cartões menores.
+- **Minha conta:** o saldo de consultas e dossiês em destaque, atalhos e a lista de compras em tabela.
+- **Consulta:** o formulário dividido em três partes numeradas (dados do imóvel, mapa, opcional) e os exemplos de demonstração como botões pequenos.
+- **Resultado:** veredito maior, contagem em etiquetas e botões de ação lado a lado.
+
+A base (cartões, botões, campos, rodapé) mudou para todas as telas: bordas mais suaves, cantos de 14px e cores de texto iguais às da landing.

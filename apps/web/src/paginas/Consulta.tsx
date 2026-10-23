@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ErroApi, type GeometriaImovel, type Saude } from '../api';
 import { lerArquivoImovel } from '../arquivoImovel';
+import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 
 const SITUACOES: { valor: SituacaoCar | 'nao_sei'; rotulo: string }[] = [
@@ -101,7 +102,8 @@ export function Consulta({ saude }: { saude: Saude | null }) {
 
   return (
     <div className="pagina pilha">
-      <div className="pilha-p">
+      <div className="topo-pagina">
+        <p className="sobretitulo">Nova consulta</p>
         <h1 className="titulo-pagina">O imóvel passa no crédito rural?</h1>
         <p className="subtitulo">
           Checamos os impedimentos socioambientais do Manual de Crédito Rural (MCR 2-9) nas mesmas bases públicas que o banco usa.
@@ -109,19 +111,20 @@ export function Consulta({ saude }: { saude: Saude | null }) {
       </div>
 
       {saude?.demo && (
-        <div className="cartao pilha-p nao-imprimir">
-          <strong>Testar com um exemplo fictício</strong>
-          <div className="botoes">
-            {Object.entries(saude.demo).map(([chave, codigo]) => (
-              <button key={chave} type="button" className="botao botao-secundario" onClick={() => setCar(codigo)}>
-                {EXEMPLOS[chave] ?? chave}
-              </button>
-            ))}
-          </div>
+        <div className="exemplos nao-imprimir">
+          <span className="fonte-suave">Testar com um exemplo fictício:</span>
+          {Object.entries(saude.demo).map(([chave, codigo]) => (
+            <button key={chave} type="button" className={`chip${car === codigo ? ' chip-ativo' : ''}`} onClick={() => setCar(codigo)}>
+              {EXEMPLOS[chave] ?? chave}
+            </button>
+          ))}
         </div>
       )}
 
       <form className="cartao" onSubmit={enviar} noValidate>
+        <h2 className="form-secao">
+          <span>1</span> Dados do imóvel
+        </h2>
         <label className="campo">
           <span className="rotulo">Código do CAR</span>
           <input
@@ -167,14 +170,17 @@ export function Consulta({ saude }: { saude: Saude | null }) {
           {erroDe('modulosFiscais')}
         </label>
 
+        <h2 className="form-secao">
+          <span>2</span> Mapa do imóvel
+        </h2>
         <div className="campo">
           <span className="rotulo" id={`${id}-arq`}>
             Contorno do imóvel
           </span>
           <label className={`arquivo${geometria ? ' arquivo-ok' : ''}`} aria-labelledby={`${id}-arq`}>
             <input type="file" accept=".kml,.geojson,.json" onChange={(e) => escolherArquivo(e.target.files?.[0])} />
-            <span aria-hidden="true" style={{ fontSize: 28 }}>
-              {geometria ? '✓' : '⇪'}
+            <span className="arquivo-icone" aria-hidden="true">
+              <Icone nome={geometria ? 'check' : 'mapa'} />
             </span>
             <span>
               <strong>{geometria ? nomeArquivo : 'Escolher arquivo KML ou GeoJSON'}</strong>
@@ -187,6 +193,9 @@ export function Consulta({ saude }: { saude: Saude | null }) {
           {erroDe('geometria')}
         </div>
 
+        <h2 className="form-secao">
+          <span>3</span> Opcional
+        </h2>
         <label className="marcar campo">
           <input type="checkbox" checked={usoColetivo} onChange={(e) => setUsoColetivo(e.target.checked)} />
           <span>CAR de perímetro coletivo (assentamento ou comunidade tradicional)</span>
@@ -222,7 +231,7 @@ export function Consulta({ saude }: { saude: Saude | null }) {
           </p>
         )}
 
-        <p className="ajuda" style={{ marginTop: 20 }}>
+        <p className="ajuda credito-aviso" style={{ marginTop: 24 }}>
           {!sessao
             ? 'Para consultar um imóvel real, crie sua conta: a primeira consulta é grátis.'
             : !sessao.usuario.emailConfirmado && sessao.saldo.consulta === 0

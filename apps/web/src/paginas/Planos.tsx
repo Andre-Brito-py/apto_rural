@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type Assinatura, type Catalogo, type Plano, type Produto } from '../api';
+import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 import { contagem, dataBr } from '../textos';
 
@@ -76,9 +77,10 @@ export function Planos() {
     ) : null;
 
   return (
-    <div className="pagina pilha">
-      <div className="pilha-p">
-        <h1 className="titulo-pagina">Planos</h1>
+    <div className="pagina pagina-media pilha">
+      <div className="topo-pagina topo-centro">
+        <p className="sobretitulo">Planos</p>
+        <h1 className="titulo-pagina">Escolha como quer usar o Apto Rural</h1>
         <p className="subtitulo">Assine e receba créditos todo mês, com a carteira de fazendas inclusa. Pix, cartão ou boleto.</p>
       </div>
 
@@ -94,7 +96,7 @@ export function Planos() {
       )}
 
       {sessao && (
-        <div className="cartao pilha-p">
+        <div className="cartao pilha-p saldo-planos">
           <p>
             Seu saldo: <strong>{contagem(sessao.saldo.consulta, 'consulta', 'consultas')}</strong> e{' '}
             <strong>{contagem(sessao.saldo.dossie, 'dossiê', 'dossiês')}</strong>.
@@ -122,27 +124,33 @@ export function Planos() {
       )}
 
       <section className="pilha-p">
-        <h2 className="secao-titulo">Assinatura mensal</h2>
-        <ul className="planos">
+        <h2 className="secao-titulo topo-centro">Assinatura mensal</h2>
+        <ul className="l-planos">
           {planos.map((p) => (
-            <li key={p.id} className={`cartao plano${p.destaque ? ' plano-destaque' : ''}`}>
-              {p.destaque && <span className="plano-selo">Mais escolhido</span>}
-              <h3 className="secao-titulo">{p.nome}</h3>
-              <p className="plano-preco">
+            <li key={p.id} className={`l-plano${p.destaque ? ' l-plano-destaque' : ''}`}>
+              {p.destaque && <span className="l-plano-selo">Recomendado</span>}
+              <h3>{p.nome}</h3>
+              <p className="l-plano-preco">
                 {reais(p.valorMensal)}
-                <span className="plano-periodo">/mês</span>
+                <span>/mês</span>
               </p>
-              <ul className="lista-simples">
-                <li>{contagem(p.creditosMensais.consulta, 'consulta', 'consultas')} por mês</li>
-                <li>{contagem(p.creditosMensais.dossie, 'dossiê', 'dossiês')} por mês</li>
-                <li>Carteira com até {p.limiteCarteira} fazendas, reconferidas todo dia</li>
-                <li>Créditos que sobram passam para o mês seguinte</li>
+              <ul>
+                {[
+                  `${contagem(p.creditosMensais.consulta, 'consulta', 'consultas')} por mês`,
+                  `${contagem(p.creditosMensais.dossie, 'dossiê', 'dossiês')} por mês`,
+                  `Carteira com até ${p.limiteCarteira} fazendas, reconferidas todo dia`,
+                  'Créditos que sobram passam para o mês seguinte',
+                ].map((t) => (
+                  <li key={t}>
+                    <Icone nome="check" className="l-icone-p" /> {t}
+                  </li>
+                ))}
               </ul>
               {campoDocumento(`plano:${p.id}`)}
               <button
                 type="button"
-                className={`botao ${p.destaque ? 'botao-primario' : 'botao-secundario'}`}
-                style={{ marginTop: 12, width: '100%' }}
+                className={`l-botao ${p.destaque ? 'l-botao-marca' : 'l-botao-claro'}`}
+                style={{ marginTop: 'auto' }}
                 disabled={enviando || !catalogo?.pagamentoDisponivel || (assinatura != null && assinatura.planoId !== p.id)}
                 onClick={() => seguir(`plano:${p.id}`, () => api.assinar(p.id, documento || undefined))}
               >
@@ -157,22 +165,24 @@ export function Planos() {
             </li>
           ))}
         </ul>
-        <p className="ajuda">Cancele quando quiser: as próximas mensalidades deixam de ser cobradas e os créditos que você já tem continuam seus.</p>
+        <p className="ajuda topo-centro">Cancele quando quiser: as próximas mensalidades deixam de ser cobradas e os créditos que você já tem continuam seus.</p>
       </section>
 
       <section className="pilha-p">
-        <h2 className="secao-titulo">Compra avulsa</h2>
-        <ul className="planos">
+        <h2 className="secao-titulo topo-centro">Prefere sem assinatura?</h2>
+        <ul className="avulsos-grade">
           {catalogo?.produtos.map((p: Produto) => (
-            <li key={p.id} className="cartao plano">
-              <h3 className="secao-titulo">{p.nome}</h3>
-              <p className="plano-preco">{reais(p.valor)}</p>
-              <p>{p.descricao}</p>
+            <li key={p.id} className="cartao avulso">
+              <div className="avulso-topo">
+                <h3 className="secao-titulo">{p.nome}</h3>
+                <p className="avulso-preco">{reais(p.valor)}</p>
+              </div>
+              <p className="fonte-suave">{p.descricao}</p>
               {campoDocumento(`produto:${p.id}`)}
               <button
                 type="button"
-                className="botao botao-secundario"
-                style={{ marginTop: 12, width: '100%' }}
+                className="l-botao l-botao-claro"
+                style={{ marginTop: 'auto' }}
                 disabled={enviando || !catalogo.pagamentoDisponivel}
                 onClick={() => seguir(`produto:${p.id}`, () => api.comprar(p.id, documento || undefined))}
               >
@@ -183,7 +193,7 @@ export function Planos() {
         </ul>
       </section>
 
-      <p className="avisos">
+      <p className="avisos topo-centro">
         Preços em reais. Dúvidas sobre cobrança: veja os <Link to="/termos">termos de uso</Link>.
       </p>
     </div>

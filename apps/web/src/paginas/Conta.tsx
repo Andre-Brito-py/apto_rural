@@ -25,57 +25,91 @@ export function Conta() {
 
   return (
     <div className="pagina pilha">
-      <h1 className="titulo-pagina">Minha conta</h1>
+      <div className="topo-pagina">
+        <p className="sobretitulo">Minha conta</p>
+        <h1 className="titulo-pagina">Olá, {sessao.usuario.nome.split(' ')[0]}</h1>
+      </div>
+
+      <div className="saldos">
+        <div className="saldo-bloco">
+          <span className="saldo-numero">{sessao.saldo.consulta}</span>
+          <span className="fonte-suave">{sessao.saldo.consulta === 1 ? 'consulta disponível' : 'consultas disponíveis'}</span>
+        </div>
+        <div className="saldo-bloco">
+          <span className="saldo-numero">{sessao.saldo.dossie}</span>
+          <span className="fonte-suave">{sessao.saldo.dossie === 1 ? 'dossiê disponível' : 'dossiês disponíveis'}</span>
+        </div>
+      </div>
+
+      <div className="botoes">
+        <Link to="/consultar" className="botao botao-primario">
+          Consultar um imóvel
+        </Link>
+        <Link to="/carteira" className="botao botao-secundario">
+          Minha carteira
+        </Link>
+        <Link to="/planos" className="botao botao-secundario">
+          Planos e créditos
+        </Link>
+      </div>
+
       <section className="cartao pilha-p">
+        <h2 className="secao-titulo">Dados da conta</h2>
         <dl className="dados">
           <dt>Nome</dt>
           <dd>{sessao.usuario.nome}</dd>
           <dt>E-mail</dt>
           <dd>
-            {sessao.usuario.email} {sessao.usuario.emailConfirmado ? '(confirmado)' : '(não confirmado)'}
+            {sessao.usuario.email}{' '}
+            <span className={`etiqueta${sessao.usuario.emailConfirmado ? '' : ' etiqueta-vermelha'}`}>
+              {sessao.usuario.emailConfirmado ? 'confirmado' : 'não confirmado'}
+            </span>
           </dd>
-          <dt>Consultas</dt>
-          <dd>{sessao.saldo.consulta}</dd>
-          <dt>Dossiês</dt>
-          <dd>{sessao.saldo.dossie}</dd>
         </dl>
-        <div className="botoes">
-          <Link to="/carteira" className="botao botao-primario">
-            Minha carteira de imóveis
+        {sessao.nivelAdmin && (
+          <Link to="/admin" className="l-link">
+            Abrir o painel administrativo
           </Link>
-          <Link to="/planos" className="botao botao-secundario">
-            Comprar créditos
-          </Link>
-          {sessao.nivelAdmin && (
-            <Link to="/admin" className="botao botao-secundario">
-              Painel administrativo
-            </Link>
-          )}
-        </div>
+        )}
       </section>
 
       {pedidos.length > 0 && (
         <section className="cartao pilha-p">
           <h2 className="secao-titulo">Compras</h2>
-          <ul className="lista-simples">
-            {pedidos.map((p) => (
-              <li key={p.id}>
-                {dataBr(p.criadoEm)} — {p.produto} — {p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} — {STATUS[p.status]}
-              </li>
-            ))}
-          </ul>
+          <div className="tabela-rolavel">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Item</th>
+                  <th>Valor</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pedidos.map((p) => (
+                  <tr key={p.id}>
+                    <td>{dataBr(p.criadoEm)}</td>
+                    <td>{p.produto}</td>
+                    <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td>{STATUS[p.status]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
       <button
         type="button"
-        className="botao botao-secundario"
+        className="link-botao"
         onClick={async () => {
           await sair();
           navegar('/');
         }}
       >
-        Sair
+        Sair da conta
       </button>
     </div>
   );
