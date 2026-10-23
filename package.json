@@ -12,7 +12,7 @@
     "build": "npm run build -w @apto/regras && npm run build -w @apto/api && npm run build -w @apto/web",
     "dev:api": "npm run build -w @apto/regras && npm run dev -w @apto/api",
     "dev:web": "npm run build -w @apto/regras && npm run dev -w @apto/web",
-    "test": "npm run test -w @apto/regras",
+    "test": "npm run test -w @apto/regras && npm run build -w @apto/regras && npm run test -w @apto/api",
     "typecheck": "npm run build -w @apto/regras && npm run typecheck -w @apto/api && npm run typecheck -w @apto/web"
   },
   "engines": {

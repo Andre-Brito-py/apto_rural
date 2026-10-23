@@ -1,0 +1,156 @@
+import { beforeAll, describe, expect, it } from 'vitest';
+
+process.env.APTO_DEMO = '1';
+process.env.LOG_LEVEL = 'silent';
+delete process.env.DATABASE_URL;
+delete process.env.ASAAS_API_KEY;
+
+const { criarServidor, criarContexto } = await import('../src/servidor.js');
+const { ProvedorAsaas } = await import('../src/pagamentos/asaas.js');
+const { CARS_DEMO } = await import('../src/repositorio/demo.js');
+
+const TOKEN_WEBHOOK = 'x'.repeat(40);
+
+function cookieDe(res: { headers: Record<string, unknown> }): string {
+  const c = res.headers['set-cookie'];
+  return String(Array.isArray(c) ? c[0] : c).split(';')[0]!;
+}
+
+async function novaConta(app: ReturnType<typeof criarServidor>, email = 'tecnico@exemplo.com') {
+  const res = await app.inject({
+    method: 'POST',
+    url: '/v1/conta',
+    payload: { nome: 'Técnico Teste', email, senha: 'senha-bem-longa', aceiteTermos: true, whatsapp: '(65) 99999-0000' },
+  });
+  return { res, cookie: cookieDe(res) };
+}
+
+describe('contas', () => {
+  const app = criarServidor();
+
+  it('cadastro dá a amostra grátis e abre sessão', async () => {
+    const { res, cookie } = await novaConta(app);
+    expect(res.statusCode).toBe(201);
+    expect(res.json().saldo).toEqual({ consulta: 1, dossie: 0 });
+    expect(res.headers['set-cookie']).toMatch(/HttpOnly/i);
+    const eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
+    expect(eu.json().usuario.email).toBe('tecnico@exemplo.com');
+  });
+
+  it('e-mail repetido é recusado, sem diferença de maiúsculas', async () => {
+    const { res } = await novaConta(app, 'TECNICO@exemplo.com');
+    expect(res.statusCode).toBe(409);
+  });
+
+  it('exige aceite dos termos e senha de 10+ caracteres', async () => {
+    const r1 = await app.inject({ method: 'POST', url: '/v1/conta', payload: { nome: 'A B', email: 'a@b.com', senha: 'curta', aceiteTermos: true } });
+    expect(r1.statusCode).toBe(400);
+    const r2 = await app.inject({ method: 'POST', url: '/v1/conta', payload: { nome: 'A B', email: 'a@b.com', senha: 'senha-bem-longa' } });
+    expect(r2.statusCode).toBe(400);
+  });
+
+  it('senha errada e e-mail inexistente têm a mesma resposta', async () => {
+    const a = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'errada-errada' } });
+    const b = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'ninguem@exemplo.com', senha: 'errada-errada' } });
+    expect(a.statusCode).toBe(401);
+    expect(b.json()).toEqual(a.json());
+  });
+
+  it('sair invalida a sessão', async () => {
+    const login = await app.inject({ method: 'POST', url: '/v1/sessao', payload: { email: 'tecnico@exemplo.com', senha: 'senha-bem-longa' } });
+    const cookie = cookieDe(login);
+    await app.inject({ method: 'DELETE', url: '/v1/sessao', headers: { cookie } });
+    const eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
+    expect(eu.statusCode).toBe(401);
+  });
+});
+
+describe('compra com pagamento simulado', () => {
+  const app = criarServidor();
+  let cookie = '';
+  beforeAll(async () => {
+    cookie = (await novaConta(app)).cookie;
+  });
+
+  it('pedido só credita depois de pago, e pagar duas vezes não duplica', async () => {
+    const pedido = await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'pacote-projetista' } });
+    expect(pedido.statusCode).toBe(201);
+    const { id } = pedido.json();
+    let eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
+    expect(eu.json().saldo).toEqual({ consulta: 1, dossie: 0 });
+
+    await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${id}/pagar`, headers: { cookie } });
+    await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${id}/pagar`, headers: { cookie } });
+    eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
+    expect(eu.json().saldo).toEqual({ consulta: 21, dossie: 2 });
+  });
+
+  it('produto inexistente é recusado', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'gratis' } });
+    expect(r.statusCode).toBe(400);
+  });
+
+  it('comprar exige conta', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/pedidos', payload: { produto: 'consulta-avulsa' } });
+    expect(r.statusCode).toBe(401);
+  });
+});
+
+describe('webhook do Asaas', () => {
+  const ctx = criarContexto();
+  ctx.pagamento = new ProvedorAsaas('chave-de-teste', 'sandbox', TOKEN_WEBHOOK);
+  const app = criarServidor(ctx);
+  let usuarioId = '';
+  let pedidoId = '';
+
+  beforeAll(async () => {
+    const { cookie } = await novaConta(app, 'pagador@exemplo.com');
+    usuarioId = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).json().usuario.id;
+    const p = await ctx.contas.criarPedido({ usuarioId, produto: 'dossie-avulso', valor: 190, provedor: 'asaas' });
+    await ctx.contas.atualizarPedido(p.id, { provedorId: 'pay_123' });
+    pedidoId = p.id;
+  });
+
+  const enviar = (evento: string, id: string, token = TOKEN_WEBHOOK) =>
+    app.inject({
+      method: 'POST',
+      url: '/v1/webhooks/asaas',
+      headers: { 'asaas-access-token': token },
+      payload: { id, event: evento, payment: { id: 'pay_123', externalReference: pedidoId, status: 'RECEIVED' } },
+    });
+
+  it('recusa token errado', async () => {
+    expect((await enviar('PAYMENT_RECEIVED', 'evt_x', 'y'.repeat(40))).statusCode).toBe(401);
+    expect((await ctx.contas.saldo(usuarioId)).dossie).toBe(0);
+  });
+
+  it('PAYMENT_RECEIVED credita uma vez, mesmo com evento repetido', async () => {
+    await enviar('PAYMENT_RECEIVED', 'evt_1');
+    await enviar('PAYMENT_RECEIVED', 'evt_1');
+    await enviar('PAYMENT_CONFIRMED', 'evt_2');
+    expect((await ctx.contas.saldo(usuarioId)).dossie).toBe(1);
+    expect((await ctx.contas.buscarPedido(pedidoId))!.status).toBe('pago');
+  });
+
+  it('estorno retira os créditos', async () => {
+    await enviar('PAYMENT_REFUNDED', 'evt_3');
+    expect((await ctx.contas.saldo(usuarioId)).dossie).toBe(0);
+    expect((await ctx.contas.buscarPedido(pedidoId))!.status).toBe('estornado');
+  });
+});
+
+describe('consultas', () => {
+  const app = criarServidor();
+
+  it('exemplo fictício é grátis e não exige conta', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/consultas', payload: { car: CARS_DEMO.limpo } });
+    expect(r.statusCode).toBe(201);
+    expect(r.json().demo).toBe(true);
+    expect(r.json()).not.toHaveProperty('usuarioId');
+  });
+
+  it('consulta real sem bases carregadas responde 503', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/consultas', payload: { car: 'MT-5107925-0123456789ABCDEF0123456789ABCDEF' } });
+    expect(r.statusCode).toBe(503);
+  });
+});

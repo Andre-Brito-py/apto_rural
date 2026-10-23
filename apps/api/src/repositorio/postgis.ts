@@ -8,11 +8,7 @@ const GEOM = 'ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SetSRID(ST_GeomFromG
 const AREA_INTERSECAO = `ST_Area(ST_Intersection(t.geom, g.geom)::geography) / 10000`;
 
 export class RepositorioPostgis implements Repositorio {
-  private pool: pg.Pool;
-
-  constructor(url: string) {
-    this.pool = new pg.Pool({ connectionString: url, max: 10 });
-  }
+  constructor(private pool: pg.Pool) {}
 
   async atualizacoes(): Promise<Partial<Record<FonteId, string>>> {
     const { rows } = await this.pool.query<{ fonte_id: FonteId; data: string }>(
@@ -123,26 +119,51 @@ export class RepositorioPostgis implements Repositorio {
     return { consta: (rowCount ?? 0) > 0 };
   }
 
-  async salvar(e: EntradaColeta, evidencias: Evidencias, resultado: ResultadoConsulta): Promise<ConsultaSalva> {
+  async salvar(
+    e: EntradaColeta,
+    evidencias: Evidencias,
+    resultado: ResultadoConsulta,
+    meta: { id: string; usuarioId?: string },
+  ): Promise<ConsultaSalva> {
     const geo = e.geometria ? JSON.stringify(e.geometria) : null;
-    const { rows } = await this.pool.query<{ id: string; criada_em: Date }>(
-      `INSERT INTO consulta (cod_car, data_referencia, documento_hash, geom, evidencias, resultado)
-       VALUES ($2, $3, $4, CASE WHEN $1::text IS NULL THEN NULL ELSE ${GEOM} END, $5, $6)
-       RETURNING id, criada_em`,
-      [geo, e.car, resultado.dataReferencia, e.documentoHash ?? null, evidencias, resultado],
+    const { rows } = await this.pool.query<{ criada_em: Date }>(
+      `INSERT INTO consulta (id, usuario_id, cod_car, data_referencia, documento_hash, geom, evidencias, resultado)
+       VALUES ($2, $3, $4, $5, $6, CASE WHEN $1::text IS NULL THEN NULL ELSE ${GEOM} END, $7, $8)
+       RETURNING criada_em`,
+      [geo, meta.id, meta.usuarioId ?? null, e.car, resultado.dataReferencia, e.documentoHash ?? null, evidencias, resultado],
     );
-    const r = rows[0]!;
-    return { id: r.id, criadaEm: r.criada_em.toISOString(), resultado, geometria: e.geometria, demo: false };
+    return {
+      id: meta.id,
+      criadaEm: rows[0]!.criada_em.toISOString(),
+      resultado,
+      geometria: e.geometria,
+      demo: false,
+      usuarioId: meta.usuarioId,
+      dossieLiberado: false,
+    };
   }
 
   async buscar(id: string): Promise<ConsultaSalva | null> {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const { rows } = await this.pool.query(
-      `SELECT id, criada_em, resultado, ST_AsGeoJSON(geom)::json AS geometria FROM consulta WHERE id = $1`,
+      `SELECT id, usuario_id, criada_em, resultado, dossie_liberado_em, ST_AsGeoJSON(geom)::json AS geometria
+         FROM consulta WHERE id = $1`,
       [id],
     );
     const r = rows[0];
     if (!r) return null;
-    return { id: r.id, criadaEm: r.criada_em.toISOString(), resultado: r.resultado, geometria: r.geometria ?? undefined, demo: false };
+    return {
+      id: r.id,
+      criadaEm: r.criada_em.toISOString(),
+      resultado: r.resultado,
+      geometria: r.geometria ?? undefined,
+      demo: false,
+      usuarioId: r.usuario_id ?? undefined,
+      dossieLiberado: r.dossie_liberado_em != null,
+    };
+  }
+
+  async liberarDossie(id: string) {
+    await this.pool.query('UPDATE consulta SET dossie_liberado_em = coalesce(dossie_liberado_em, now()) WHERE id = $1', [id]);
   }
 }

@@ -1,7 +1,8 @@
 import { FONTES, formatarCar, type ResultadoItem } from '@apto/regras';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { api, type ConsultaSalva } from '../api';
+import { api, ErroApi, type ConsultaSalva } from '../api';
+import { useSessao } from '../sessao';
 import { CodigoQr } from '../componentes/CodigoQr';
 import { MapaImovel } from '../componentes/MapaImovel';
 import { SeloStatus } from '../componentes/SeloStatus';
@@ -39,6 +40,7 @@ export function Dossie() {
     );
   }
   if (!consulta) return <div className="pagina">Carregando dossiê…</div>;
+  if (!consulta.dossieLiberado) return <LiberarDossie consulta={consulta} aoLiberar={() => setConsulta({ ...consulta, dossieLiberado: true })} />;
 
   const r = consulta.resultado;
   const itens = r.itens.filter((i) => i.dossie && (i.status === 'impedimento' || i.status === 'atencao'));
@@ -119,6 +121,54 @@ export function Dossie() {
           <p key={a}>{a}</p>
         ))}
       </section>
+    </div>
+  );
+}
+
+function LiberarDossie({ consulta, aoLiberar }: { consulta: ConsultaSalva; aoLiberar: () => void }) {
+  const { sessao, atualizarSaldo } = useSessao();
+  const [erro, setErro] = useState<{ mensagem: string; status?: number } | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  async function liberar() {
+    setEnviando(true);
+    setErro(null);
+    try {
+      const r = await api.liberarDossie(consulta.id);
+      await atualizarSaldo(r.saldo);
+      aoLiberar();
+    } catch (e) {
+      setErro({ mensagem: (e as ErroApi).message, status: (e as ErroApi).status });
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="pagina pilha" style={{ maxWidth: 560 }}>
+      <h1 className="titulo-pagina">Dossiê do imóvel</h1>
+      <div className="cartao pilha-p">
+        <p className="mono">{formatarCar(consulta.resultado.car)}</p>
+        {consulta.minha ? (
+          <>
+            <p>
+              O dossiê reúne o que foi encontrado, as saídas que a norma admite e o checklist de documentos para levar ao banco. Gerar o dossiê
+              usa <strong>1 crédito de dossiê</strong>
+              {sessao ? `; você tem ${sessao.saldo.dossie}.` : '.'}
+            </p>
+            {erro && (
+              <p className="alerta alerta-erro" role="alert">
+                {erro.mensagem} {erro.status === 402 && <Link to="/planos">Ver planos</Link>}
+              </p>
+            )}
+            <button type="button" className="botao botao-primario" onClick={liberar} disabled={enviando}>
+              {enviando ? 'Gerando…' : 'Gerar dossiê (1 crédito)'}
+            </button>
+          </>
+        ) : (
+          <p>Só quem fez a consulta pode gerar o dossiê deste imóvel.</p>
+        )}
+        <Link to={`/consulta/${consulta.id}`}>Voltar ao resultado</Link>
+      </div>
     </div>
   );
 }

@@ -1,80 +1,57 @@
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
-import { avaliar, FONTES, normalizarCar, REGRAS } from '@apto/regras';
-import Fastify, { type FastifyReply } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
+import Fastify from 'fastify';
+import pg from 'pg';
 import { config } from './config.js';
-import { hashDocumento, hashesParaCadastro, normalizarDocumento } from './documento.js';
-import { novaConsulta } from './esquemas.js';
-import { CARS_DEMO, ehCarDemo, RepositorioDemo } from './repositorio/demo.js';
+import { RepositorioContasMemoria } from './contas/memoria.js';
+import { RepositorioContasPostgres } from './contas/postgres.js';
+import type { Contexto } from './contexto.js';
+import { ProvedorAsaas } from './pagamentos/asaas.js';
+import { ProvedorSimulado } from './pagamentos/simulado.js';
+import { RepositorioDemo } from './repositorio/demo.js';
 import { RepositorioPostgis } from './repositorio/postgis.js';
-import type { Repositorio } from './repositorio/tipos.js';
+import { rotasContas } from './rotas/contas.js';
+import { rotasConsultas } from './rotas/consultas.js';
+import { rotasPedidos } from './rotas/pedidos.js';
 
-function erro(reply: FastifyReply, status: number, mensagem: string, campo?: string) {
-  return reply.status(status).send({ erro: { mensagem, campo } });
+export function criarContexto(): Contexto {
+  const pool = config.databaseUrl ? new pg.Pool({ connectionString: config.databaseUrl, max: 10 }) : null;
+  if (!pool && !config.demo) throw new Error('Sem DATABASE_URL, só o modo demonstração (APTO_DEMO=1) funciona.');
+  return {
+    banco: pool ? new RepositorioPostgis(pool) : null,
+    demo: config.demo ? new RepositorioDemo() : null,
+    contas: pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria(),
+    pagamento: config.asaas.chave
+      ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook)
+      : config.demo
+        ? new ProvedorSimulado(config.webOrigin)
+        : null,
+  };
 }
 
-/** Data de hoje no fuso de Brasília, que é o que vale para as datas do MCR. */
-function hojeBrasilia(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
-}
+export function criarServidor(ctx: Contexto = criarContexto()) {
+  const app = Fastify({
+    logger: { level: process.env.LOG_LEVEL ?? 'info', redact: ['req.headers.cookie', 'req.headers["asaas-access-token"]'] },
+    trustProxy: config.producao,
+  });
+  app.register(cors, { origin: config.webOrigin, credentials: true });
+  app.register(cookie);
+  app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
 
-export function criarServidor() {
-  const app = Fastify({ logger: { level: process.env.LOG_LEVEL ?? 'info' } });
-  app.register(cors, { origin: config.webOrigin });
-
-  const banco: Repositorio | null = config.databaseUrl ? new RepositorioPostgis(config.databaseUrl) : null;
-  const demo: Repositorio | null = config.demo ? new RepositorioDemo() : null;
-
-  app.get('/v1/saude', async () => ({
-    ok: true,
-    banco: banco != null,
-    demo: demo != null ? CARS_DEMO : null,
-  }));
-
-  app.get('/v1/regras', async () => ({
-    regras: REGRAS.map(({ id, titulo, pergunta, normas, fontes }) => ({ id, titulo, pergunta, normas, fontes })),
-    fontes: FONTES,
-    atualizacoes: banco ? await banco.atualizacoes() : demo ? await demo.atualizacoes() : {},
-  }));
-
-  app.post('/v1/consultas', async (req, reply) => {
-    const corpo = novaConsulta.safeParse(req.body);
-    if (!corpo.success) {
-      const p = corpo.error.issues[0]!;
-      return erro(reply, 400, p.message, p.path.join('.'));
-    }
-    const dados = corpo.data;
-
-    const car = normalizarCar(dados.car);
-    if (!car) {
-      return erro(reply, 400, 'Código do CAR inválido. Use o formato do recibo: UF-0000000-XXXX.XXXX…', 'car');
-    }
-
-    let documentoHash: string | undefined;
-    let hashesCadastro: string[] | undefined;
-    if (dados.documento) {
-      const doc = normalizarDocumento(dados.documento);
-      if (!doc) return erro(reply, 400, 'CPF ou CNPJ inválido.', 'documento');
-      documentoHash = config.databaseUrl ? hashDocumento(doc) : 'demo';
-      hashesCadastro = config.databaseUrl ? hashesParaCadastro(doc) : undefined;
-    }
-
-    const repo = demo && ehCarDemo(car) ? demo : banco;
-    if (!repo) {
-      return erro(reply, 503, 'As bases públicas ainda não estão carregadas neste servidor.');
-    }
-
-    const entrada = { ...dados, car, documentoHash, hashesCadastro };
-    const evidencias = await repo.coletarEvidencias(entrada);
-    const resultado = avaliar(evidencias, hojeBrasilia());
-    const salva = await repo.salvar(entrada, evidencias, resultado);
-    return reply.status(201).send(salva);
+  app.after(() => {
+    rotasConsultas(app, ctx);
+    rotasContas(app, ctx);
+    rotasPedidos(app, ctx);
   });
 
-  app.get<{ Params: { id: string } }>('/v1/consultas/:id', async (req, reply) => {
-    const id = req.params.id;
-    const salva = (demo && (await demo.buscar(id))) || (banco && (await banco.buscar(id)));
-    if (!salva) return erro(reply, 404, 'Consulta não encontrada.');
-    return salva;
+  app.setErrorHandler((e: { statusCode?: number; message?: string }, req, reply) => {
+    const status = e.statusCode ?? 500;
+    if (status === 429) return reply.status(429).send({ erro: { mensagem: 'Muitas tentativas. Aguarde alguns minutos.' } });
+    if (status >= 500) req.log.error(e);
+    return reply.status(status).send({
+      erro: { mensagem: status < 500 ? e.message : 'Erro interno. Tente de novo em instantes.' },
+    });
   });
 
   return app;

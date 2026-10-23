@@ -46,10 +46,19 @@ python -m coletores.mte_empregadores
 
 `--simular` lê e conta sem gravar; `--arquivo` usa um arquivo já baixado. Cada carga é atômica: se falhar, a anterior continua valendo.
 
+## Contas e pagamentos
+
+- Conta com e-mail e senha (scrypt), sessão em cookie `HttpOnly` e limite de tentativas de login.
+- Créditos num livro-razão (`credito_lancamento`): cada lançamento tem referência única, então webhook repetido nunca credita duas vezes. A conta nova ganha 1 consulta grátis.
+- Uma consulta real gasta 1 crédito de consulta; um dossiê gasta 1 crédito de dossiê. Exemplos fictícios são grátis.
+- Pagamento pelo **Asaas** (Pix, cartão ou boleto na fatura hospedada por eles). Configure `ASAAS_API_KEY`, `ASAAS_AMBIENTE` e `ASAAS_WEBHOOK_TOKEN`, e aponte o webhook de cobranças do Asaas para `https://<seu-domínio>/v1/webhooks/asaas`.
+- Sem chave do Asaas e com `APTO_DEMO=1`, a compra usa uma fatura simulada para desenvolvimento.
+- Em produção (`NODE_ENV=production`), a API recusa iniciar sem banco e sem Asaas, e desliga o modo demonstração.
+
 ## Testes
 
 ```bash
-npm test          # motor de regras (cronograma da Res. 5.303/2026, embargos, sobreposições…)
+npm test          # motor de regras + API (contas, compra, webhook do Asaas, cobrança de créditos)
 npm run typecheck
 npm run build
 ```

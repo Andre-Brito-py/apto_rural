@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { Evidencias, ResultadoConsulta } from '@apto/regras';
 import type { GeometriaImovel } from '../esquemas.js';
 import type { ConsultaSalva, EntradaColeta, Repositorio } from './tipos.js';
@@ -83,13 +82,21 @@ export class RepositorioDemo implements Repositorio {
     };
   }
 
-  async salvar(e: EntradaColeta, _ev: Evidencias, resultado: ResultadoConsulta): Promise<ConsultaSalva> {
+  async salvar(
+    e: EntradaColeta,
+    _ev: Evidencias,
+    resultado: ResultadoConsulta,
+    meta: { id: string; usuarioId?: string },
+  ): Promise<ConsultaSalva> {
     const salva: ConsultaSalva = {
-      id: randomUUID(),
+      id: meta.id,
       criadaEm: new Date().toISOString(),
       resultado,
       geometria: e.geometria ?? quadrado(-55.9, -12.6, 0.03),
       demo: true,
+      usuarioId: meta.usuarioId,
+      // Exemplos fictícios: dossiê aberto, sem gastar crédito.
+      dossieLiberado: true,
     };
     this.consultas.set(salva.id, salva);
     return salva;
@@ -98,4 +105,6 @@ export class RepositorioDemo implements Repositorio {
   async buscar(id: string) {
     return this.consultas.get(id) ?? null;
   }
+
+  async liberarDossie() {}
 }

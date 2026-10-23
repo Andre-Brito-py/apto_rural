@@ -40,6 +40,11 @@ export function dataBr(iso?: string): string {
   return `${d}/${m}/${a}`;
 }
 
+/** "1 consulta", "3 consultas", "1 dossiê", "0 dossiês". */
+export function contagem(n: number, singular: string, plural: string): string {
+  return `${n} ${Math.abs(n) === 1 ? singular : plural}`;
+}
+
 export function numeroBr(n: number, casas = 2): string {
   return n.toLocaleString('pt-BR', { maximumFractionDigits: casas });
 }

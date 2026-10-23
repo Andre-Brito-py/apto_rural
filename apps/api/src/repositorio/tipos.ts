@@ -19,11 +19,19 @@ export interface ConsultaSalva {
   resultado: ResultadoConsulta;
   geometria?: GeometriaImovel;
   demo: boolean;
+  usuarioId?: string;
+  dossieLiberado: boolean;
 }
 
 export interface Repositorio {
   coletarEvidencias(entrada: EntradaColeta): Promise<Evidencias>;
-  salvar(entrada: EntradaColeta, evidencias: Evidencias, resultado: ResultadoConsulta): Promise<ConsultaSalva>;
+  salvar(
+    entrada: EntradaColeta,
+    evidencias: Evidencias,
+    resultado: ResultadoConsulta,
+    meta: { id: string; usuarioId?: string },
+  ): Promise<ConsultaSalva>;
   buscar(id: string): Promise<ConsultaSalva | null>;
+  liberarDossie(id: string): Promise<void>;
   atualizacoes(): Promise<Partial<Record<FonteId, string>>>;
 }

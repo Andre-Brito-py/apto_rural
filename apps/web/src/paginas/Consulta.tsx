@@ -1,8 +1,9 @@
 import { normalizarCar, type SituacaoCar } from '@apto/regras';
 import { useId, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, ErroApi, type GeometriaImovel, type Saude } from '../api';
 import { lerArquivoImovel } from '../arquivoImovel';
+import { useSessao } from '../sessao';
 
 const SITUACOES: { valor: SituacaoCar | 'nao_sei'; rotulo: string }[] = [
   { valor: 'ativo', rotulo: 'Ativo' },
@@ -21,11 +22,13 @@ const EXEMPLOS: Record<string, string> = {
 interface Erro {
   mensagem: string;
   campo?: string;
+  status?: number;
 }
 
 export function Consulta({ saude }: { saude: Saude | null }) {
   const navegar = useNavigate();
   const id = useId();
+  const { sessao, atualizarSaldo } = useSessao();
   const [car, setCar] = useState('');
   const [situacao, setSituacao] = useState<SituacaoCar | 'nao_sei'>('nao_sei');
   const [modulos, setModulos] = useState('');
@@ -78,10 +81,11 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         documento: documento.trim() || undefined,
         consentimentoDocumento: documento.trim() ? consentimento : undefined,
       });
+      if (!salva.demo) await atualizarSaldo();
       navegar(`/consulta/${salva.id}`, { state: salva });
     } catch (e) {
       const err = e as ErroApi;
-      setErro({ mensagem: err.message, campo: err.campo });
+      setErro({ mensagem: err.message, campo: err.campo, status: err.status });
       setEnviando(false);
     }
   }
@@ -212,11 +216,19 @@ export function Consulta({ saude }: { saude: Saude | null }) {
 
         {erro && !['car', 'modulosFiscais', 'geometria', 'documento', 'consentimentoDocumento'].includes(erro.campo ?? '') && (
           <p className="alerta alerta-erro" role="alert" style={{ marginTop: 20 }}>
-            {erro.mensagem}
+            {erro.mensagem}{' '}
+            {erro.status === 401 && <Link to="/entrar?modo=criar">Criar conta grátis</Link>}
+            {erro.status === 402 && <Link to="/planos">Ver planos</Link>}
           </p>
         )}
 
-        <div style={{ marginTop: 24 }}>
+        <p className="ajuda" style={{ marginTop: 20 }}>
+          {sessao
+            ? `Esta consulta usa 1 crédito. Você tem ${sessao.saldo.consulta}.`
+            : 'Para consultar um imóvel real, crie sua conta: a primeira consulta é grátis.'}
+        </p>
+
+        <div style={{ marginTop: 12 }}>
           <button className="botao botao-primario" type="submit" disabled={enviando}>
             {enviando ? 'Consultando as bases…' : 'Consultar imóvel'}
           </button>

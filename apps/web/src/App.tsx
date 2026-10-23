@@ -3,12 +3,20 @@ import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { api, type Saude } from './api';
 import { LimiteErro } from './componentes/LimiteErro';
 import { Consulta } from './paginas/Consulta';
+import { Conta } from './paginas/Conta';
 import { Dossie } from './paginas/Dossie';
+import { Entrar } from './paginas/Entrar';
 import { Fontes } from './paginas/Fontes';
+import { Privacidade, Termos } from './paginas/Legal';
+import { PagamentoSimulado } from './paginas/PagamentoSimulado';
+import { Planos } from './paginas/Planos';
 import { Resultado } from './paginas/Resultado';
+import { useSessao } from './sessao';
+import { contagem } from './textos';
 
 export function App() {
   const [saude, setSaude] = useState<Saude | null>(null);
+  const { sessao, carregando } = useSessao();
 
   useEffect(() => {
     api.saude().then(setSaude).catch(() => setSaude(null));
@@ -23,10 +31,18 @@ export function App() {
             Apto Rural
           </Link>
           <nav className="nav" aria-label="Principal">
-            <NavLink to="/" end>
+            <NavLink to="/" end className="so-largo">
               Consultar
             </NavLink>
-            <NavLink to="/fontes">Regras</NavLink>
+            <NavLink to="/planos">Planos</NavLink>
+            {!carregando &&
+              (sessao ? (
+                <NavLink to="/conta" className="saldo" title="Sua conta e seus créditos">
+                  {contagem(sessao.saldo.consulta, 'consulta', 'consultas')}
+                </NavLink>
+              ) : (
+                <NavLink to="/entrar">Entrar</NavLink>
+              ))}
           </nav>
         </div>
       </header>
@@ -46,6 +62,12 @@ export function App() {
             <Route path="/consulta/:id" element={<Resultado />} />
             <Route path="/consulta/:id/dossie" element={<Dossie />} />
             <Route path="/fontes" element={<Fontes />} />
+            <Route path="/entrar" element={<Entrar />} />
+            <Route path="/conta" element={<Conta />} />
+            <Route path="/planos" element={<Planos />} />
+            <Route path="/pagamento-simulado/:id" element={<PagamentoSimulado />} />
+            <Route path="/termos" element={<Termos />} />
+            <Route path="/privacidade" element={<Privacidade />} />
             <Route
               path="*"
               element={
@@ -62,7 +84,10 @@ export function App() {
       </main>
 
       <footer className="rodape">
-        Pré-checagem com bases públicas. Não substitui a análise da instituição financeira.
+        <p>Pré-checagem com bases públicas. Não substitui a análise da instituição financeira.</p>
+        <p className="rodape-links">
+          <Link to="/fontes">Regras e fontes</Link> · <Link to="/termos">Termos</Link> · <Link to="/privacidade">Privacidade</Link>
+        </p>
       </footer>
     </>
   );

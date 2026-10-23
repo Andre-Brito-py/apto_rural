@@ -131,9 +131,9 @@ export function Resultado() {
         <button type="button" className="botao botao-secundario" onClick={() => window.print()}>
           Salvar relatório em PDF
         </button>
-        {temDossie && (
+        {temDossie && (consulta.dossieLiberado || consulta.minha) && (
           <Link to={`/consulta/${consulta.id}/dossie`} state={consulta} className="botao botao-secundario">
-            Gerar dossiê do imóvel
+            {consulta.dossieLiberado ? 'Abrir dossiê do imóvel' : 'Gerar dossiê do imóvel'}
           </Link>
         )}
       </div>

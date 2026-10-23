@@ -63,6 +63,24 @@ a { color: var(--marca); text-underline-offset: 2px; }
   display: inline-flex; align-items: center; border-radius: 8px; font-size: 0.95rem; white-space: nowrap;
 }
 .nav a[aria-current='page'] { background: rgb(255 255 255 / 0.16); color: #fff; }
+.nav a.saldo { background: #facc15; color: #1b1c18; font-weight: 800; gap: 4px; padding: 0 10px; }
+/* No celular, o logo já leva à consulta: o link "Consultar" sai para caber o saldo. */
+@media (max-width: 479px) { .nav a.so-largo { display: none; } }
+@media (max-width: 380px) { .nav a { padding: 0 8px; font-size: 0.9rem; } .marca { font-size: 1rem; } }
+.rodape p + p { margin-top: 6px; }
+.rodape-links a { color: var(--tinta-suave); }
+
+/* Abas e planos */
+.abas { display: grid; grid-template-columns: 1fr 1fr; background: var(--neutro-fundo); border-radius: 12px; padding: 4px; gap: 4px; }
+.abas button { min-height: 44px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-weight: 700; color: var(--tinta-suave); cursor: pointer; }
+.abas button.ativa { background: #fff; color: var(--marca-forte); box-shadow: var(--sombra); }
+.planos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+@media (min-width: 640px) { .planos { grid-template-columns: 1fr 1fr; } }
+.plano { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.plano-destaque { border: 2px solid var(--marca); }
+.plano-selo { position: absolute; top: -12px; right: 12px; background: var(--marca); color: #fff; font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.plano-preco { font-size: 1.6rem; font-weight: 800; color: var(--marca-forte); }
+.plano .botao { margin-top: auto; }
 
 /* Faixa de demonstração */
 .faixa-demo { background: #fef3c7; border-bottom: 1px solid #f2d27a; font-size: 0.9rem; }
