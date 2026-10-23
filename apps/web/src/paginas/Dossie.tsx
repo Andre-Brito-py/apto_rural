@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { api, ErroApi, type ConsultaSalva } from '../api';
 import { useSessao } from '../sessao';
 import { CodigoQr } from '../componentes/CodigoQr';
+import { Icone } from '../componentes/Icones';
 import { MapaImovel } from '../componentes/MapaImovel';
 import { SeloStatus } from '../componentes/SeloStatus';
 import { dataBr } from '../textos';
@@ -27,7 +28,11 @@ export function Dossie() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (!consulta) api.consulta(id).then(setConsulta).catch((e: Error) => setErro(e.message));
+    if (!consulta)
+      api
+        .consulta(id)
+        .then(setConsulta)
+        .catch((e: Error) => setErro(e.message));
   }, [id, consulta]);
 
   if (erro) {
@@ -40,87 +45,124 @@ export function Dossie() {
     );
   }
   if (!consulta) return <div className="pagina">Carregando dossiê…</div>;
-  if (!consulta.dossieLiberado) return <LiberarDossie consulta={consulta} aoLiberar={() => setConsulta({ ...consulta, dossieLiberado: true })} />;
+  if (!consulta.dossieLiberado)
+    return <LiberarDossie consulta={consulta} aoLiberar={() => setConsulta({ ...consulta, dossieLiberado: true })} />;
 
   const r = consulta.resultado;
   const itens = r.itens.filter((i) => i.dossie && (i.status === 'impedimento' || i.status === 'atencao'));
   const linkConsulta = `${window.location.origin}/consulta/${consulta.id}`;
 
   return (
-    <div className="pagina pilha dossie">
-      <div className="botoes nao-imprimir">
-        <button type="button" className="botao botao-primario" onClick={() => window.print()}>
-          Imprimir ou salvar em PDF
-        </button>
-        <Link to={`/consulta/${consulta.id}`} className="botao botao-secundario">
-          Voltar ao resultado
-        </Link>
+    <div className="dossie-pagina">
+      <div className="dossie-barra nao-imprimir">
+        <div className="dossie-barra-dentro">
+          <Link to={`/consulta/${consulta.id}`} className="l-link">
+            ← Voltar ao resultado
+          </Link>
+          <span className="fonte-suave dossie-barra-car mono">{formatarCar(r.car)}</span>
+          <button type="button" className="botao botao-primario botao-auto" onClick={() => window.print()}>
+            <Icone nome="documento" className="l-icone-p" />
+            <span className="texto-largo">Imprimir ou salvar em PDF</span>
+            <span className="texto-curto">Salvar PDF</span>
+          </button>
+        </div>
       </div>
 
-      {consulta.demo && (
-        <p className="alerta" style={{ background: '#fef3c7', borderColor: '#f2d27a' }}>
-          Dossiê de <strong>demonstração com dados fictícios</strong>.
-        </p>
-      )}
-
-      <header className="cartao dossie-cabecalho">
-        <div className="pilha-p" style={{ flex: 1, minWidth: 0 }}>
-          <p className="dossie-sobretitulo">Apto Rural · Dossiê do imóvel</p>
-          <h1 className="titulo-pagina">Impedimentos socioambientais do crédito rural</h1>
-          <dl className="dados">
-            <dt>CAR</dt>
-            <dd className="mono">{formatarCar(r.car)}</dd>
-            <dt>Consulta</dt>
-            <dd>{dataBr(r.dataReferencia)}</dd>
-            <dt>Verificação</dt>
-            <dd className="mono" style={{ fontSize: '0.8rem' }}>
-              {consulta.id}
-            </dd>
-          </dl>
-        </div>
-        <div className="dossie-lateral">
-          <CodigoQr texto={linkConsulta} />
-          <span className="ajuda" style={{ textAlign: 'center', marginTop: 4 }}>
-            Confira a consulta original
-          </span>
-        </div>
-      </header>
-
-      {consulta.geometria && (
-        <section className="cartao imovel">
-          <p>
-            Contorno do imóvel usado na consulta. As imagens de satélite antes e depois de 31/07/2019 entram na próxima versão do dossiê.
+      <div className="pagina dossie-moldura">
+        {consulta.demo && (
+          <p className="alerta nao-imprimir" style={{ background: '#fef3c7', borderColor: '#f2d27a' }}>
+            Dossiê de <strong>demonstração com dados fictícios</strong>.
           </p>
-          <MapaImovel geometria={consulta.geometria} />
-        </section>
-      )}
+        )}
 
-      {itens.length === 0 ? (
-        <p className="cartao">Nenhum item com impedimento ou atenção nesta consulta: não há dossiê a montar.</p>
-      ) : (
-        itens.map((item, n) => <SecaoDossie key={item.regraId} numero={n + 1} item={item} atualizacoes={r.atualizacoes} />)
-      )}
+        <article className="dossie-folha">
+          <header className="dossie-cabecalho">
+            <div className="dossie-marca">
+              <img src="/icone.svg" alt="" />
+              <span>Apto Rural</span>
+              <span className="dossie-tipo">Dossiê do imóvel</span>
+            </div>
+            <div className="dossie-cabecalho-corpo">
+              <div className="dossie-identificacao">
+                <h1>Impedimentos socioambientais do crédito rural</h1>
+                <p className="fonte-suave">Manual de Crédito Rural, Capítulo 2, Seção 9 (MCR 2-9)</p>
+                <dl className="dossie-dados">
+                  <div>
+                    <dt>CAR</dt>
+                    <dd className="mono">{formatarCar(r.car)}</dd>
+                  </div>
+                  <div>
+                    <dt>Data da consulta</dt>
+                    <dd>{dataBr(r.dataReferencia)}</dd>
+                  </div>
+                  <div>
+                    <dt>Código de verificação</dt>
+                    <dd className="mono">{consulta.id}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="dossie-lateral">
+                <CodigoQr texto={linkConsulta} />
+                <span>Aponte a câmera para conferir a consulta original</span>
+              </div>
+            </div>
+          </header>
 
-      <section className="cartao pilha-p">
-        <h2 className="secao-titulo">Observações do responsável técnico</h2>
-        <textarea className="entrada nao-imprimir" rows={4} placeholder="Anotações para a proposta (não ficam salvas)." />
-        <div className="so-impressao linhas-escrita" aria-hidden="true" />
-        <div className="assinatura">
-          <span>Responsável técnico (nome e registro profissional)</span>
-          <span>Data e assinatura</span>
-        </div>
-      </section>
+          {(consulta.geometria || itens.length > 0) && (
+            <section className="dossie-resumo">
+              <div>
+                <h2 className="dossie-h2">Resumo</h2>
+                {itens.length === 0 ? (
+                  <p>Nenhum item com impedimento ou atenção nesta consulta: não há dossiê a montar.</p>
+                ) : (
+                  <ol className="dossie-sumario">
+                    {itens.map((item, n) => (
+                      <li key={item.regraId}>
+                        <span className="dossie-num">{n + 1}</span>
+                        <span>
+                          {item.titulo} <span className="fonte-suave">· {TITULO_DOSSIE[item.dossie!]}</span>
+                        </span>
+                        <SeloStatus status={item.status} />
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+              {consulta.geometria && (
+                <figure className="dossie-mapa">
+                  <MapaImovel geometria={consulta.geometria} />
+                  <figcaption>Contorno do imóvel usado na consulta.</figcaption>
+                </figure>
+              )}
+            </section>
+          )}
 
-      <section className="avisos pilha-p">
-        <p>
-          Este dossiê organiza evidências de bases públicas para subsidiar a análise da instituição financeira. Não é laudo técnico, parecer
-          jurídico nem garantia de aprovação. O laudo de sensoriamento remoto do MCR 2-9-18 &quot;d&quot; é de responsabilidade da instituição
-          financeira.
-        </p>
-        {r.avisos.map((a) => (
-          <p key={a}>{a}</p>
-        ))}
-      </section>
+          {itens.map((item, n) => (
+            <SecaoDossie key={item.regraId} numero={n + 1} item={item} atualizacoes={r.atualizacoes} />
+          ))}
+
+          <section className="dossie-secao dossie-assinatura-secao">
+            <h2 className="dossie-h2">Observações do responsável técnico</h2>
+            <textarea className="entrada nao-imprimir" rows={4} placeholder="Anotações para a proposta (não ficam salvas)." />
+            <div className="so-impressao linhas-escrita" aria-hidden="true" />
+            <div className="assinatura">
+              <span>Responsável técnico (nome e registro profissional)</span>
+              <span>Data e assinatura</span>
+            </div>
+          </section>
+
+          <footer className="dossie-rodape">
+            <p>
+              Este dossiê organiza evidências de bases públicas para subsidiar a análise da instituição financeira. Não é laudo técnico,
+              parecer jurídico nem garantia de aprovação. O laudo de sensoriamento remoto do MCR 2-9-18 &quot;d&quot; é de responsabilidade
+              da instituição financeira.
+            </p>
+            {r.avisos.map((a) => (
+              <p key={a}>{a}</p>
+            ))}
+          </footer>
+        </article>
+      </div>
     </div>
   );
 }
@@ -144,16 +186,45 @@ function LiberarDossie({ consulta, aoLiberar }: { consulta: ConsultaSalva; aoLib
   }
 
   return (
-    <div className="pagina pilha" style={{ maxWidth: 560 }}>
-      <h1 className="titulo-pagina">Dossiê do imóvel</h1>
+    <div className="pagina pilha" style={{ maxWidth: 620 }}>
+      <div className="topo-pagina">
+        <p className="sobretitulo">Do vermelho ao verde</p>
+        <h1 className="titulo-pagina">Dossiê do imóvel</h1>
+        <p className="mono fonte-suave">{formatarCar(consulta.resultado.car)}</p>
+      </div>
       <div className="cartao pilha-p">
-        <p className="mono">{formatarCar(consulta.resultado.car)}</p>
         {consulta.minha ? (
           <>
-            <p>
-              O dossiê reúne o que foi encontrado, as saídas que a norma admite e o checklist de documentos para levar ao banco. Gerar o dossiê
-              usa <strong>1 crédito de dossiê</strong>
-              {sessao ? `; você tem ${sessao.saldo.dossie}.` : '.'}
+            <p>O dossiê é o documento para levar ao banco quando a consulta dá impedimento ou atenção. Ele reúne:</p>
+            <ul className="dossie-inclui">
+              <li>
+                <span className="l-icone-caixa">
+                  <Icone nome="busca" />
+                </span>
+                <span>
+                  <strong>O que foi encontrado</strong>, com a base oficial, a data e a norma de cada item.
+                </span>
+              </li>
+              <li>
+                <span className="l-icone-caixa">
+                  <Icone nome="caminho" />
+                </span>
+                <span>
+                  <strong>As saídas que a própria norma admite</strong>, com o que já conferimos para este imóvel.
+                </span>
+              </li>
+              <li>
+                <span className="l-icone-caixa">
+                  <Icone nome="documento" />
+                </span>
+                <span>
+                  <strong>O checklist de documentos</strong> e o código QR para o gerente conferir a consulta original.
+                </span>
+              </li>
+            </ul>
+            <p className="credito-aviso">
+              Gerar o dossiê usa <strong>1 crédito de dossiê</strong>
+              {sessao ? `; ${sessao.equipe ? 'a equipe tem' : 'você tem'} ${sessao.saldo.dossie}.` : '.'}
             </p>
             {erro && (
               <p className="alerta alerta-erro" role="alert">
@@ -165,9 +236,11 @@ function LiberarDossie({ consulta, aoLiberar }: { consulta: ConsultaSalva; aoLib
             </button>
           </>
         ) : (
-          <p>Só quem fez a consulta pode gerar o dossiê deste imóvel.</p>
+          <p>Só quem fez a consulta (ou a equipe dessa pessoa) pode gerar o dossiê deste imóvel.</p>
         )}
-        <Link to={`/consulta/${consulta.id}`}>Voltar ao resultado</Link>
+        <Link to={`/consulta/${consulta.id}`} className="l-link">
+          ← Voltar ao resultado
+        </Link>
       </div>
     </div>
   );
@@ -183,11 +256,13 @@ function SecaoDossie({
   atualizacoes: ConsultaSalva['resultado']['atualizacoes'];
 }) {
   return (
-    <section className="cartao pilha-p dossie-secao">
-      <div className="item-topo">
-        <h2 className="secao-titulo">
-          {numero}. {item.titulo} — {TITULO_DOSSIE[item.dossie!]}
-        </h2>
+    <section className="dossie-secao">
+      <div className="dossie-secao-topo">
+        <span className="dossie-num dossie-num-grande">{numero}</span>
+        <div>
+          <h2 className="dossie-h2">{item.titulo}</h2>
+          <span className="fonte-suave">{TITULO_DOSSIE[item.dossie!]}</span>
+        </div>
         <SeloStatus status={item.status} />
       </div>
 

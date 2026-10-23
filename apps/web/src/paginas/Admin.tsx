@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { api, type ErroRegistrado, type PainelResumo, type RegistroAuditoria, type UsuarioAdmin } from '../api';
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
@@ -15,13 +15,18 @@ const SITUACAO_BASE = {
   nao_carregada: { texto: 'Não carregada', classe: 's-impedimento' },
 } as const;
 
-/** Painel interno: saúde do sistema, erros, usuários e vendas. */
+type Aba = 'geral' | 'usuarios' | 'pedidos' | 'configuracoes' | 'auditoria';
+
+/** Painel interno, em abas: saúde do sistema e do negócio, usuários, vendas, preços e auditoria. */
 export function Admin() {
   const { sessao, carregando } = useSessao();
   const [painel, setPainel] = useState<PainelResumo | null>(null);
   const [erros, setErros] = useState<ErroRegistrado[]>([]);
   const [pedidos, setPedidos] = useState<Awaited<ReturnType<typeof api.admin.pedidos>>['pedidos']>([]);
   const [falha, setFalha] = useState('');
+  // A aba fica no endereço (?aba=usuarios): dá para voltar direto e mandar o link.
+  const [parametros, setParametros] = useSearchParams();
+  const aba = (parametros.get('aba') as Aba | null) ?? 'geral';
 
   async function carregar() {
     try {
@@ -43,41 +48,101 @@ export function Admin() {
   if (!nivel) return <Navigate to="/" replace />;
 
   const r = painel?.resumo;
+  const basesComProblema = painel?.bases.filter((b) => b.situacao !== 'em_dia').length ?? 0;
+  const abas: { id: Aba; rotulo: string; marca?: number }[] = [
+    { id: 'geral', rotulo: 'Visão geral', marca: (r?.erros24h ?? 0) + basesComProblema || undefined },
+    { id: 'usuarios', rotulo: 'Usuários' },
+    { id: 'pedidos', rotulo: 'Pedidos', marca: r?.pedidosPendentes || undefined },
+    { id: 'configuracoes', rotulo: 'Preços e limites' },
+    ...(nivel === 'admin' ? [{ id: 'auditoria' as const, rotulo: 'Auditoria' }] : []),
+  ];
+
   return (
     <div className="pagina pagina-larga pilha">
-      <div className="item-topo">
-        <h1 className="titulo-pagina">Painel {nivel === 'suporte' && <span className="fonte-suave">(suporte: só leitura)</span>}</h1>
+      <div className="topo-com-acao">
+        <div className="topo-pagina">
+          <p className="sobretitulo">Painel administrativo</p>
+          <h1 className="titulo-pagina">
+            {abas.find((a) => a.id === aba)?.rotulo ?? 'Visão geral'}
+            {nivel === 'suporte' && <span className="etiqueta">suporte: só leitura</span>}
+          </h1>
+        </div>
         <button type="button" className="botao botao-secundario" onClick={carregar}>
           Atualizar
         </button>
       </div>
+
+      <nav className="abas-painel" aria-label="Seções do painel">
+        {abas.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className={aba === a.id ? 'ativa' : ''}
+            aria-current={aba === a.id ? 'page' : undefined}
+            onClick={() => setParametros(a.id === 'geral' ? {} : { aba: a.id }, { replace: true })}
+          >
+            {a.rotulo}
+            {a.marca ? <span className="aba-marca">{a.marca}</span> : null}
+          </button>
+        ))}
+      </nav>
+
       {falha && <p className="alerta alerta-erro">{falha}</p>}
 
-      {r && (
-        <section className="indicadores" aria-label="Indicadores">
-          <Indicador titulo="Contas" valor={r.usuarios} detalhe={`${r.confirmados} confirmadas · ${r.usuarios7d} nos últimos 7 dias`} />
-          <Indicador titulo="Consultas" valor={r.consultas30d} detalhe={`30 dias · ${r.consultas7d} em 7 dias · ${r.consultasHoje} hoje`} />
-          <Indicador
-            titulo="Receita recorrente"
-            valor={reais(r.receitaRecorrente)}
-            detalhe={`por mês · ${r.assinantes} assinantes${r.inadimplentes ? ` · ${r.inadimplentes} em atraso` : ''}`}
-            alerta={r.inadimplentes > 0}
-          />
-          <Indicador titulo="Receita" valor={reais(r.receita30d)} detalhe={`30 dias · total ${reais(r.receitaTotal)}`} />
-          <Indicador titulo="Pedidos pendentes" valor={r.pedidosPendentes} detalhe="aguardando pagamento" />
-          <Indicador
-            titulo="Créditos em circulação"
-            valor={r.creditosEmCirculacao.consulta}
-            detalhe={`consultas · ${r.creditosEmCirculacao.dossie} dossiês`}
-          />
-          <Indicador titulo="Carteira" valor={r.imoveisCarteira} detalhe={`imóveis · ${r.avisos7d} avisos em 7 dias`} />
-          <Indicador titulo="Erros (24h)" valor={r.erros24h} detalhe="ver lista abaixo" alerta={r.erros24h > 0} />
-        </section>
+      {aba === 'usuarios' && <Usuarios />}
+      {aba === 'configuracoes' && <ConfiguracoesPainel podeAlterar={nivel === 'admin'} />}
+      {aba === 'auditoria' && nivel === 'admin' && <Auditoria />}
+
+      {aba === 'geral' && r && (
+        <>
+          <section className="pilha-p" aria-label="Negócio">
+            <h2 className="grupo-titulo">Negócio</h2>
+            <div className="indicadores">
+              <Indicador
+                titulo="Receita recorrente"
+                valor={reais(r.receitaRecorrente)}
+                detalhe={`por mês · ${r.assinantes} assinantes${r.inadimplentes ? ` · ${r.inadimplentes} em atraso` : ''}`}
+                alerta={r.inadimplentes > 0}
+                destaque
+              />
+              <Indicador titulo="Receita em 30 dias" valor={reais(r.receita30d)} detalhe={`total ${reais(r.receitaTotal)}`} />
+              <Indicador titulo="Pedidos pendentes" valor={r.pedidosPendentes} detalhe="aguardando pagamento" />
+              <Indicador titulo="Contas" valor={r.usuarios} detalhe={`${r.confirmados} confirmadas · ${r.usuarios7d} novas em 7 dias`} />
+            </div>
+          </section>
+          <section className="pilha-p" aria-label="Uso">
+            <h2 className="grupo-titulo">Uso</h2>
+            <div className="indicadores">
+              <Indicador
+                titulo="Consultas em 30 dias"
+                valor={r.consultas30d}
+                detalhe={`${r.consultas7d} em 7 dias · ${r.consultasHoje} hoje`}
+              />
+              <Indicador titulo="Imóveis na carteira" valor={r.imoveisCarteira} detalhe={`${r.avisos7d} avisos em 7 dias`} />
+              <Indicador
+                titulo="Créditos em circulação"
+                valor={r.creditosEmCirculacao.consulta}
+                detalhe={`consultas · ${r.creditosEmCirculacao.dossie} dossiês`}
+              />
+              <Indicador
+                titulo="Erros nas últimas 24 h"
+                valor={r.erros24h}
+                detalhe={r.erros24h ? 'veja a lista abaixo' : 'tudo tranquilo'}
+                alerta={r.erros24h > 0}
+              />
+            </div>
+          </section>
+        </>
       )}
 
-      {painel && (
+      {aba === 'geral' && painel && (
         <section className="cartao pilha-p">
-          <h2 className="secao-titulo">Bases oficiais</h2>
+          <div className="item-topo">
+            <h2 className="secao-titulo">Bases oficiais</h2>
+            <span className={`selo ${basesComProblema ? 's-impedimento' : 's-sem_impedimento'}`}>
+              {basesComProblema ? `${basesComProblema} com problema` : 'Todas em dia'}
+            </span>
+          </div>
           <div className="tabela-rolavel">
             <table className="tabela">
               <thead>
@@ -110,81 +175,80 @@ export function Admin() {
         </section>
       )}
 
-      <section className="cartao pilha-p">
-        <h2 className="secao-titulo">Erros recentes</h2>
-        {erros.length === 0 ? (
-          <p className="ajuda">Nenhum erro registrado.</p>
-        ) : (
-          <ul className="lista-erros">
-            {erros.map((e) => (
-              <li key={e.id}>
-                <details>
-                  <summary>
-                    <span className="fonte-suave">{dataHora(e.quando)}</span> <strong>[{e.origem}]</strong> {e.rota && <code>{e.rota}</code>}{' '}
-                    {e.mensagem}
-                  </summary>
-                  {e.detalhe && <pre className="detalhe-erro">{e.detalhe}</pre>}
-                </details>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <Usuarios />
-
-      {nivel === 'admin' && <Auditoria />}
-
-      <section className="cartao pilha-p">
-        <h2 className="secao-titulo">Pedidos</h2>
-        <div className="tabela-rolavel">
-          <table className="tabela">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Cliente</th>
-                <th>Produto</th>
-                <th>Valor</th>
-                <th>Situação</th>
-                {nivel === 'admin' && <th />}
-              </tr>
-            </thead>
-            <tbody>
-              {pedidos.map((p) => (
-                <tr key={p.id}>
-                  <td>{dataHora(p.criadoEm)}</td>
-                  <td>
-                    <Link to={`/admin/usuarios/${p.usuarioId}`}>{p.email}</Link>
-                  </td>
-                  <td>{p.produto}</td>
-                  <td>{reais(p.valor)}</td>
-                  <td>
-                    {SITUACAO_PEDIDO[p.status] ?? p.status}
-                    {p.provedor === 'simulado' ? ' (simulado)' : ''}
-                    {p.motivoEstorno && <span className="fonte-suave"> — {p.motivoEstorno}</span>}
-                  </td>
-                  {nivel === 'admin' && (
-                    <td>
-                      {p.status === 'pago' && (
-                        <button type="button" className="link-botao" onClick={() => estornar(p)}>
-                          Estornar
-                        </button>
-                      )}
-                      {p.status === 'pendente' && (
-                        <button type="button" className="link-botao" onClick={() => cancelar(p)}>
-                          Cancelar
-                        </button>
-                      )}
-                    </td>
-                  )}
-                </tr>
+      {aba === 'geral' && (
+        <section className="cartao pilha-p">
+          <h2 className="secao-titulo">Erros recentes</h2>
+          {erros.length === 0 ? (
+            <p className="ajuda">Nenhum erro registrado.</p>
+          ) : (
+            <ul className="lista-erros">
+              {erros.map((e) => (
+                <li key={e.id}>
+                  <details>
+                    <summary>
+                      <span className="fonte-suave">{dataHora(e.quando)}</span> <strong>[{e.origem}]</strong>{' '}
+                      {e.rota && <code>{e.rota}</code>} {e.mensagem}
+                    </summary>
+                    {e.detalhe && <pre className="detalhe-erro">{e.detalhe}</pre>}
+                  </details>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </ul>
+          )}
+        </section>
+      )}
 
-      <ConfiguracoesPainel podeAlterar={nivel === 'admin'} />
+      {aba === 'pedidos' && (
+        <section className="cartao pilha-p">
+          <h2 className="so-leitor">Pedidos</h2>
+          {pedidos.length === 0 && <p className="ajuda">Nenhum pedido ainda.</p>}
+          <div className="tabela-rolavel">
+            <table className="tabela">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Produto</th>
+                  <th>Valor</th>
+                  <th>Situação</th>
+                  {nivel === 'admin' && <th />}
+                </tr>
+              </thead>
+              <tbody>
+                {pedidos.map((p) => (
+                  <tr key={p.id}>
+                    <td>{dataHora(p.criadoEm)}</td>
+                    <td>
+                      <Link to={`/admin/usuarios/${p.usuarioId}`}>{p.email}</Link>
+                    </td>
+                    <td>{p.produto}</td>
+                    <td>{reais(p.valor)}</td>
+                    <td>
+                      {SITUACAO_PEDIDO[p.status] ?? p.status}
+                      {p.provedor === 'simulado' ? ' (simulado)' : ''}
+                      {p.motivoEstorno && <span className="fonte-suave"> — {p.motivoEstorno}</span>}
+                    </td>
+                    {nivel === 'admin' && (
+                      <td>
+                        {p.status === 'pago' && (
+                          <button type="button" className="link-botao" onClick={() => estornar(p)}>
+                            Estornar
+                          </button>
+                        )}
+                        {p.status === 'pendente' && (
+                          <button type="button" className="link-botao" onClick={() => cancelar(p)}>
+                            Cancelar
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 
@@ -219,14 +283,24 @@ const SITUACAO_PEDIDO: Record<string, string> = {
   cancelado: 'Cancelado',
 };
 
-function Indicador({ titulo, valor, detalhe, alerta }: { titulo: string; valor: number | string; detalhe: string; alerta?: boolean }) {
+function Indicador({
+  titulo,
+  valor,
+  detalhe,
+  alerta,
+  destaque,
+}: {
+  titulo: string;
+  valor: number | string;
+  detalhe: string;
+  alerta?: boolean;
+  destaque?: boolean;
+}) {
   return (
-    <div className={`cartao indicador${alerta ? ' indicador-alerta' : ''}`}>
-      <span className="fonte-suave">{titulo}</span>
+    <div className={`indicador${alerta ? ' indicador-alerta' : ''}${destaque ? ' indicador-destaque' : ''}`}>
+      <span className="indicador-titulo">{titulo}</span>
       <strong className="indicador-valor">{typeof valor === 'number' ? valor.toLocaleString('pt-BR') : valor}</strong>
-      <span className="ajuda" style={{ marginTop: 0 }}>
-        {detalhe}
-      </span>
+      <span className="indicador-detalhe">{detalhe}</span>
     </div>
   );
 }
@@ -314,9 +388,15 @@ function Usuarios() {
 
   return (
     <section className="cartao pilha-p">
-      <h2 className="secao-titulo">Usuários</h2>
+      <h2 className="so-leitor">Usuários</h2>
       <form onSubmit={buscar} className="linha-acompanhar">
-        <input className="entrada" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail" aria-label="Buscar usuário" />
+        <input
+          className="entrada"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar por nome ou e-mail"
+          aria-label="Buscar usuário"
+        />
         <button type="submit" className="botao botao-secundario">
           Buscar
         </button>
@@ -400,13 +480,30 @@ export function AjusteCreditos({ usuario, aoFechar }: { usuario: { id: string; n
         Use número negativo para retirar. O ajuste fica registrado com seu e-mail e o motivo.
       </p>
       <div className="linha-acompanhar">
-        <select className="entrada" value={tipo} onChange={(e) => setTipo(e.target.value as 'consulta' | 'dossie')} aria-label="Tipo de crédito">
+        <select
+          className="entrada"
+          value={tipo}
+          onChange={(e) => setTipo(e.target.value as 'consulta' | 'dossie')}
+          aria-label="Tipo de crédito"
+        >
           <option value="consulta">Consultas</option>
           <option value="dossie">Dossiês</option>
         </select>
-        <input className="entrada" type="number" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} aria-label="Quantidade" />
+        <input
+          className="entrada"
+          type="number"
+          value={quantidade}
+          onChange={(e) => setQuantidade(e.target.value)}
+          aria-label="Quantidade"
+        />
       </div>
-      <input className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo (ex.: cortesia para piloto)" aria-label="Motivo" />
+      <input
+        className="entrada"
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        placeholder="Motivo (ex.: cortesia para piloto)"
+        aria-label="Motivo"
+      />
       {erro && <p className="alerta alerta-erro">{erro}</p>}
       <div className="botoes">
         <button type="submit" className="botao botao-primario">

@@ -69,18 +69,54 @@ export function AdminUsuario() {
 
   return (
     <div className="pagina pagina-larga pilha">
-      <p>
-        <Link to="/admin">← Painel</Link>
-      </p>
+      <nav className="trilha" aria-label="Você está em">
+        <Link to="/admin">Painel</Link>
+        <span aria-hidden="true">/</span>
+        <Link to="/admin?aba=usuarios">Usuários</Link>
+        <span aria-hidden="true">/</span>
+        <span>{u.nome}</span>
+      </nav>
 
-      <section className="cartao pilha-p">
-        <div className="item-topo">
-          <h1 className="titulo-pagina">{u.nome}</h1>
-          <span>
+      <section className="cartao pilha-p ficha">
+        <div className="ficha-topo">
+          <span className="avatar" aria-hidden="true">
+            {u.nome
+              .split(' ')
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((p) => p[0]!.toUpperCase())
+              .join('')}
+          </span>
+          <div className="ficha-nome">
+            <h1 className="titulo-pagina">{u.nome}</h1>
+            <span className="fonte-suave">{u.email}</span>
+          </div>
+          <span className="ficha-etiquetas">
             {u.papel !== 'usuario' && <span className="etiqueta">{NOME_PAPEL[u.papel]}</span>}
             {u.bloqueadoEm && <span className="etiqueta etiqueta-vermelha">bloqueado</span>}
+            {!u.confirmadoEm && <span className="etiqueta etiqueta-vermelha">e-mail não confirmado</span>}
           </span>
         </div>
+
+        <div className="ficha-numeros">
+          <div>
+            <strong>{ficha.saldo.consulta}</strong>
+            <span>consultas no saldo</span>
+          </div>
+          <div>
+            <strong>{ficha.saldo.dossie}</strong>
+            <span>dossiês no saldo</span>
+          </div>
+          <div>
+            <strong>{ficha.consultas.length}</strong>
+            <span>consultas feitas</span>
+          </div>
+          <div>
+            <strong>{ficha.carteira.length}</strong>
+            <span>imóveis na carteira</span>
+          </div>
+        </div>
+
         <dl className="dados">
           <dt>E-mail</dt>
           <dd>
@@ -100,10 +136,6 @@ export function AdminUsuario() {
           )}
           <dt>Desde</dt>
           <dd>{dataHora(u.criadoEm)}</dd>
-          <dt>Saldo</dt>
-          <dd>
-            {ficha.saldo.consulta} consultas · {ficha.saldo.dossie} dossiês
-          </dd>
           {u.bloqueadoEm && (
             <>
               <dt>Bloqueio</dt>
@@ -114,7 +146,11 @@ export function AdminUsuario() {
           )}
         </dl>
 
-        {aviso && <p className="verificacao sim">✓ {aviso}</p>}
+        {aviso && (
+          <p className="alerta alerta-ok" role="status">
+            {aviso}
+          </p>
+        )}
         {erro && <p className="alerta alerta-erro">{erro}</p>}
 
         {!proprio && (
@@ -123,7 +159,11 @@ export function AdminUsuario() {
               Entrar como (ver o que ele vê)
             </button>
             {!u.confirmadoEm && (
-              <button type="button" className="botao botao-secundario" onClick={() => acao(() => api.admin.reenviarConfirmacao(u.id), 'Confirmação reenviada.')}>
+              <button
+                type="button"
+                className="botao botao-secundario"
+                onClick={() => acao(() => api.admin.reenviarConfirmacao(u.id), 'Confirmação reenviada.')}
+              >
                 Reenviar confirmação
               </button>
             )}
@@ -133,7 +173,11 @@ export function AdminUsuario() {
                   Ajustar créditos
                 </button>
                 {u.bloqueadoEm ? (
-                  <button type="button" className="botao botao-secundario" onClick={() => acao(() => api.admin.desbloquear(u.id), 'Conta desbloqueada.')}>
+                  <button
+                    type="button"
+                    className="botao botao-secundario"
+                    onClick={() => acao(() => api.admin.desbloquear(u.id), 'Conta desbloqueada.')}
+                  >
                     Desbloquear
                   </button>
                 ) : (
@@ -216,7 +260,13 @@ export function AdminUsuario() {
         titulo={`Carteira (${ficha.carteira.length})`}
         colunas={['Imóvel', 'Resultado', 'Conferido']}
         linhas={ficha.carteira.map((c) => [
-          c.ultimaConsultaId ? <Link key={c.id} to={`/consulta/${c.ultimaConsultaId}`}>{c.apelido ?? formatarCar(c.codCar)}</Link> : (c.apelido ?? c.codCar),
+          c.ultimaConsultaId ? (
+            <Link key={c.id} to={`/consulta/${c.ultimaConsultaId}`}>
+              {c.apelido ?? formatarCar(c.codCar)}
+            </Link>
+          ) : (
+            (c.apelido ?? c.codCar)
+          ),
           VEREDITO[c.veredito as keyof typeof VEREDITO]?.titulo ?? c.veredito,
           dataHora(c.verificadoEm),
         ])}
@@ -229,7 +279,12 @@ export function AdminUsuario() {
       <Tabela
         titulo="Créditos (livro-razão)"
         colunas={['Data', 'Tipo', 'Quantidade', 'Motivo']}
-        linhas={ficha.lancamentos.map((l) => [dataHora(l.criadoEm), l.tipo, l.quantidade > 0 ? `+${l.quantidade}` : String(l.quantidade), l.motivo])}
+        linhas={ficha.lancamentos.map((l) => [
+          dataHora(l.criadoEm),
+          l.tipo,
+          l.quantidade > 0 ? `+${l.quantidade}` : String(l.quantidade),
+          l.motivo,
+        ])}
       />
       <Tabela
         titulo="Auditoria desta conta"
@@ -245,7 +300,9 @@ function Tabela({ titulo, colunas, linhas }: { titulo: string; colunas: string[]
     <section className="cartao pilha-p">
       <h2 className="secao-titulo">{titulo}</h2>
       {linhas.length === 0 ? (
-        <p className="ajuda">Nada por aqui.</p>
+        <p className="ajuda" style={{ marginTop: 0 }}>
+          Nada por aqui.
+        </p>
       ) : (
         <div className="tabela-rolavel">
           <table className="tabela">
