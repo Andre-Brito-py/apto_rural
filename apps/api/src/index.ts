@@ -10,7 +10,11 @@ process.on('unhandledRejection', (motivo) => {
   void ctx.erros.registrar({ origem: 'api', mensagem: `Promessa não tratada: ${e.message}`, detalhe: e.stack });
 });
 
-app.listen({ port: config.porta, host: '0.0.0.0' }).catch((e) => {
+// Produção (Docker): todas as interfaces, para o Caddy alcançar a API pela rede interna.
+// No computador de desenvolvimento: só o próprio computador, nunca a rede do Wi-Fi.
+const host = process.env.API_HOST ?? (config.producao ? '0.0.0.0' : '127.0.0.1');
+
+app.listen({ port: config.porta, host }).catch((e) => {
   app.log.error(e);
   process.exit(1);
 });

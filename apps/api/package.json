@@ -11,6 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "migrar": "tsx --env-file-if-exists=../../.env src/migrar.ts",
     "monitorar": "tsx --env-file-if-exists=../../.env src/monitorar.ts",
+    "contas-locais": "tsx --env-file-if-exists=../../.env scripts/contas-locais.ts",
     "test": "vitest run"
   },
   "dependencies": {

@@ -2,6 +2,8 @@ node_modules/
 dist/
 .env
 .env.producao
+# senhas das contas de teste locais (npm run contas-locais -w @apto/api)
+acesso-local.txt
 *.log
 coverage/
 # dados baixados pelos coletores

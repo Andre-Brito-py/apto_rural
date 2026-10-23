@@ -10,7 +10,7 @@
  */
 import pg from 'pg';
 
-const API = process.env.API_URL ?? 'http://localhost:3333';
+const API = process.env.API_URL ?? 'http://127.0.0.1:3333';
 const POR_CASO = Number(process.env.POR_CASO ?? 3);
 
 const CASOS: { nome: string; filtro: string; esperado: (itens: Record<string, string>) => boolean }[] = [

@@ -259,6 +259,22 @@ Abra http://localhost:5180 (porta própria do Apto Rural, para não misturar com
 
 5. **Rode a API e o site** como na opção A e crie uma conta em "Entrar". Sem servidor de e-mail configurado, o e-mail de confirmação aparece no terminal da API: abra o link de lá para confirmar a conta.
 
+6. **Contas prontas para ver as telas internas (opcional).** Para olhar o painel administrativo, a equipe, a carteira e o dossiê sem montar tudo à mão:
+
+   ```bash
+   npm run contas-locais -w @apto/api
+   ```
+
+   O script cria duas contas, gera senhas novas a cada vez e as grava no arquivo **`acesso-local.txt`**, na raiz do projeto (esse arquivo não vai para o GitHub):
+   - **admin@apto.local**: administradora do painel (`/admin`) e responsável por uma equipe no plano Escritório (pagamento simulado), com fazendas reais na carteira e um dossiê pronto. Precisa da amostra de fazendas do MMA (veja "Teste com fazendas reais").
+   - **tecnica@apto.local**: técnica da mesma equipe, para ver o site como um membro.
+
+   Só funciona no computador de desenvolvimento (`APTO_DEMO=1`); em produção o script se recusa a rodar.
+
+> **Windows: "a execução de scripts foi desabilitada neste sistema"?** O PowerShell bloqueia o atalho `npm`. Sem mudar nenhuma configuração de segurança, use `npm.cmd` no lugar (ex.: `npm.cmd run dev:api`).
+
+No computador de desenvolvimento, a API só aceita conexões do próprio computador (`127.0.0.1`), não da rede do Wi-Fi. Em produção, dentro do Docker, ela escuta em todas as interfaces para o Caddy alcançá-la; quem chega da internet passa sempre pelo Caddy.
+
 ### Testes
 
 ```bash

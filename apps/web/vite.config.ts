@@ -7,7 +7,8 @@ export default defineConfig({
     // Porta própria: a 5173 é o padrão do Vite e pode estar presa ao cache de outro projeto no navegador.
     port: 5180,
     strictPort: true,
-    proxy: { '/v1': 'http://localhost:3333' },
+    // 127.0.0.1 e não "localhost": a API local só escuta no IPv4 do próprio computador.
+    proxy: { '/v1': 'http://127.0.0.1:3333' },
   },
   build: {
     target: 'es2020',
