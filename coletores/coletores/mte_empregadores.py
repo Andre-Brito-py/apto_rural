@@ -21,7 +21,7 @@ from datetime import date
 
 import pypdf
 
-from .comum import Download, argumentos, baixar, carga
+from .comum import Download, argumentos, baixar, carga, deve_carregar
 
 FONTE = "mte_empregadores"
 URL = (
@@ -63,6 +63,8 @@ def main() -> None:
     if args.simular:
         return
 
+    if not deve_carregar(FONTE, dl.sha256, args.forcar):
+        return
     segredo = os.environ["DOCUMENTO_HASH_SECRET"].encode()
     with carga(FONTE, dl.url, dl.sha256, ref) as (conn, carga_id, contador):
         conn.execute("TRUNCATE mte_empregador")

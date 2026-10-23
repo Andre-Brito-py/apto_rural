@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/__pycache__
+dados
+.env
+.env.*
+!.env.producao.example
+.git
+.claude
+docs
+coletores/dados

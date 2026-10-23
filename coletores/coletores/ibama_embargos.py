@@ -20,7 +20,7 @@ import csv
 import hashlib
 import sys
 
-from .comum import Download, argumentos, baixar, carga, data_valida, numero_br
+from .comum import Download, argumentos, baixar, carga, data_valida, deve_carregar, numero_br
 
 FONTE = "ibama_embargos"
 URL = (
@@ -78,6 +78,8 @@ def main() -> None:
         print(f"{total} termos; {ativos} ativos; {sem_geo} sem geometria; {sem_data} sem data válida.")
         return
 
+    if not deve_carregar(FONTE, dl.sha256, args.forcar):
+        return
     with carga(FONTE, dl.url, dl.sha256, None) as (conn, carga_id, contador):
         conn.execute("TRUNCATE ibama_embargo")
         conn.execute(

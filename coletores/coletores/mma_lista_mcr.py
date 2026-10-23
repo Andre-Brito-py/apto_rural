@@ -21,7 +21,7 @@ import unicodedata
 import zipfile
 from datetime import date
 
-from .comum import Download, argumentos, baixar, carga, numero_br
+from .comum import Download, argumentos, baixar, carga, deve_carregar, numero_br
 
 FONTE = "mma_lista_mcr"
 URL = (
@@ -83,6 +83,8 @@ def main() -> None:
         print(f"{total} imóveis; {acima} acima do critério do item 17.")
         return
 
+    if not deve_carregar(FONTE, dl.sha256, args.forcar):
+        return
     with carga(FONTE, dl.url, dl.sha256, referencia) as (conn, carga_id, contador):
         conn.execute("TRUNCATE mma_lista_mcr")
         with conn.cursor().copy(

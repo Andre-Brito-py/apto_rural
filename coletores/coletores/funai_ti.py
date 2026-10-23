@@ -21,7 +21,7 @@ from datetime import date
 
 import requests
 
-from .comum import CABECALHOS, PASTA_DADOS, Download, argumentos, carga, copiar_poligonos
+from .comum import CABECALHOS, PASTA_DADOS, Download, argumentos, carga, copiar_poligonos, deve_carregar
 
 FONTE = "funai_ti"
 WFS = "https://geoserver.funai.gov.br/geoserver/Funai/ows"
@@ -98,6 +98,8 @@ def main() -> None:
         print(f"{sum(fases.values())} terras indígenas: {dict(fases)}")
         return
 
+    if not deve_carregar(FONTE, dl.sha256, args.forcar):
+        return
     ref = referencia(dl.caminho)
     print(f"Atualização mais recente na base da Funai: {ref}")
     with carga(FONTE, dl.url, dl.sha256, ref) as (conn, carga_id, contador):

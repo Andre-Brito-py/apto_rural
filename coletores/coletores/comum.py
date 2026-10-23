@@ -70,7 +70,24 @@ def argumentos(descricao: str) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=descricao)
     p.add_argument("--arquivo", type=Path, help="usa um arquivo já baixado em vez de baixar")
     p.add_argument("--simular", action="store_true", help="só lê e conta, sem gravar no banco")
+    p.add_argument("--forcar", action="store_true", help="recarrega mesmo se o arquivo oficial não mudou")
     return p.parse_args()
+
+
+def deve_carregar(fonte_id: str, sha256: str, forcar: bool = False) -> bool:
+    """False quando o arquivo é idêntico (mesmo SHA-256) ao da carga ativa."""
+    if forcar:
+        return True
+    import psycopg
+
+    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+        linha = conn.execute(
+            "SELECT 1 FROM fonte_carga WHERE fonte_id = %s AND ativa AND sha256 = %s", (fonte_id, sha256)
+        ).fetchone()
+    if linha:
+        print(f"{fonte_id}: arquivo oficial igual ao já carregado; nada a fazer.")
+        return False
+    return True
 
 
 def ler_shapefile(zip_caminho: Path, nome_base: str | None = None, encoding: str = "utf-8"):

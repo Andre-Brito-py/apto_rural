@@ -1,0 +1,6 @@
+# Arquivos que rodam dentro de containers Linux precisam de quebra de linha LF.
+*.sh       text eol=lf
+Caddyfile  text eol=lf
+Dockerfile* text eol=lf
+*.sql      text eol=lf
+*.py       text eol=lf

@@ -240,6 +240,25 @@ npx tsx --env-file=../../.env scripts/testar-fazendas-reais.ts
 - Para cobrar de verdade, preencha `ASAAS_API_KEY`, `ASAAS_AMBIENTE` (`sandbox` para testes, `producao` para valer) e `ASAAS_WEBHOOK_TOKEN`.
 - No painel do Asaas, aponte o webhook de cobranças para `https://<seu-domínio>/v1/webhooks/asaas`.
 
+### Colocar no ar (produção)
+
+Tudo que roda no servidor sobe com um comando:
+
+| Peça | O que faz |
+| --- | --- |
+| Banco de mapas | PostgreSQL + PostGIS. |
+| API + site | No mesmo endereço; atualiza a estrutura do banco sozinha ao subir. |
+| Coletores | Todo dia às 4h conferem as bases oficiais e só recarregam o que mudou. |
+| Caddy | HTTPS (o cadeado) automático e renovado sozinho. |
+| Backup | Cópia diária do banco, guardando 14 dias. |
+
+```bash
+cp .env.producao.example .env.producao   # preencha domínio, senhas e Asaas
+docker compose -f docker-compose.prod.yml --env-file .env.producao up -d --build
+```
+
+O passo a passo completo (servidor, domínio, webhook do Asaas, backups) está em [docs/implantacao.md](docs/implantacao.md).
+
 ---
 
 ## 9. Mapa das pastas
@@ -249,8 +268,10 @@ packages/regras   O coração: cada regra do MCR em código, com a norma citada 
 apps/api          A API (o "balcão"): contas, consultas, créditos e pagamentos.
 apps/web          O site, pensado para o celular no campo.
 coletores         Scripts que baixam as bases oficiais e guardam a origem de cada arquivo.
-db/migrations     A estrutura do banco de dados.
+db/migrations     A estrutura do banco de dados (aplicada em ordem, uma vez cada).
 db/teste          Consultas SQL usadas só para testar com dados reais.
+deploy            Configuração do HTTPS (Caddy) e do backup diário.
+Dockerfile        Imagem de produção da API + site.
 docs              Fontes oficiais, cuidados legais, arquitetura, interface e relatórios de teste.
 ```
 
@@ -267,10 +288,11 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Site para celular: consulta, semáforo, relatório em PDF, resumo por WhatsApp e página de fontes.
 - [x] Dossiê v1, com checklist de documentos e código QR.
 - [x] Contas, créditos e pagamento (Asaas real + simulado para desenvolvimento).
+- [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
 
 **Falta para lançar**
 
-- [ ] Hospedagem: servidor, domínio, HTTPS, backup e atualização automática das bases.
+- [ ] Contratar o servidor e o domínio e subir seguindo [docs/implantacao.md](docs/implantacao.md).
 - [ ] Recuperação de senha e confirmação de e-mail.
 - [ ] Revisão de um advogado: termos de uso, privacidade (LGPD) e linguagem do dossiê.
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
@@ -304,4 +326,5 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 | [docs/arquitetura.md](docs/arquitetura.md) | Como as peças se encaixam e por quê. |
 | [docs/frontend.md](docs/frontend.md) | Decisões de interface para o técnico do campo. |
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
+| [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
+.env.producao
 *.log
 coverage/
 # dados baixados pelos coletores

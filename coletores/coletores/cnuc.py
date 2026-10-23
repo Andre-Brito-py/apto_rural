@@ -16,7 +16,7 @@ import hashlib
 import re
 from datetime import date
 
-from .comum import Download, argumentos, baixar, carga, copiar_poligonos, ler_shapefile
+from .comum import Download, argumentos, baixar, carga, copiar_poligonos, deve_carregar, ler_shapefile
 
 FONTE = "cnuc"
 URL = (
@@ -65,6 +65,8 @@ def main() -> None:
         return
 
     colunas = ["id", "nome", "categoria", "grupo", "plano_manejo", "esfera"]
+    if not deve_carregar(FONTE, dl.sha256, args.forcar):
+        return
     with carga(FONTE, dl.url, dl.sha256, _referencia(dl.caminho)) as (conn, carga_id, contador):
         conn.execute("TRUNCATE cnuc_uc")
         copiar_poligonos(conn, "cnuc_uc", colunas, ler(dl.caminho), carga_id, contador)

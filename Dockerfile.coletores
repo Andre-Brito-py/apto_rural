@@ -1,0 +1,10 @@
+# Imagem dos coletores: baixa as bases oficiais no horário agendado.
+FROM python:3.12.7-slim
+WORKDIR /app/coletores
+COPY coletores/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY coletores/ .
+# Arquivos baixados ficam em /app/dados (volume).
+RUN mkdir -p /app/dados && useradd --create-home coletor && chown coletor /app/dados
+USER coletor
+CMD ["python", "-m", "coletores.agendador"]

@@ -18,7 +18,7 @@ from datetime import date, datetime, timezone
 
 import requests
 
-from .comum import CABECALHOS, Download, argumentos, baixar, carga, copiar_poligonos, ler_shapefile
+from .comum import CABECALHOS, Download, argumentos, baixar, carga, copiar_poligonos, deve_carregar, ler_shapefile
 
 FONTE = "sfb_cnfp"
 URL = "https://mapas.florestal.gov.br/portal/sharing/rest/content/items/2b752dfbf9254920bf8990ce363918af/data"
@@ -65,6 +65,8 @@ def main() -> None:
         print(f"{sum(tipos.values())} polígonos: {dict(tipos)}")
         return
 
+    if not deve_carregar(FONTE, dl.sha256, args.forcar):
+        return
     ref = referencia()
     print(f"Item oficial modificado em {ref}")
     with carga(FONTE, dl.url, dl.sha256, ref) as (conn, carga_id, contador):

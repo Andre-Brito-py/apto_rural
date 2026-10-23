@@ -1,6 +1,7 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import estatico from '@fastify/static';
 import Fastify from 'fastify';
 import pg from 'pg';
 import { config } from './config.js';
@@ -44,6 +45,26 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasContas(app, ctx);
     rotasPedidos(app, ctx);
   });
+
+  // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.
+  if (config.webDist) {
+    app.register(estatico, {
+      root: config.webDist,
+      wildcard: false,
+      cacheControl: false, // o cabeçalho é definido abaixo
+      // Arquivos em assets/ têm hash no nome: podem ficar em cache por muito tempo.
+      setHeaders: (res, caminho) => {
+        res.setHeader('Cache-Control', /[\\/]assets[\\/]/.test(caminho) ? 'public, max-age=31536000, immutable' : 'no-cache');
+      },
+    });
+    app.setNotFoundHandler((req, reply) => {
+      if (req.url.startsWith('/v1/') || req.method !== 'GET') {
+        return reply.status(404).send({ erro: { mensagem: 'Não encontrado.' } });
+      }
+      // Rotas do site (ex.: /consulta/:id) caem no index.html, que resolve no navegador.
+      return reply.header('Cache-Control', 'no-cache').sendFile('index.html');
+    });
+  }
 
   app.setErrorHandler((e: { statusCode?: number; message?: string }, req, reply) => {
     const status = e.statusCode ?? 500;

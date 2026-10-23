@@ -1,0 +1,79 @@
+# Produção: banco + API/site + coletores agendados + HTTPS (Caddy) + backup diário.
+# Uso (no servidor):  docker compose -f docker-compose.prod.yml --env-file .env.producao up -d --build
+# Passo a passo em docs/implantacao.md.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: apto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.producao}
+      POSTGRES_DB: apto_rural
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Por TCP: na primeira subida o Postgres inicializa só pelo socket e reinicia;
+      # assim o "pronto" só vale quando ele já aceita conexões de verdade.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U apto -d apto_rural"]
+      interval: 10s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env.producao
+    environment:
+      DATABASE_URL: postgres://apto:${POSTGRES_PASSWORD}@db:5432/apto_rural
+      WEB_ORIGIN: https://${DOMINIO:?defina DOMINIO no .env.producao}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  coletores:
+    build:
+      context: .
+      dockerfile: Dockerfile.coletores
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://apto:${POSTGRES_PASSWORD}@db:5432/apto_rural
+      DOCUMENTO_HASH_SECRET: ${DOCUMENTO_HASH_SECRET}
+    volumes:
+      - dados:/app/dados
+    depends_on:
+      api:
+        condition: service_healthy # a API aplica as migrações antes
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+
+  backup:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DIAS: ${BACKUP_DIAS:-14}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["sh", "/backup.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  dados:
+  caddy_data:
+  backups:

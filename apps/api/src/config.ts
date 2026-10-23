@@ -13,6 +13,8 @@ export const config = {
     tokenWebhook: process.env.ASAAS_WEBHOOK_TOKEN ?? '',
   },
   sessaoDias: 30,
+  /** Pasta do site já compilado. Em produção a API entrega o site no mesmo endereço. */
+  webDist: process.env.WEB_DIST,
 };
 
 if (config.databaseUrl && config.segredoDocumento.length < 16) {
