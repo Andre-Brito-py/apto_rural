@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: apto
       POSTGRES_DB: apto_rural
     ports:
-      - "5432:5432"
+      # 5433 no host: evita conflito com um PostgreSQL já instalado na máquina.
+      - "${APTO_DB_PORTA:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d:ro

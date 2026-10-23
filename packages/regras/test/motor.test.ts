@@ -110,6 +110,16 @@ describe('MCR 2-9-10 a 12 — embargos', () => {
     expect(r.status).toBe('impedimento');
     expect(r.caminhos.some((c) => c.norma?.item === 'MCR 2-9-12')).toBe(true);
   });
+  it('polígono embargado do vizinho encostando na divisa é atenção, não impedimento', () => {
+    const ev = limpo({ embargos: [{ numero: '332318/C', areaHa: 0.01 }] });
+    const r = item(ev, 'embargo');
+    expect(r.status).toBe('atencao');
+    expect(r.dossie).toBe('contestacao');
+  });
+  it('embargo sem área conhecida (ponto do termo) continua impedimento', () => {
+    const ev = limpo({ embargos: [{ numero: 'X' }] });
+    expect(item(ev, 'embargo').status).toBe('impedimento');
+  });
   it('depois de 30/6/2027 a exceção do item 12 some', () => {
     const ev = limpo({ embargos: [{ numero: 'ABC123', areaHa: 30 }] });
     const r = item(ev, 'embargo', '2027-07-01');

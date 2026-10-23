@@ -32,11 +32,8 @@ URL = (
 csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
 
 
-def _geometria(l: dict) -> str | None:
-    """WKT do polígono embargado; sem ele, o ponto do termo."""
-    wkt = (l.get("GEOM_AREA_EMBARGADA") or "").strip()
-    if wkt:
-        return wkt
+def _ponto(l: dict) -> str | None:
+    """Ponto do termo (coordenadas declaradas), se estiver dentro do Brasil."""
     lon, lat = numero_br(l.get("NUM_LONGITUDE_TAD")), numero_br(l.get("NUM_LATITUDE_TAD"))
     if lon is None or lat is None or not (-75 < lon < -28 and -35 < lat < 6):
         return None
@@ -55,7 +52,8 @@ def ler(caminho):
                 "descricao": (l.get("DES_TAD") or "").strip()[:2000] or None,
                 "ativo": (l.get("SIT_CANCELADO") or "").strip().upper() != "S"
                 and not (l.get("DAT_DESEMBARGO") or "").strip(),
-                "wkt": _geometria(l),
+                "wkt": (l.get("GEOM_AREA_EMBARGADA") or "").strip() or None,
+                "ponto": _ponto(l),
             }
 
 
@@ -75,7 +73,7 @@ def main() -> None:
         for l in ler(dl.caminho):
             total += 1
             ativos += l["ativo"]
-            sem_geo += l["wkt"] is None
+            sem_geo += l["wkt"] is None and l["ponto"] is None
             sem_data += l["data_embargo"] is None
         print(f"{total} termos; {ativos} ativos; {sem_geo} sem geometria; {sem_data} sem data válida.")
         return
@@ -84,25 +82,38 @@ def main() -> None:
         conn.execute("TRUNCATE ibama_embargo")
         conn.execute(
             "CREATE TEMP TABLE ibama_bruto (seq text, numero text, data_embargo date, area_ha numeric,"
-            " descricao text, ativo boolean, wkt text) ON COMMIT DROP"
+            " descricao text, ativo boolean, wkt text, ponto text) ON COMMIT DROP"
         )
         with conn.cursor().copy("COPY ibama_bruto FROM STDIN") as copia:
             for l in ler(dl.caminho):
                 copia.write_row(tuple(l.values()))
                 contador["registros"] += 1
-        # Geometria inválida é corrigida; a que não tem conserto fica NULL e não cruza.
+        # Há polígonos oficiais com anel não fechado. Lê termo a termo: o que não tem
+        # conserto vira NULL e o termo fica com o ponto declarado no próprio termo.
+        conn.execute(
+            """
+            CREATE FUNCTION pg_temp.geom_segura(wkt text) RETURNS geometry LANGUAGE plpgsql AS $$
+            BEGIN
+              RETURN ST_MakeValid(ST_GeomFromText(wkt, 4674));
+            EXCEPTION WHEN OTHERS THEN
+              RETURN NULL;
+            END $$
+            """
+        )
         conn.execute(
             """
             INSERT INTO ibama_embargo (seq, numero, data_embargo, area_ha, descricao, ativo, geom, carga_id)
             SELECT DISTINCT ON (seq) seq, numero, data_embargo, area_ha, descricao, ativo,
-                   CASE WHEN wkt IS NULL THEN NULL
-                        ELSE ST_MakeValid(ST_GeomFromText(wkt, 4674)) END,
+                   coalesce(pg_temp.geom_segura(wkt), ST_GeomFromText(ponto, 4674)),
                    %s
               FROM ibama_bruto
             """,
             (carga_id,),
         )
-    print(f"{contador['registros']} termos carregados.")
+        invalidos = conn.execute(
+            "SELECT count(*) FROM ibama_bruto WHERE wkt IS NOT NULL AND pg_temp.geom_segura(wkt) IS NULL"
+        ).fetchone()[0]
+    print(f"{contador['registros']} termos carregados; {invalidos} polígonos inválidos ficaram com o ponto do termo.")
 
 
 if __name__ == "__main__":

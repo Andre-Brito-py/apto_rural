@@ -40,9 +40,16 @@ def ler(caminho):
         }
 
 
-def _referencia(nome: str) -> date | None:
-    m = re.search(r"(\d{4})_(\d{2})", nome)
-    return date(int(m[1]), int(m[2]), 1) if m else None
+def _referencia(zip_caminho) -> date | None:
+    """Mês da edição, pelo nome do shapefile oficial dentro do ZIP (ex.: cnuc_2025_08)."""
+    import zipfile
+
+    with zipfile.ZipFile(zip_caminho) as z:
+        for nome in z.namelist():
+            m = re.search(r"cnuc_(\d{4})_(\d{2})\.shp$", nome, re.I)
+            if m:
+                return date(int(m[1]), int(m[2]), 1)
+    return None
 
 
 def main() -> None:
@@ -58,7 +65,7 @@ def main() -> None:
         return
 
     colunas = ["id", "nome", "categoria", "grupo", "plano_manejo", "esfera"]
-    with carga(FONTE, dl.url, dl.sha256, _referencia(dl.caminho.name)) as (conn, carga_id, contador):
+    with carga(FONTE, dl.url, dl.sha256, _referencia(dl.caminho)) as (conn, carga_id, contador):
         conn.execute("TRUNCATE cnuc_uc")
         copiar_poligonos(conn, "cnuc_uc", colunas, ler(dl.caminho), carga_id, contador)
     print(f"{contador['registros']} UCs carregadas.")

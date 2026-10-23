@@ -315,6 +315,17 @@ export const regraEmbargo: Regra = {
       (e) =>
         `Termo ${e.numero}${e.areaHa != null ? `: ${ha(e.areaHa)}` : ''}${e.dataEmbargo ? `, de ${dataBr(e.dataEmbargo)}` : ''}${e.descricao ? ` — ${e.descricao}` : ''}.`,
     );
+    // Polígono embargado do vizinho encostando na divisa (visto em dados reais: 0,01 ha).
+    // Embargo sem área conhecida (só o ponto do termo) nunca é tratado como borda.
+    if (embargos.every((e) => e.areaHa != null && e.areaHa < TOLERANCIA_BORDA_HA)) {
+      return {
+        ...base(this),
+        status: 'atencao',
+        resumo: 'Polígono embargado encosta na divisa do imóvel.',
+        detalhes: [...detalhes, AVISO_BORDA, 'Confira no termo do Ibama se o embargo é de outro imóvel.'],
+        dossie: 'contestacao',
+      };
+    }
     detalhes.push(
       'O item 10 alcança embargo decorrente de uso econômico de área desmatada ilegalmente. Confira o motivo no termo de embargo.',
     );

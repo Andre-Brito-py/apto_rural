@@ -16,6 +16,8 @@ from __future__ import annotations
 import collections
 import hashlib
 import json
+import re
+from datetime import date
 
 import requests
 
@@ -58,6 +60,18 @@ def baixar_wfs() -> Download:
     return Download(f"{WFS}?typeNames=Funai:tis_poligonais", caminho, hashlib.sha256(conteudo).hexdigest())
 
 
+def referencia(caminho) -> date | None:
+    """Data de atualização mais recente entre as terras publicadas (campo data_atualizacao)."""
+    datas = []
+    for f in json.loads(caminho.read_text(encoding="utf-8"))["features"]:
+        # O GeoServer publica no formato DD/MM/AAAA.
+        m = re.match(r"(\d{2})/(\d{2})/(\d{4})", str(f["properties"].get("data_atualizacao") or ""))
+        if m:
+            datas.append(date(int(m[3]), int(m[2]), int(m[1])))
+    validas = [d for d in datas if d <= date.today()]
+    return max(validas) if validas else None
+
+
 def ler(caminho):
     for f in json.loads(caminho.read_text(encoding="utf-8"))["features"]:
         p = f["properties"]
@@ -84,7 +98,9 @@ def main() -> None:
         print(f"{sum(fases.values())} terras indígenas: {dict(fases)}")
         return
 
-    with carga(FONTE, dl.url, dl.sha256, None) as (conn, carga_id, contador):
+    ref = referencia(dl.caminho)
+    print(f"Atualização mais recente na base da Funai: {ref}")
+    with carga(FONTE, dl.url, dl.sha256, ref) as (conn, carga_id, contador):
         conn.execute("TRUNCATE funai_ti")
         copiar_poligonos(conn, "funai_ti", ["id", "nome", "fase", "modalidade"], ler(dl.caminho), carga_id, contador)
     print(f"{contador['registros']} terras indígenas carregadas.")

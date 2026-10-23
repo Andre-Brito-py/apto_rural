@@ -29,7 +29,7 @@ Abra http://localhost:5173. Com `APTO_DEMO=1` no `.env`, três CARs fictícios (
 
 ## Rodar com as bases reais
 
-1. PostgreSQL 16 com PostGIS. Com Docker: `docker compose up -d` (aplica `db/migrations` na criação). Sem Docker: instale o PostgreSQL + PostGIS (Stack Builder no Windows) e rode `db/migrations/001_inicial.sql`.
+1. PostgreSQL 16 com PostGIS. Com Docker: `docker compose up -d` (aplica `db/migrations` na criação e publica o banco na porta **5433**, para não colidir com um PostgreSQL já instalado). Sem Docker: instale o PostgreSQL + PostGIS (Stack Builder no Windows) e rode `db/migrations/001_inicial.sql`.
 2. Copie `.env.example` para `.env`, preencha `DATABASE_URL` e um `DOCUMENTO_HASH_SECRET` longo.
 3. Carregue as bases:
 
@@ -75,6 +75,6 @@ npm run build
 | Cadastro de empregadores (MTE) | 2-9-4 | pronto |
 | Quilombolas titulados (Incra) | 2-9-8 | sem fonte aberta (Acervo exige login) |
 
-Todos os coletores foram testados com `--simular` nos arquivos oficiais de outubro de 2026; a gravação no banco ainda não foi testada (falta o PostGIS local).
+Todas as bases foram carregadas no PostGIS e testadas com 24 consultas de fazendas reais, sem divergência (ver [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md)).
 
 Enquanto uma base não estiver carregada, o item correspondente aparece como **Não verificado**, nunca como verde.

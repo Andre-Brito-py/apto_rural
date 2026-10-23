@@ -14,8 +14,11 @@ from __future__ import annotations
 
 import collections
 import hashlib
+from datetime import date, datetime, timezone
 
-from .comum import Download, argumentos, baixar, carga, copiar_poligonos, ler_shapefile
+import requests
+
+from .comum import CABECALHOS, Download, argumentos, baixar, carga, copiar_poligonos, ler_shapefile
 
 FONTE = "sfb_cnfp"
 URL = "https://mapas.florestal.gov.br/portal/sharing/rest/content/items/2b752dfbf9254920bf8990ce363918af/data"
@@ -37,6 +40,14 @@ def ler(caminho, so_tipo_b: bool = True):
         }
 
 
+def referencia() -> date | None:
+    """Data de modificação do item oficial no portal do SFB (campo "modified", em ms)."""
+    r = requests.get(URL.removesuffix("/data"), params={"f": "json"}, headers=CABECALHOS, timeout=60)
+    r.raise_for_status()
+    ms = r.json().get("modified")
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).date() if ms else None
+
+
 def _sha256(caminho) -> str:
     h = hashlib.sha256()
     with open(caminho, "rb") as f:
@@ -54,7 +65,9 @@ def main() -> None:
         print(f"{sum(tipos.values())} polígonos: {dict(tipos)}")
         return
 
-    with carga(FONTE, dl.url, dl.sha256, None) as (conn, carga_id, contador):
+    ref = referencia()
+    print(f"Item oficial modificado em {ref}")
+    with carga(FONTE, dl.url, dl.sha256, ref) as (conn, carga_id, contador):
         conn.execute("TRUNCATE sfb_floresta_tipo_b")
         linhas = ({k: v for k, v in l.items() if k != "tipo"} for l in ler(dl.caminho))
         copiar_poligonos(conn, "sfb_floresta_tipo_b", ["id", "nome"], linhas, carga_id, contador)
