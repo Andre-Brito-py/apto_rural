@@ -62,7 +62,7 @@ No painel do Asaas, em Integrações → Webhooks, cadastre:
 
 - **URL:** `https://seu-dominio/v1/webhooks/asaas`
 - **Token de autenticação:** o mesmo valor de `ASAAS_WEBHOOK_TOKEN`
-- **Eventos:** cobranças (confirmada, recebida, estornada, chargeback, removida)
+- **Eventos:** cobranças (confirmada, recebida, vencida, estornada, chargeback, removida). As mensalidades das assinaturas chegam por esses mesmos eventos de cobrança, com o campo `subscription`.
 
 ## 6. Configurar o e-mail
 

@@ -42,7 +42,10 @@ export class RepositorioAdmin {
         (SELECT coalesce(sum(quantidade), 0) FROM credito_lancamento WHERE tipo = 'dossie')::int AS creditos_dossie,
         (SELECT count(*) FROM imovel_monitorado)::int AS imoveis_carteira,
         (SELECT count(*) FROM aviso WHERE criado_em > now() - interval '7 days')::int AS avisos_7d,
-        (SELECT count(*) FROM erro_registro WHERE quando > now() - interval '24 hours')::int AS erros_24h
+        (SELECT count(*) FROM erro_registro WHERE quando > now() - interval '24 hours')::int AS erros_24h,
+        (SELECT count(*) FROM assinatura WHERE status = 'ativa')::int AS assinantes,
+        (SELECT count(*) FROM assinatura WHERE status = 'inadimplente')::int AS inadimplentes,
+        (SELECT coalesce(sum(valor_mensal), 0) FROM assinatura WHERE status = 'ativa') AS receita_recorrente
     `);
     const r = rows[0];
     return {
@@ -59,6 +62,9 @@ export class RepositorioAdmin {
       imoveisCarteira: r.imoveis_carteira,
       avisos7d: r.avisos_7d,
       erros24h: r.erros_24h,
+      assinantes: r.assinantes,
+      inadimplentes: r.inadimplentes,
+      receitaRecorrente: Number(r.receita_recorrente),
     };
   }
 
@@ -142,7 +148,7 @@ export class RepositorioAdmin {
       [id],
     );
     if (!u[0]) return null;
-    const [lancamentos, consultas, carteira, pedidos, auditoria] = await Promise.all([
+    const [lancamentos, consultas, carteira, pedidos, auditoria, assinaturas] = await Promise.all([
       this.pool.query(
         `SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id DESC LIMIT 100`,
         [id],
@@ -161,6 +167,12 @@ export class RepositorioAdmin {
         `SELECT a.quando, a.acao, a.detalhes, adm.email AS admin_email
            FROM auditoria_admin a JOIN usuario adm ON adm.id = a.admin_id
           WHERE a.alvo_usuario_id = $1 ORDER BY a.quando DESC LIMIT 100`,
+        [id],
+      ),
+      this.pool.query(
+        `SELECT id, nome_plano, valor_mensal, status, criada_em, ativada_em, cancelada_em,
+                (SELECT count(*) FROM pedido p WHERE p.assinatura_id = s.id AND p.status = 'pago')::int AS meses_pagos
+           FROM assinatura s WHERE usuario_id = $1 ORDER BY criada_em DESC`,
         [id],
       ),
     ]);
@@ -190,6 +202,16 @@ export class RepositorioAdmin {
       })),
       pedidos: pedidos.rows.map((p) => ({ id: p.id, produto: p.produto, valor: Number(p.valor), status: p.status, criadoEm: dia(p.criado_em) })),
       auditoria: auditoria.rows.map((a) => ({ quando: dia(a.quando), acao: a.acao, detalhes: a.detalhes, adminEmail: a.admin_email })),
+      assinaturas: assinaturas.rows.map((s) => ({
+        id: s.id,
+        nomePlano: s.nome_plano,
+        valorMensal: Number(s.valor_mensal),
+        status: s.status,
+        criadaEm: dia(s.criada_em),
+        ativadaEm: dia(s.ativada_em),
+        canceladaEm: dia(s.cancelada_em),
+        mesesPagos: s.meses_pagos,
+      })),
     };
   }
 

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { limiteCarteira } from '../assinaturas/mensalidades.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 
 const adicionar = z.object({
@@ -8,13 +9,14 @@ const adicionar = z.object({
 });
 
 export function rotasCarteira(app: FastifyInstance, ctx: Contexto) {
-  const limite = async () => (await ctx.config.obter()).limite_carteira;
+  // Com assinatura ativa vale o limite do plano; sem ela, o limite geral do painel.
+  const limite = (usuarioId: string) => limiteCarteira(ctx, usuarioId);
 
   app.get('/v1/carteira', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
-    if (!ctx.carteira) return { imoveis: [], limite: await limite(), disponivel: false };
-    return { imoveis: await ctx.carteira.listar(u.id), limite: await limite(), disponivel: true };
+    if (!ctx.carteira) return { imoveis: [], limite: await limite(u.id), disponivel: false };
+    return { imoveis: await ctx.carteira.listar(u.id), limite: await limite(u.id), disponivel: true };
   });
 
   app.post('/v1/carteira', async (req, reply) => {
@@ -23,10 +25,12 @@ export function rotasCarteira(app: FastifyInstance, ctx: Contexto) {
     if (!ctx.carteira) return erro(reply, 503, 'A carteira precisa das bases reais carregadas.');
     const corpo = adicionar.safeParse(req.body);
     if (!corpo.success) return erro(reply, 400, 'Dados inválidos.');
-    const max = await limite();
+    const max = await limite(u.id);
     const r = await ctx.carteira.adicionarDeConsulta(u.id, corpo.data.consultaId, corpo.data.apelido, max);
     if (r === 'nao_encontrada') return erro(reply, 404, 'Só dá para acompanhar imóveis de consultas reais feitas por você.');
-    if (r === 'limite') return erro(reply, 409, `A carteira comporta até ${max} imóveis. Remova um para incluir outro.`);
+    if (r === 'limite') {
+      return erro(reply, 409, `Sua carteira comporta até ${max} imóveis. Assine um plano para acompanhar mais, ou remova um para incluir outro.`);
+    }
     return reply.status(201).send(r);
   });
 

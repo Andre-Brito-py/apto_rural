@@ -3,6 +3,40 @@ import { Link, useParams } from 'react-router-dom';
 import { api, type Pedido, type Produto } from '../api';
 import { useSessao } from '../sessao';
 
+/** Só existe no desenvolvimento: faz o papel da fatura da assinatura no provedor. */
+export function MensalidadeSimulada() {
+  const { id = '' } = useParams();
+  const [pago, setPago] = useState(false);
+  const [erro, setErro] = useState('');
+  const { atualizarSaldo } = useSessao();
+
+  async function pagar() {
+    try {
+      const r = await api.pagarMesSimulado(id);
+      await atualizarSaldo(r.saldo);
+      setPago(true);
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  }
+
+  return (
+    <div className="pagina pilha" style={{ maxWidth: 520 }}>
+      <p className="alerta" style={{ background: '#fef3c7', borderColor: '#f2d27a' }}>
+        <strong>Mensalidade simulada.</strong> Em produção, esta tela é a fatura da assinatura no Asaas. Cada clique simula um mês pago.
+      </p>
+      {erro && <p className="alerta alerta-erro">{erro}</p>}
+      <div className="cartao pilha-p">
+        {pago && <p className="verificacao sim">✓ Mensalidade confirmada. Os créditos do mês já estão na sua conta.</p>}
+        <button type="button" className="botao botao-primario" onClick={pagar}>
+          {pago ? 'Simular mais um mês pago' : 'Simular mensalidade paga'}
+        </button>
+        <Link to="/planos">Ver meu plano</Link>
+      </div>
+    </div>
+  );
+}
+
 /** Só existe no desenvolvimento: faz o papel da fatura do provedor. */
 export function PagamentoSimulado() {
   const { id = '' } = useParams();

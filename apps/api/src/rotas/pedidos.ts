@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { normalizarDocumento } from '../documento.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
+import { aplicarEventoAssinatura } from '../assinaturas/mensalidades.js';
 import { aplicarEvento } from '../pagamentos/aplicar.js';
 
 const novoPedido = z.object({
@@ -81,6 +82,17 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
     if (!evento) return erro(reply, 401, 'Token inválido.');
     if (evento.tipo === 'ignorar' || !evento.id) return { ok: true };
     if (!(await ctx.contas.registrarEvento(evento.id, 'asaas', req.body))) return { ok: true, repetido: true };
+
+    // Mensalidade de assinatura: credita o mês, marca atraso ou estorno.
+    if (evento.assinaturaProvedorId) {
+      const assinatura = await ctx.contas.buscarAssinaturaPorProvedor(evento.assinaturaProvedorId);
+      if (!assinatura) {
+        req.log.warn({ evento }, 'webhook de assinatura desconhecida');
+        return { ok: true };
+      }
+      await aplicarEventoAssinatura(ctx.contas, assinatura, evento);
+      return { ok: true };
+    }
 
     const pedido =
       (await ctx.contas.buscarPedidoPorProvedor(evento.provedorId)) ??

@@ -1,5 +1,5 @@
 import pg from 'pg';
-import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
+import type { Assinatura, Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, Usuario } from './tipos.js';
 
 const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em`;
 
@@ -31,6 +31,27 @@ function pedido(r: Record<string, unknown>): Pedido {
     criadoEm: (r.criado_em as Date).toISOString(),
     creditos: r.creditos_consulta == null ? undefined : { consulta: r.creditos_consulta as number, dossie: (r.creditos_dossie as number) ?? 0 },
     nomeProduto: (r.nome_produto as string) ?? undefined,
+    assinaturaId: (r.assinatura_id as string) ?? undefined,
+  };
+}
+
+function assinatura(r: Record<string, unknown>): Assinatura {
+  const data = (v: unknown) => (v ? (v as Date).toISOString() : undefined);
+  return {
+    id: r.id as string,
+    usuarioId: r.usuario_id as string,
+    planoId: r.plano_id as string,
+    nomePlano: r.nome_plano as string,
+    valorMensal: Number(r.valor_mensal),
+    creditos: { consulta: r.creditos_consulta as number, dossie: r.creditos_dossie as number },
+    limiteCarteira: r.limite_carteira as number,
+    status: r.status as Assinatura['status'],
+    provedor: r.provedor as string,
+    provedorId: (r.provedor_id as string) ?? undefined,
+    link: (r.link as string) ?? undefined,
+    criadaEm: data(r.criada_em)!,
+    ativadaEm: data(r.ativada_em),
+    canceladaEm: data(r.cancelada_em),
   };
 }
 
@@ -171,11 +192,65 @@ export class RepositorioContasPostgres implements RepositorioContas {
 
   async criarPedido(p: Omit<Pedido, 'id' | 'status' | 'criadoEm'>) {
     const { rows } = await this.pool.query(
-      `INSERT INTO pedido (usuario_id, produto, valor, provedor, creditos_consulta, creditos_dossie, nome_produto)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [p.usuarioId, p.produto, p.valor, p.provedor, p.creditos?.consulta ?? null, p.creditos?.dossie ?? null, p.nomeProduto ?? null],
+      `INSERT INTO pedido (usuario_id, produto, valor, provedor, creditos_consulta, creditos_dossie, nome_produto, assinatura_id, provedor_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [
+        p.usuarioId,
+        p.produto,
+        p.valor,
+        p.provedor,
+        p.creditos?.consulta ?? null,
+        p.creditos?.dossie ?? null,
+        p.nomeProduto ?? null,
+        p.assinaturaId ?? null,
+        p.provedorId ?? null,
+      ],
     );
     return pedido(rows[0]);
+  }
+
+  async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>) {
+    try {
+      const { rows } = await this.pool.query(
+        `INSERT INTO assinatura (usuario_id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, provedor)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [a.usuarioId, a.planoId, a.nomePlano, a.valorMensal, a.creditos.consulta, a.creditos.dossie, a.limiteCarteira, a.provedor],
+      );
+      return assinatura(rows[0]);
+    } catch (e) {
+      // Índice único parcial: já existe assinatura em andamento.
+      if ((e as { code?: string }).code === '23505') return 'ja_existe' as const;
+      throw e;
+    }
+  }
+
+  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link'>>) {
+    await this.pool.query(
+      `UPDATE assinatura SET provedor_id = coalesce($2, provedor_id), link = coalesce($3, link), status = coalesce($4, status),
+              ativada_em = CASE WHEN $4 = 'ativa' THEN coalesce(ativada_em, now()) ELSE ativada_em END,
+              cancelada_em = CASE WHEN $4 = 'cancelada' THEN now() ELSE cancelada_em END
+        WHERE id = $1`,
+      [id, d.provedorId ?? null, d.link ?? null, d.status ?? null],
+    );
+  }
+
+  async buscarAssinatura(id: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { rows } = await this.pool.query('SELECT * FROM assinatura WHERE id = $1', [id]);
+    return rows[0] ? assinatura(rows[0]) : null;
+  }
+
+  async buscarAssinaturaPorProvedor(provedorId: string) {
+    const { rows } = await this.pool.query('SELECT * FROM assinatura WHERE provedor_id = $1', [provedorId]);
+    return rows[0] ? assinatura(rows[0]) : null;
+  }
+
+  async assinaturaAtual(usuarioId: string) {
+    const { rows } = await this.pool.query(
+      `SELECT * FROM assinatura WHERE usuario_id = $1 AND status IN ('pendente', 'ativa', 'inadimplente') ORDER BY criada_em DESC LIMIT 1`,
+      [usuarioId],
+    );
+    return rows[0] ? assinatura(rows[0]) : null;
   }
 
   async atualizarPedido(id: string, d: Partial<Pick<Pedido, 'provedorId' | 'link' | 'status'>>) {

@@ -10,6 +10,7 @@ import { config } from './config.js';
 import { Configuracoes } from './configuracoes.js';
 import { RegistroErros } from './monitoramento/erros.js';
 import { rotasAdmin } from './rotas/admin.js';
+import { rotasAssinaturas } from './rotas/assinaturas.js';
 import { rotasCarteira } from './rotas/carteira.js';
 import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
@@ -72,6 +73,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasPedidos(app, ctx);
     rotasCarteira(app, ctx);
     rotasAdmin(app, ctx);
+    rotasAssinaturas(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.

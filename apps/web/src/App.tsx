@@ -13,7 +13,7 @@ import { Entrar } from './paginas/Entrar';
 import { Fontes } from './paginas/Fontes';
 import { Landing } from './paginas/Landing';
 import { Privacidade, Termos } from './paginas/Legal';
-import { PagamentoSimulado } from './paginas/PagamentoSimulado';
+import { MensalidadeSimulada, PagamentoSimulado } from './paginas/PagamentoSimulado';
 import { Planos } from './paginas/Planos';
 import { Resultado } from './paginas/Resultado';
 import { AvisoConfirmarEmail, ConfirmarEmail, EsqueciSenha, RedefinirSenha } from './paginas/Senha';
@@ -92,6 +92,7 @@ export function App() {
             <Route path="/admin/usuarios/:id" element={<AdminUsuario />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/pagamento-simulado/:id" element={<PagamentoSimulado />} />
+            <Route path="/pagamento-simulado/assinatura/:id" element={<MensalidadeSimulada />} />
             <Route path="/confirmar-email" element={<ConfirmarEmail />} />
             <Route path="/esqueci-senha" element={<EsqueciSenha />} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />

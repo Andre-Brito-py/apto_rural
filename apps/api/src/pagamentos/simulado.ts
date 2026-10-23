@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Cobranca, DadosCobranca, EventoPagamento, ProvedorPagamento } from './tipos.js';
+import type { Cobranca, DadosAssinatura, DadosCobranca, EventoPagamento, ProvedorPagamento } from './tipos.js';
 
 /**
  * Pagamento de mentira para desenvolver o fluxo sem conta no provedor.
@@ -23,6 +23,16 @@ export class ProvedorSimulado implements ProvedorPagamento {
   async estornar() {}
 
   async cancelar() {}
+
+  async criarAssinatura(d: DadosAssinatura): Promise<Cobranca> {
+    return {
+      provedorId: `sim_sub_${randomUUID()}`,
+      link: `${this.webOrigin}/pagamento-simulado/assinatura/${d.assinaturaId}`,
+      clienteId: d.cliente.id ?? `sim_cliente_${randomUUID()}`,
+    };
+  }
+
+  async cancelarAssinatura() {}
 
   lerWebhook(): EventoPagamento | null {
     return null;

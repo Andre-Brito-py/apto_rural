@@ -7,6 +7,7 @@ import { VEREDITO } from '../textos';
 import { AjusteCreditos, dataHora, descreverDetalhes, NOME_ACAO, reais } from './Admin';
 
 const NOME_PAPEL: Record<Papel, string> = { usuario: 'Cliente', suporte: 'Suporte (só leitura)', admin: 'Administrador' };
+const SITUACAO_ASSINATURA = { pendente: 'Aguardando 1º pagamento', ativa: 'Ativa', inadimplente: 'Em atraso', cancelada: 'Cancelada' };
 
 /** Ficha de um usuário: tudo sobre a conta e as ações de suporte e administração. */
 export function AdminUsuario() {
@@ -174,6 +175,32 @@ export function AdminUsuario() {
         )}
       </section>
 
+      <Tabela
+        titulo="Assinaturas"
+        colunas={['Plano', 'Situação', 'Desde', 'Meses pagos', '']}
+        linhas={ficha.assinaturas.map((s) => [
+          `${s.nomePlano} — ${reais(s.valorMensal)}/mês`,
+          SITUACAO_ASSINATURA[s.status],
+          dataHora(s.ativadaEm ?? s.criadaEm),
+          String(s.mesesPagos),
+          podeAlterar && s.status !== 'cancelada' ? (
+            <button
+              key={s.id}
+              type="button"
+              className="link-botao"
+              onClick={() => {
+                if (window.confirm(`Cancelar a assinatura ${s.nomePlano} de ${u.nome}? As próximas mensalidades deixam de ser cobradas.`)) {
+                  acao(() => api.admin.cancelarAssinatura(s.id), 'Assinatura cancelada.');
+                }
+              }}
+            >
+              Cancelar
+            </button>
+          ) : (
+            ''
+          ),
+        ])}
+      />
       <Tabela
         titulo={`Consultas (${ficha.consultas.length})`}
         colunas={['Data', 'CAR', 'Resultado']}

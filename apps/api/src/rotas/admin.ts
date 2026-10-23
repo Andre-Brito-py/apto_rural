@@ -233,6 +233,24 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
     return { ok: true };
   });
 
+  app.post<{ Params: { id: string } }>('/v1/admin/assinaturas/:id/cancelar', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    const a = await ctx.contas.buscarAssinatura(req.params.id);
+    if (!a) return erro(reply, 404, 'Assinatura não encontrada.');
+    if (a.status === 'cancelada') return erro(reply, 409, 'Esta assinatura já está cancelada.');
+    if (a.provedorId && ctx.pagamento?.nome === a.provedor) {
+      try {
+        await ctx.pagamento.cancelarAssinatura(a.provedorId);
+      } catch (e) {
+        return erro(reply, 502, `O Asaas recusou o cancelamento: ${(e as Error).message}`);
+      }
+    }
+    await ctx.contas.atualizarAssinatura(a.id, { status: 'cancelada' });
+    await ctx.admin!.auditar(admin.id, 'cancelou_assinatura', a.usuarioId, { assinatura: a.id, plano: a.nomePlano });
+    return { ok: true };
+  });
+
   // ---- configurações do negócio (ver: suporte; mudar: admin) ----
 
   app.get('/v1/admin/configuracoes', async (req, reply) => {

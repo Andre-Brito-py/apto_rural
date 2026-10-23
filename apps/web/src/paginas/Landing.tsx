@@ -1,7 +1,7 @@
 import type { Status } from '@apto/regras';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type Produto } from '../api';
+import { api, type Plano, type Produto } from '../api';
 import { SeloStatus } from '../componentes/SeloStatus';
 
 const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -55,11 +55,16 @@ const PERGUNTAS: { p: string; r: string }[] = [
 
 export function Landing() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [planos, setPlanos] = useState<Plano[]>([]);
 
   useEffect(() => {
     api
       .produtos()
       .then((c) => setProdutos(c.produtos))
+      .catch(() => undefined);
+    api
+      .planos()
+      .then((r) => setPlanos(r.planos))
       .catch(() => undefined);
   }, []);
 
@@ -202,12 +207,24 @@ export function Landing() {
         </div>
       </section>
 
-      {produtos.length > 0 && (
+      {(planos.length > 0 || produtos.length > 0) && (
         <section className="pagina pilha secao-landing">
           <h2 className="landing-h2">Preços</h2>
           <div className="grade-precos">
-            {produtos.map((p) => (
+            {planos.map((p) => (
               <div key={p.id} className={`cartao pilha-p${p.destaque ? ' plano-destaque' : ''}`}>
+                <strong>Plano {p.nome}</strong>
+                <span className="plano-preco">
+                  {reais(p.valorMensal)}
+                  <span className="plano-periodo">/mês</span>
+                </span>
+                <span className="ajuda" style={{ marginTop: 0 }}>
+                  {p.descricao}
+                </span>
+              </div>
+            ))}
+            {produtos.map((p) => (
+              <div key={p.id} className="cartao pilha-p">
                 <strong>{p.nome}</strong>
                 <span className="plano-preco">{reais(p.valor)}</span>
                 <span className="ajuda" style={{ marginTop: 0 }}>
@@ -216,7 +233,7 @@ export function Landing() {
               </div>
             ))}
           </div>
-          <p className="ajuda">Pix, cartão ou boleto. Os créditos não vencem.</p>
+          <p className="ajuda">Pix, cartão ou boleto. Cancele a assinatura quando quiser; os créditos não vencem.</p>
         </section>
       )}
 

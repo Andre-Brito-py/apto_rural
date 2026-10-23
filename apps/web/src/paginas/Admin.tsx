@@ -57,6 +57,12 @@ export function Admin() {
         <section className="indicadores" aria-label="Indicadores">
           <Indicador titulo="Contas" valor={r.usuarios} detalhe={`${r.confirmados} confirmadas · ${r.usuarios7d} nos últimos 7 dias`} />
           <Indicador titulo="Consultas" valor={r.consultas30d} detalhe={`30 dias · ${r.consultas7d} em 7 dias · ${r.consultasHoje} hoje`} />
+          <Indicador
+            titulo="Receita recorrente"
+            valor={reais(r.receitaRecorrente)}
+            detalhe={`por mês · ${r.assinantes} assinantes${r.inadimplentes ? ` · ${r.inadimplentes} em atraso` : ''}`}
+            alerta={r.inadimplentes > 0}
+          />
           <Indicador titulo="Receita" valor={reais(r.receita30d)} detalhe={`30 dias · total ${reais(r.receitaTotal)}`} />
           <Indicador titulo="Pedidos pendentes" valor={r.pedidosPendentes} detalhe="aguardando pagamento" />
           <Indicador
@@ -236,6 +242,7 @@ export const NOME_ACAO: Record<string, string> = {
   estornou_pedido: 'Estornou um pedido',
   cancelou_pedido: 'Cancelou um pedido',
   mudou_configuracao: 'Mudou uma configuração',
+  cancelou_assinatura: 'Cancelou uma assinatura',
 };
 
 export function descreverDetalhes(d: Record<string, unknown>): string {

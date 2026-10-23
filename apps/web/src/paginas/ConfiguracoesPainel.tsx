@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { api, type Configs, type Produto } from '../api';
+import { api, type Configs, type Plano, type Produto } from '../api';
 
 /**
  * Preços, limites e aviso do site, sem mexer no código. Cada bloco salva
@@ -25,16 +25,17 @@ export function ConfiguracoesPainel({ podeAlterar }: { podeAlterar: boolean }) {
       <p className="ajuda" style={{ marginTop: 0 }}>
         Mudanças valem para compras novas em até 30 segundos. Pedidos já feitos mantêm o preço e os créditos da compra.
       </p>
+      <PlanosEditor inicial={cfg.planos} podeAlterar={podeAlterar} />
       <Pacotes inicial={cfg.produtos} podeAlterar={podeAlterar} />
       <div className="grade-3">
         <Bloco
-          titulo="Limite da carteira"
+          titulo="Carteira de quem não assina"
           podeAlterar={podeAlterar}
           salvar={(v) => api.admin.salvarConfiguracao('limite_carteira', v)}
           inicial={cfg.limite_carteira}
           render={(v, set) => (
             <label className="campo">
-              <span className="ajuda">Imóveis por conta</span>
+              <span className="ajuda">Imóveis por conta (assinantes usam o limite do plano)</span>
               <input className="entrada" type="number" min={0} value={v} onChange={(e) => set(Number(e.target.value))} disabled={!podeAlterar} />
             </label>
           )}
@@ -133,6 +134,124 @@ function Bloco<T>({
   );
 }
 
+function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar: boolean }) {
+  const [planos, setPlanos] = useState(inicial);
+  const [estado, setEstado] = useState<{ ok?: string; erro?: string }>({});
+  const originais = new Set(inicial.map((p) => p.id));
+
+  function mudar(i: number, campo: Partial<Plano>) {
+    setPlanos((ps) => ps.map((p, j) => (j === i ? { ...p, ...campo } : p)));
+  }
+
+  async function salvar() {
+    setEstado({});
+    try {
+      const r = await api.admin.salvarConfiguracao('planos', planos);
+      setPlanos(r.valor);
+      setEstado({ ok: 'Planos salvos.' });
+    } catch (e) {
+      setEstado({ erro: (e as Error).message });
+    }
+  }
+
+  const num = (v: string) => Number(v);
+
+  return (
+    <div className="pilha-p">
+      <strong>Planos mensais (assinatura)</strong>
+      <div className="tabela-rolavel">
+        <table className="tabela tabela-edicao">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nome</th>
+              <th>Descrição</th>
+              <th>R$/mês</th>
+              <th>Consultas/mês</th>
+              <th>Dossiês/mês</th>
+              <th>Carteira</th>
+              <th>Destaque</th>
+              <th>Ativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {planos.map((p, i) => (
+              <tr key={i}>
+                <td>
+                  {originais.has(p.id) ? (
+                    <code>{p.id}</code>
+                  ) : (
+                    <input className="entrada" value={p.id} placeholder="ex.: plano-safra" onChange={(e) => mudar(i, { id: e.target.value })} disabled={!podeAlterar} />
+                  )}
+                </td>
+                <td>
+                  <input className="entrada" value={p.nome} onChange={(e) => mudar(i, { nome: e.target.value })} disabled={!podeAlterar} />
+                </td>
+                <td>
+                  <input className="entrada" value={p.descricao} onChange={(e) => mudar(i, { descricao: e.target.value })} disabled={!podeAlterar} />
+                </td>
+                <td>
+                  <input className="entrada" type="number" step="0.01" value={p.valorMensal} onChange={(e) => mudar(i, { valorMensal: num(e.target.value) })} disabled={!podeAlterar} />
+                </td>
+                <td>
+                  <input
+                    className="entrada"
+                    type="number"
+                    min={0}
+                    value={p.creditosMensais.consulta}
+                    onChange={(e) => mudar(i, { creditosMensais: { ...p.creditosMensais, consulta: num(e.target.value) } })}
+                    disabled={!podeAlterar}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="entrada"
+                    type="number"
+                    min={0}
+                    value={p.creditosMensais.dossie}
+                    onChange={(e) => mudar(i, { creditosMensais: { ...p.creditosMensais, dossie: num(e.target.value) } })}
+                    disabled={!podeAlterar}
+                  />
+                </td>
+                <td>
+                  <input className="entrada" type="number" min={0} value={p.limiteCarteira} onChange={(e) => mudar(i, { limiteCarteira: num(e.target.value) })} disabled={!podeAlterar} />
+                </td>
+                <td>
+                  <input type="checkbox" checked={!!p.destaque} onChange={(e) => mudar(i, { destaque: e.target.checked })} disabled={!podeAlterar} aria-label="Destaque" />
+                </td>
+                <td>
+                  <input type="checkbox" checked={p.ativo} onChange={(e) => mudar(i, { ativo: e.target.checked })} disabled={!podeAlterar} aria-label="Ativo" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {podeAlterar && (
+        <div className="botoes">
+          <button
+            type="button"
+            className="botao botao-secundario"
+            onClick={() =>
+              setPlanos((ps) => [...ps, { id: '', nome: '', descricao: '', valorMensal: 0, creditosMensais: { consulta: 0, dossie: 0 }, limiteCarteira: 0, ativo: true }])
+            }
+          >
+            Novo plano
+          </button>
+          <button type="button" className="botao botao-primario" onClick={salvar}>
+            Salvar planos
+          </button>
+        </div>
+      )}
+      <p className="ajuda" style={{ marginTop: 0 }}>
+        Mudanças valem para novos assinantes. Quem já assina continua com o valor, os créditos e a carteira da contratação.
+      </p>
+      {estado.ok && <span className="verificacao sim">✓ {estado.ok}</span>}
+      {estado.erro && <span className="alerta alerta-erro">{estado.erro}</span>}
+    </div>
+  );
+}
+
 function Pacotes({ inicial, podeAlterar }: { inicial: Produto[]; podeAlterar: boolean }) {
   const [pacotes, setPacotes] = useState(inicial);
   const [estado, setEstado] = useState<{ ok?: string; erro?: string }>({});
@@ -159,7 +278,7 @@ function Pacotes({ inicial, podeAlterar }: { inicial: Produto[]; podeAlterar: bo
 
   return (
     <div className="pilha-p">
-      <strong>Pacotes e preços</strong>
+      <strong>Compras avulsas</strong>
       <div className="tabela-rolavel">
         <table className="tabela tabela-edicao">
           <thead>

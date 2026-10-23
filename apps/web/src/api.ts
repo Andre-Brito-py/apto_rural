@@ -60,6 +60,16 @@ export interface FichaUsuario {
   carteira: { id: string; codCar: string; apelido?: string; verificadoEm: string; veredito: string; ultimaConsultaId?: string }[];
   pedidos: { id: string; produto: string; valor: number; status: string; criadoEm: string }[];
   auditoria: { quando: string; acao: string; detalhes: Record<string, unknown>; adminEmail: string }[];
+  assinaturas: {
+    id: string;
+    nomePlano: string;
+    valorMensal: number;
+    status: Assinatura['status'];
+    criadaEm: string;
+    ativadaEm: string | null;
+    canceladaEm: string | null;
+    mesesPagos: number;
+  }[];
 }
 
 export interface RegistroAuditoria {
@@ -86,6 +96,9 @@ export interface PainelResumo {
     imoveisCarteira: number;
     avisos7d: number;
     erros24h: number;
+    assinantes: number;
+    inadimplentes: number;
+    receitaRecorrente: number;
   };
   bases: {
     fonteId: string;
@@ -129,6 +142,30 @@ export interface Produto {
   creditos: Saldo;
   destaque?: boolean;
   ativo: boolean;
+}
+
+export interface Plano {
+  id: string;
+  nome: string;
+  descricao: string;
+  valorMensal: number;
+  creditosMensais: Saldo;
+  limiteCarteira: number;
+  destaque?: boolean;
+  ativo: boolean;
+}
+
+export interface Assinatura {
+  id: string;
+  planoId: string;
+  nomePlano: string;
+  valorMensal: number;
+  creditos: Saldo;
+  limiteCarteira: number;
+  status: 'pendente' | 'ativa' | 'inadimplente' | 'cancelada';
+  link?: string;
+  criadaEm: string;
+  ativadaEm?: string;
 }
 
 export interface Catalogo {
@@ -188,6 +225,7 @@ export interface Saude {
 
 export interface Configs {
   produtos: Produto[];
+  planos: Plano[];
   limite_carteira: number;
   creditos_boas_vindas: Saldo;
   aviso_site: { ativo: boolean; texto: string; tipo: 'info' | 'alerta' };
@@ -250,6 +288,12 @@ export const api = {
   comprar: (produto: string, documento?: string) => pedir<{ id: string; link: string }>('/v1/pedidos', post({ produto, documento })),
   pedidos: () => pedir<{ pedidos: Pedido[] }>('/v1/pedidos'),
   pedido: (id: string) => pedir<{ pedido: Pedido; produto?: Produto }>(`/v1/pedidos/${encodeURIComponent(id)}`),
+  planos: () => pedir<{ planos: Plano[]; pagamentoDisponivel: boolean; exigeDocumento: boolean }>('/v1/planos'),
+  assinatura: () => pedir<{ assinatura: Assinatura | null; limiteCarteira: number }>('/v1/assinatura'),
+  assinar: (plano: string, documento?: string) => pedir<{ id: string; link: string }>('/v1/assinaturas', post({ plano, documento })),
+  cancelarAssinatura: () => pedir<{ ok: boolean }>('/v1/assinatura/cancelar', post()),
+  pagarMesSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/assinaturas/${encodeURIComponent(id)}/pagar-mes`, post()),
+
   carteira: () => pedir<{ imoveis: ImovelCarteira[]; limite: number; disponivel: boolean }>('/v1/carteira'),
   acompanhar: (consultaId: string, apelido?: string) => pedir<ImovelCarteira>('/v1/carteira', post({ consultaId, apelido })),
   deixarDeAcompanhar: (id: string) => pedir<{ ok: boolean }>(`/v1/carteira/${encodeURIComponent(id)}`, { method: 'DELETE' }),
@@ -265,6 +309,7 @@ export const api = {
       ),
     estornar: (id: string, motivo: string) => pedir<{ ok: boolean }>(`/v1/admin/pedidos/${encodeURIComponent(id)}/estornar`, post({ motivo })),
     cancelarPedido: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/pedidos/${encodeURIComponent(id)}/cancelar`, post()),
+    cancelarAssinatura: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/assinaturas/${encodeURIComponent(id)}/cancelar`, post()),
     configuracoes: () => pedir<Configs>('/v1/admin/configuracoes'),
     salvarConfiguracao: <K extends keyof Configs>(chave: K, valor: Configs[K]) =>
       pedir<{ ok: boolean; valor: Configs[K] }>(`/v1/admin/configuracoes/${chave}`, { method: 'PUT', body: JSON.stringify({ valor }) }),

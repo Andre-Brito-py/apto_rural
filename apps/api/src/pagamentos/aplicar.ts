@@ -1,11 +1,11 @@
 import type { Pedido, RepositorioContas, TipoCredito } from '../contas/tipos.js';
-import { PRODUTOS_PADRAO } from '../produtos.js';
+import { PACOTES_LEGADOS, PRODUTOS_PADRAO } from '../produtos.js';
 import type { EventoPagamento } from './tipos.js';
 
 /** Créditos do pedido: os fixados na compra; pedidos antigos usam o pacote padrão. */
 function creditosDoPedido(pedido: Pedido) {
   if (pedido.creditos) return { creditos: pedido.creditos, nome: pedido.nomeProduto ?? pedido.produto };
-  const p = PRODUTOS_PADRAO.find((x) => x.id === pedido.produto);
+  const p = [...PRODUTOS_PADRAO, ...PACOTES_LEGADOS].find((x) => x.id === pedido.produto);
   if (!p) throw new Error(`Pedido ${pedido.id} sem créditos e com pacote desconhecido: ${pedido.produto}`);
   return { creditos: p.creditos, nome: p.nome };
 }

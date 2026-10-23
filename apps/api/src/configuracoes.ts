@@ -1,6 +1,6 @@
 import type pg from 'pg';
 import { z } from 'zod';
-import { CREDITOS_BOAS_VINDAS_PADRAO, LIMITE_CARTEIRA_PADRAO, PRODUTOS_PADRAO, type Produto } from './produtos.js';
+import { CREDITOS_BOAS_VINDAS_PADRAO, LIMITE_CARTEIRA_PADRAO, PLANOS_PADRAO, PRODUTOS_PADRAO, type Plano, type Produto } from './produtos.js';
 
 export interface AvisoSite {
   ativo: boolean;
@@ -10,6 +10,7 @@ export interface AvisoSite {
 
 export interface Configs {
   produtos: Produto[];
+  planos: Plano[];
   limite_carteira: number;
   creditos_boas_vindas: { consulta: number; dossie: number };
   aviso_site: AvisoSite;
@@ -19,6 +20,7 @@ export type ChaveConfig = keyof Configs;
 
 const PADRAO: Configs = {
   produtos: PRODUTOS_PADRAO,
+  planos: PLANOS_PADRAO,
   limite_carteira: LIMITE_CARTEIRA_PADRAO,
   creditos_boas_vindas: CREDITOS_BOAS_VINDAS_PADRAO,
   aviso_site: { ativo: false, texto: '', tipo: 'info' },
@@ -51,6 +53,25 @@ export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], z.ZodTypeDef,
     .max(12)
     .refine((ps) => new Set(ps.map((p) => p.id)).size === ps.length, 'Há dois pacotes com o mesmo código.')
     .refine((ps) => ps.some((p) => p.ativo), 'Deixe pelo menos um pacote ativo.'),
+  planos: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[a-z0-9-]{3,40}$/, 'O código do plano usa só letras minúsculas, números e hífen (3 a 40).'),
+        nome: z.string().trim().min(2, 'Dê um nome ao plano.').max(60),
+        descricao: z.string().trim().max(200),
+        valorMensal: z
+          .number()
+          .min(5, 'O valor mínimo da assinatura é R$ 5,00.')
+          .max(100000)
+          .transform((v) => Math.round(v * 100) / 100),
+        creditosMensais: creditos,
+        limiteCarteira: z.number().int().min(0).max(100000),
+        destaque: z.boolean().optional(),
+        ativo: z.boolean(),
+      }),
+    )
+    .max(8)
+    .refine((ps) => new Set(ps.map((p) => p.id)).size === ps.length, 'Há dois planos com o mesmo código.'),
   limite_carteira: z.number().int().min(0).max(10000),
   creditos_boas_vindas: creditos,
   aviso_site: z.object({

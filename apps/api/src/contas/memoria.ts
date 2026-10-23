@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, TipoTokenEmail, Usuario } from './tipos.js';
+import type { Assinatura, Lancamento, Pedido, RepositorioContas, Saldo, TipoCredito, TipoTokenEmail, Usuario } from './tipos.js';
 
 /**
  * Contas em memória, só para desenvolvimento e testes (APTO_DEMO=1 sem banco).
@@ -120,6 +120,35 @@ export class RepositorioContasMemoria implements RepositorioContas {
 
   async pedidosDoUsuario(usuarioId: string) {
     return [...this.pedidos.values()].filter((p) => p.usuarioId === usuarioId).reverse();
+  }
+
+  private assinaturas = new Map<string, Assinatura>();
+
+  async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>) {
+    if (await this.assinaturaAtual(a.usuarioId)) return 'ja_existe' as const;
+    const nova: Assinatura = { ...a, id: randomUUID(), status: 'pendente', criadaEm: new Date().toISOString() };
+    this.assinaturas.set(nova.id, nova);
+    return nova;
+  }
+
+  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link'>>) {
+    const a = this.assinaturas.get(id);
+    if (!a) return;
+    Object.assign(a, Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)));
+    if (d.status === 'ativa' && !a.ativadaEm) a.ativadaEm = new Date().toISOString();
+    if (d.status === 'cancelada') a.canceladaEm = new Date().toISOString();
+  }
+
+  async buscarAssinatura(id: string) {
+    return this.assinaturas.get(id) ?? null;
+  }
+
+  async buscarAssinaturaPorProvedor(provedorId: string) {
+    return [...this.assinaturas.values()].find((a) => a.provedorId === provedorId) ?? null;
+  }
+
+  async assinaturaAtual(usuarioId: string) {
+    return [...this.assinaturas.values()].find((a) => a.usuarioId === usuarioId && a.status !== 'cancelada') ?? null;
   }
 
   async registrarEvento(id: string) {

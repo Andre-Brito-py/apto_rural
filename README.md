@@ -158,14 +158,26 @@ Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 
 ## 7. Como o produto ganha dinheiro
 
-O técnico compra **créditos**:
+O principal é a **assinatura mensal**: todo mês o técnico recebe créditos e pode acompanhar mais fazendas na carteira.
 
-| Pacote | Preço | Inclui |
-| --- | --- | --- |
-| Consulta avulsa | R$ 39 | 1 consulta |
-| Dossiê avulso | R$ 190 | 1 dossiê |
-| Pacote Projetista | R$ 199 | 20 consultas + 2 dossiês |
-| Pacote Escritório | R$ 499 | 100 consultas + 10 dossiês |
+| Plano | Preço | Todo mês | Carteira |
+| --- | --- | --- | --- |
+| Projetista | R$ 199/mês | 20 consultas + 2 dossiês | até 50 fazendas |
+| Escritório | R$ 499/mês | 100 consultas + 10 dossiês | até 300 fazendas |
+| Sem assinatura | — | — | até 5 fazendas |
+
+Para quem não quer assinar, há **compra avulsa**: consulta por R$ 39 e dossiê por R$ 190.
+
+Como funciona a assinatura:
+
+- O Asaas cobra todo mês (Pix, cartão ou boleto). **Cada mensalidade paga lança os créditos do mês.**
+- **Créditos que sobram passam para o mês seguinte** (não vencem).
+- **Mensalidade atrasada:** a assinatura fica "em atraso" e a carteira volta ao limite de quem não assina até o pagamento. Ninguém perde fazendas que já acompanha: o limite só vale para incluir novas.
+- **Cancelar:** o próprio técnico cancela na página de planos, a qualquer momento. As próximas mensalidades deixam de ser cobradas e os créditos que ele já tem continuam dele.
+- **Trocar de plano:** cancela o atual e assina o outro.
+- Valor, créditos e carteira ficam **fixados na contratação**: se o plano mudar no painel, quem já assina continua com as condições de quando assinou.
+
+Outras regras:
 
 - Quem cria a conta ganha **1 consulta grátis** assim que **confirma o e-mail** (isso evita contas falsas em série).
 - O pagamento é pelo **Asaas** (Pix, cartão ou boleto). O Apto Rural nunca vê dados de cartão.
@@ -273,7 +285,8 @@ O painel fica em `/admin` e tem dois níveis de acesso:
 - **Auditoria:** toda ação administrativa fica registrada (quem fez, o quê, em quem, quando).
 - **Estornar pedido pago:** o dinheiro volta pelo Asaas (Pix ou cartão; no cartão pode levar até 10 dias úteis para aparecer na fatura) e os créditos do pacote saem da conta do cliente na hora. O saldo pode ficar negativo se ele já tiver usado os créditos. Boleto pago, e Pix quando falta saldo na conta Asaas, precisam ser estornados pelo painel do próprio Asaas: o Apto Rural avisa quando for o caso.
 - **Cancelar pedido pendente:** remove a cobrança no Asaas, antes de o cliente pagar.
-- **Configurações sem mexer no código:** na seção "Configurações" do painel, o administrador muda nome, descrição, preço e créditos de cada pacote, cria pacotes novos, tira pacotes de venda (desmarcando "Ativo"), muda o limite da carteira, a amostra grátis e o aviso no topo do site. Tudo é validado antes de salvar e vale em até 30 segundos. **Pedidos já feitos mantêm o preço e os créditos da hora da compra.**
+- **Assinaturas:** o painel mostra a receita recorrente, os assinantes e quem está em atraso; a ficha de cada usuário mostra as assinaturas dele, quantos meses pagou e permite cancelar.
+- **Configurações sem mexer no código:** na seção "Configurações" do painel, o administrador muda os planos mensais (preço, créditos por mês, tamanho da carteira), as compras avulsas, cria e tira de venda planos e pacotes (desmarcando "Ativo"), muda a carteira de quem não assina, a amostra grátis e o aviso no topo do site. Tudo é validado antes de salvar e vale em até 30 segundos. **Pedidos já feitos mantêm o preço e os créditos da hora da compra.**
 - **Monitoramento de erros:** falhas da API, das telas do site, do monitor e dos coletores vão para o painel. Os administradores recebem um e-mail de alerta, no máximo um a cada 15 minutos. Toda manhã o monitor também confere se alguma base oficial atrasou.
 
 ### Pagamentos
@@ -334,6 +347,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Confirmação de e-mail e recuperação de senha por e-mail (SMTP).
 - [x] Landing page de vendas para quem chega sem conta (quem tem conta vai direto para a consulta).
 - [x] Estorno e cancelamento de pedidos pelo painel (Asaas) e preços, limites e aviso do site editáveis sem mexer no código.
+- [x] Assinatura mensal (Asaas) com créditos todo mês e carteira por plano; compra avulsa continua disponível.
 - [x] Painel administrativo com papéis (suporte e administrador), ficha do usuário, "entrar como", bloqueio, auditoria e monitoramento de erros com alerta por e-mail.
 - [x] Carteira de fazendas com reconferência diária e avisos no site e por e-mail (testada com fazendas reais e embargo simulado).
 - [x] Pacote de produção: imagem Docker, HTTPS automático, backup diário, migrações e atualização automática das bases.
@@ -348,9 +362,8 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 **Depois do lançamento**
 
-- [ ] Assinatura mensal (hoje os créditos são pacotes avulsos).
+- [ ] Plano anual com desconto e troca de plano sem precisar cancelar.
 - [ ] Imagens de satélite antes e depois de 2019 no dossiê.
-- [ ] Definir se a carteira entra nos pacotes pagos (hoje: grátis, até 50 imóveis por conta).
 - [ ] Consulta pelo WhatsApp, inclusive a consulta grátis para o produtor.
 - [ ] Fonte aberta para territórios quilombolas.
 

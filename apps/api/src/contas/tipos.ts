@@ -35,6 +35,28 @@ export interface Pedido {
   /** Créditos e nome do pacote fixados na compra (pedidos antigos podem não ter). */
   creditos?: Saldo;
   nomeProduto?: string;
+  /** Mensalidade de uma assinatura. */
+  assinaturaId?: string;
+}
+
+export type StatusAssinatura = 'pendente' | 'ativa' | 'inadimplente' | 'cancelada';
+
+export interface Assinatura {
+  id: string;
+  usuarioId: string;
+  planoId: string;
+  /** Condições fixadas na contratação. */
+  nomePlano: string;
+  valorMensal: number;
+  creditos: Saldo;
+  limiteCarteira: number;
+  status: StatusAssinatura;
+  provedor: string;
+  provedorId?: string;
+  link?: string;
+  criadaEm: string;
+  ativadaEm?: string;
+  canceladaEm?: string;
 }
 
 export interface Lancamento {
@@ -79,6 +101,14 @@ export interface RepositorioContas {
   buscarPedido(id: string): Promise<Pedido | null>;
   buscarPedidoPorProvedor(provedorId: string): Promise<Pedido | null>;
   pedidosDoUsuario(usuarioId: string): Promise<Pedido[]>;
+
+  /** Cria a assinatura pendente. 'ja_existe' se a conta já tem uma em andamento. */
+  criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>): Promise<Assinatura | 'ja_existe'>;
+  atualizarAssinatura(id: string, dados: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link'>>): Promise<void>;
+  buscarAssinatura(id: string): Promise<Assinatura | null>;
+  buscarAssinaturaPorProvedor(provedorId: string): Promise<Assinatura | null>;
+  /** A assinatura em andamento (pendente, ativa ou inadimplente), se houver. */
+  assinaturaAtual(usuarioId: string): Promise<Assinatura | null>;
 
   /** Guarda o evento do webhook. Retorna false se já tinha sido recebido. */
   registrarEvento(id: string, provedor: string, payload: unknown): Promise<boolean>;

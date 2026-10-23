@@ -106,12 +106,12 @@ async function main() {
   console.log('✓ preço alterado pelo painel vale na hora; suporte não altera');
 
   // Compra (pagamento simulado), estorno e cancelamento.
-  const pedido = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie: suporte }, payload: { produto: 'pacote-projetista' } })).json();
+  const pedido = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie: suporte }, payload: { produto: 'dossie-avulso' } })).json();
   await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${pedido.id}/pagar`, headers: { cookie: suporte } });
-  const antes = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie: suporte } })).json().saldo.consulta;
+  const antes = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie: suporte } })).json().saldo.dossie;
   const est = await app.inject({ method: 'POST', url: `/v1/admin/pedidos/${pedido.id}/estornar`, headers: { cookie: adm }, payload: { motivo: 'Cliente desistiu' } });
   assert.equal(est.statusCode, 200, est.body);
-  assert.equal(est.json().saldo.consulta, antes - 20);
+  assert.equal(est.json().saldo.dossie, antes - 1);
   assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/pedidos/${pedido.id}/estornar`, headers: { cookie: adm }, payload: { motivo: 'de novo' } })).statusCode, 409);
   const pendente = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie: suporte }, payload: { produto: 'consulta-avulsa' } })).json();
   assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/pedidos/${pendente.id}/cancelar`, headers: { cookie: adm } })).statusCode, 200);
@@ -123,6 +123,21 @@ async function main() {
   assert.equal(Number(porId[pendente.id].valor), 45, 'pedido usa o preço novo');
   console.log('✓ estorno retira os créditos e não repete; pedido pendente cancelado');
 
+  // Assinatura no banco real: assinar, pagar o mês, painel mostra, admin cancela.
+  const assin = await app.inject({ method: 'POST', url: '/v1/assinaturas', headers: { cookie: suporte }, payload: { plano: 'plano-escritorio' } });
+  assert.equal(assin.statusCode, 201, assin.body);
+  await app.inject({ method: 'POST', url: `/v1/dev/assinaturas/${assin.json().id}/pagar-mes`, headers: { cookie: suporte } });
+  const minha = (await app.inject({ method: 'GET', url: '/v1/assinatura', headers: { cookie: suporte } })).json();
+  assert.equal(minha.assinatura.status, 'ativa');
+  assert.equal(minha.limiteCarteira, 300);
+  const resumo = (await app.inject({ method: 'GET', url: '/v1/admin/resumo', headers: { cookie: adm } })).json().resumo;
+  assert.ok(resumo.assinantes >= 1 && resumo.receitaRecorrente >= 499);
+  const fichaAssin = (await app.inject({ method: 'GET', url: `/v1/admin/usuarios/${cliente.id}`, headers: { cookie: adm } })).json().assinaturas;
+  assert.equal(fichaAssin[0].mesesPagos, 1);
+  assert.equal((await app.inject({ method: 'POST', url: `/v1/admin/assinaturas/${assin.json().id}/cancelar`, headers: { cookie: adm } })).statusCode, 200);
+  assert.equal((await app.inject({ method: 'GET', url: '/v1/assinatura', headers: { cookie: suporte } })).json().assinatura, null);
+  console.log('✓ assinatura: mês pago dá créditos e carteira de 300; painel mostra; admin cancela');
+
   // Volta o preço padrão.
   await pool.query("DELETE FROM configuracao WHERE chave = 'produtos'");
 
@@ -131,7 +146,7 @@ async function main() {
     .json()
     .auditoria.filter((a: { alvoId?: string }) => a.alvoId === cliente.id)
     .map((a: { acao: string }) => a.acao);
-  for (const a of ['entrou_como', 'saiu_do_modo_entrar_como', 'bloqueou', 'desbloqueou', 'mudou_papel', 'estornou_pedido', 'cancelou_pedido']) {
+  for (const a of ['entrou_como', 'saiu_do_modo_entrar_como', 'bloqueou', 'desbloqueou', 'mudou_papel', 'estornou_pedido', 'cancelou_pedido', 'cancelou_assinatura']) {
     assert.ok(acoes.includes(a), `faltou ${a}`);
   }
   console.log('✓ auditoria:', acoes.reverse().join(' → '));
@@ -149,6 +164,7 @@ main()
       await pool.query('DELETE FROM auditoria_admin WHERE admin_id = $1 OR alvo_usuario_id = $1', [id]);
       await pool.query('DELETE FROM credito_lancamento WHERE usuario_id = $1', [id]);
       await pool.query('DELETE FROM pedido WHERE usuario_id = $1', [id]);
+      await pool.query('DELETE FROM assinatura WHERE usuario_id = $1', [id]);
       await pool.query('DELETE FROM usuario WHERE id = $1', [id]);
     }
     await pool.end();

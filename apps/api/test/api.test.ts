@@ -139,7 +139,7 @@ describe('compra com pagamento simulado', () => {
   });
 
   it('pedido só credita depois de pago, e pagar duas vezes não duplica', async () => {
-    const pedido = await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'pacote-projetista' } });
+    const pedido = await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'dossie-avulso' } });
     expect(pedido.statusCode).toBe(201);
     const { id } = pedido.json();
     let eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
@@ -148,7 +148,7 @@ describe('compra com pagamento simulado', () => {
     await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${id}/pagar`, headers: { cookie } });
     await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${id}/pagar`, headers: { cookie } });
     eu = await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } });
-    expect(eu.json().saldo).toEqual({ consulta: 20, dossie: 2 });
+    expect(eu.json().saldo).toEqual({ consulta: 0, dossie: 1 });
   });
 
   it('produto inexistente é recusado', async () => {
@@ -276,14 +276,14 @@ describe('configurações editáveis', () => {
 
   it('créditos ficam fixados no pedido: mudar o pacote depois não muda a compra', async () => {
     const { cookie } = await novaConta(app, 'fixado@exemplo.com');
-    const pedido = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'pacote-projetista' } })).json();
+    const pedido = (await app.inject({ method: 'POST', url: '/v1/pedidos', headers: { cookie }, payload: { produto: 'consulta-avulsa' } })).json();
     const outros = (await ctx.config.obter()).produtos.map((p) =>
-      p.id === 'pacote-projetista' ? { ...p, creditos: { consulta: 999, dossie: 99 } } : p,
+      p.id === 'consulta-avulsa' ? { ...p, creditos: { consulta: 999, dossie: 99 } } : p,
     );
     await ctx.config.salvar('produtos', outros, 'admin');
     await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${pedido.id}/pagar`, headers: { cookie } });
     const saldo = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).json().saldo;
-    expect(saldo).toEqual({ consulta: 20, dossie: 2 });
+    expect(saldo).toEqual({ consulta: 1, dossie: 0 });
   });
 
   it('aviso do site aparece na rota de saúde só quando ativo', async () => {
@@ -291,6 +291,114 @@ describe('configurações editáveis', () => {
     expect((await app.inject({ method: 'GET', url: '/v1/saude' })).json().aviso).toEqual({ texto: 'Manutenção às 22h', tipo: 'alerta' });
     await ctx.config.salvar('aviso_site', { ativo: false, texto: 'Manutenção às 22h', tipo: 'alerta' }, 'admin');
     expect((await app.inject({ method: 'GET', url: '/v1/saude' })).json().aviso).toBeNull();
+  });
+});
+
+describe('assinatura mensal (pagamento simulado)', () => {
+  const { app } = servidorComEmail();
+  let cookie = '';
+  let assinaturaId = '';
+  const saldo = async () => (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).json().saldo;
+  const atual = async () => (await app.inject({ method: 'GET', url: '/v1/assinatura', headers: { cookie } })).json();
+
+  beforeAll(async () => {
+    cookie = (await novaConta(app, 'assinante@exemplo.com')).cookie;
+  });
+
+  it('lista os planos ativos', async () => {
+    const planos = (await app.inject({ method: 'GET', url: '/v1/planos' })).json().planos;
+    expect(planos.map((p: { id: string }) => p.id)).toEqual(['plano-projetista', 'plano-escritorio']);
+  });
+
+  it('assinar cria a assinatura pendente; sem pagar, nada de créditos nem carteira maior', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/assinaturas', headers: { cookie }, payload: { plano: 'plano-projetista' } });
+    expect(r.statusCode).toBe(201);
+    assinaturaId = r.json().id;
+    expect(r.json().link).toContain('/pagamento-simulado/assinatura/');
+    const a = await atual();
+    expect(a.assinatura.status).toBe('pendente');
+    expect(a.limiteCarteira).toBe(5);
+    expect(await saldo()).toEqual({ consulta: 0, dossie: 0 });
+  });
+
+  it('cada mensalidade paga credita o mês, os créditos acumulam e a carteira vai para 50', async () => {
+    await app.inject({ method: 'POST', url: `/v1/dev/assinaturas/${assinaturaId}/pagar-mes`, headers: { cookie } });
+    expect(await saldo()).toEqual({ consulta: 20, dossie: 2 });
+    const a = await atual();
+    expect(a.assinatura.status).toBe('ativa');
+    expect(a.limiteCarteira).toBe(50);
+    await app.inject({ method: 'POST', url: `/v1/dev/assinaturas/${assinaturaId}/pagar-mes`, headers: { cookie } });
+    expect(await saldo()).toEqual({ consulta: 40, dossie: 4 });
+  });
+
+  it('não deixa ter duas assinaturas ao mesmo tempo', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/assinaturas', headers: { cookie }, payload: { plano: 'plano-escritorio' } });
+    expect(r.statusCode).toBe(409);
+  });
+
+  it('cancelar encerra a recorrência e mantém os créditos já recebidos', async () => {
+    expect((await app.inject({ method: 'POST', url: '/v1/assinatura/cancelar', headers: { cookie } })).statusCode).toBe(200);
+    const a = await atual();
+    expect(a.assinatura).toBeNull();
+    expect(a.limiteCarteira).toBe(5);
+    expect(await saldo()).toEqual({ consulta: 40, dossie: 4 });
+    // Depois de cancelar, pode assinar de novo.
+    const r = await app.inject({ method: 'POST', url: '/v1/assinaturas', headers: { cookie }, payload: { plano: 'plano-escritorio' } });
+    expect(r.statusCode).toBe(201);
+  });
+});
+
+describe('webhook de mensalidade do Asaas', () => {
+  const ctx = criarContexto();
+  ctx.pagamento = new ProvedorAsaas('chave-de-teste', 'sandbox', TOKEN_WEBHOOK);
+  const app = criarServidor(ctx);
+  let usuarioId = '';
+  let assinaturaId = '';
+
+  beforeAll(async () => {
+    const { cookie } = await novaConta(app, 'mensalista@exemplo.com');
+    usuarioId = (await app.inject({ method: 'GET', url: '/v1/eu', headers: { cookie } })).json().usuario.id;
+    const a = await ctx.contas.criarAssinatura({
+      usuarioId,
+      planoId: 'plano-projetista',
+      nomePlano: 'Projetista',
+      valorMensal: 199,
+      creditos: { consulta: 20, dossie: 2 },
+      limiteCarteira: 50,
+      provedor: 'asaas',
+    });
+    if (a === 'ja_existe') throw new Error('inesperado');
+    assinaturaId = a.id;
+    await ctx.contas.atualizarAssinatura(a.id, { provedorId: 'sub_1' });
+  });
+
+  const enviar = (evento: string, id: string, pagamento: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/v1/webhooks/asaas',
+      headers: { 'asaas-access-token': TOKEN_WEBHOOK },
+      payload: { id, event: evento, payment: { id: pagamento, subscription: 'sub_1', externalReference: assinaturaId, value: 199 } },
+    });
+
+  it('mensalidade paga credita uma vez, mesmo com CONFIRMED e RECEIVED da mesma cobrança', async () => {
+    await enviar('PAYMENT_CONFIRMED', 'evt_m1', 'pay_m1');
+    await enviar('PAYMENT_RECEIVED', 'evt_m2', 'pay_m1');
+    await enviar('PAYMENT_RECEIVED', 'evt_m2', 'pay_m1');
+    expect(await ctx.contas.saldo(usuarioId)).toEqual({ consulta: 20, dossie: 2 });
+    expect((await ctx.contas.buscarAssinatura(assinaturaId))!.status).toBe('ativa');
+  });
+
+  it('mensalidade atrasada deixa inadimplente; pagar reativa', async () => {
+    await enviar('PAYMENT_OVERDUE', 'evt_m3', 'pay_m2');
+    expect((await ctx.contas.buscarAssinatura(assinaturaId))!.status).toBe('inadimplente');
+    await enviar('PAYMENT_RECEIVED', 'evt_m4', 'pay_m2');
+    expect((await ctx.contas.buscarAssinatura(assinaturaId))!.status).toBe('ativa');
+    expect(await ctx.contas.saldo(usuarioId)).toEqual({ consulta: 40, dossie: 4 });
+  });
+
+  it('estorno da mensalidade retira os créditos daquele mês', async () => {
+    await enviar('PAYMENT_REFUNDED', 'evt_m5', 'pay_m2');
+    expect(await ctx.contas.saldo(usuarioId)).toEqual({ consulta: 20, dossie: 2 });
   });
 });
 
