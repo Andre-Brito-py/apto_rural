@@ -42,7 +42,12 @@ As telas de quem já tem conta seguem o visual da landing, para o produto parece
 
 - **Equipe (`/equipe`):** ocupação ("3 de 5 pessoas"), lista de pessoas com papel e consultas no mês, convites em aberto, formulário de convite e o que cada papel faz. O técnico vê só a lista e o botão de sair. Quem não tem plano de equipe vê o convite para conhecer o Escritório.
 - **Convite (`/convite?token=…`):** o que a pessoa vê ao abrir o link do e-mail. Sem conta, cria pelo próprio link (o e-mail já vem preenchido); com outra conta aberta, oferece sair e entrar com o e-mail certo.
-- **Carteira:** resumo no topo (imóveis acompanhados e o limite, quantos com impedimento, mudanças novas e a data da última reconferência), filtro por situação e busca por apelido ou CAR, pensados para quem acompanha centenas de fazendas. Cada imóvel é um cartão com a cor da situação no topo.
+- **Carteira:** pensada para quem acompanha dezenas ou centenas de fazendas.
+  - **Painel de resumo** num cartão só: imóveis acompanhados e o limite do plano; barra de distribuição por situação, cuja legenda também filtra; e a hora da última reconferência ("hoje, 06:02"), no fuso de Brasília.
+  - **Lista em linhas**, como uma tabela, com colunas Imóvel (apelido, UF e CAR), Situação (selo curto com ícone), **O que pesa** (os itens com problema, sem precisar abrir o resultado) e Conferido.
+  - **Ferramentas:** filtro em abas, busca e ordenação ("mais graves primeiro" é o padrão).
+  - **Ação destrutiva escondida:** "Deixar de acompanhar" fica num menu "⋯", longe do "Ver resultado".
+  - **No celular**, cada linha vira um bloco empilhado.
 - **Dossiê:** aparece como uma folha de documento (cabeçalho com a marca, identificação do imóvel, QR de conferência, resumo numerado e uma seção por item), com uma barra fixa no topo para voltar ou salvar em PDF. Na impressão sai só a folha, sem menus. Antes de gerar, a tela explica o que o dossiê traz e quanto custa.
 - **Painel administrativo:** organizado em abas (Visão geral, Usuários, Pedidos, Preços e limites, Auditoria). A aba fica no endereço (`/admin?aba=usuarios`), então dá para mandar o link direto. A visão geral separa os números de negócio dos de uso e marca na aba quando há erros ou bases atrasadas. A ficha do usuário mostra iniciais, etiquetas (papel, bloqueio, e-mail não confirmado) e os números principais em destaque.
 - **Para quem está numa equipe:** o topo mostra o saldo da equipe e o link "Equipe"; Minha conta e Carteira dizem de quem é a equipe; Planos explica que só o responsável compra; o técnico não vê o botão de tirar imóveis da carteira.
