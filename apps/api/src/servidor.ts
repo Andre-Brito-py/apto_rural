@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
@@ -84,9 +86,15 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.
   if (config.webDist) {
+    // A página principal leva o endereço do site nas metatags de compartilhamento (WhatsApp, redes):
+    // o marcador do build é trocado pelo WEB_ORIGIN uma vez, na subida.
+    const paginaPrincipal = readFileSync(join(config.webDist, 'index.html'), 'utf8').replaceAll('__ENDERECO_DO_SITE__', config.webOrigin);
     app.register(estatico, {
       root: config.webDist,
       wildcard: false,
+      index: false,
+      // index.html só sai pela rota abaixo (com o endereço já preenchido).
+      allowedPath: (caminho) => !caminho.endsWith('index.html'),
       cacheControl: false, // o cabeçalho é definido abaixo
       // Arquivos em assets/ têm hash no nome: podem ficar em cache por muito tempo.
       setHeaders: (res, caminho) => {
@@ -98,7 +106,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
         return reply.status(404).send({ erro: { mensagem: 'Não encontrado.' } });
       }
       // Rotas do site (ex.: /consulta/:id) caem no index.html, que resolve no navegador.
-      return reply.header('Cache-Control', 'no-cache').sendFile('index.html');
+      return reply.header('Cache-Control', 'no-cache').type('text/html; charset=utf-8').send(paginaPrincipal);
     });
   }
 

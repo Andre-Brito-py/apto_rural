@@ -102,6 +102,25 @@ Para materiais fora do site (apresentações, cartões), baixe a Inter em [rsms.
 | `apps/web/public/marca/logo.svg` | Assinatura horizontal para fundo claro. |
 | `apps/web/public/marca/logo-fundo-escuro.svg` | Assinatura horizontal para fundo escuro. |
 | `apps/web/public/marca/icone-uma-cor.svg` | Uma cor só: carimbo, impressão em preto, gravação. |
+| `apps/web/public/marca/logo-curvas.svg` e `logo-fundo-escuro-curvas.svg` | Mesma assinatura, com o texto **em curvas**: é o arquivo para mandar à gráfica (não depende de a fonte estar instalada). |
+| `apps/web/public/og.png` | **Imagem de compartilhamento** (1200 × 630): aparece quando alguém manda o link do site no WhatsApp, LinkedIn, Facebook ou X. |
+| `apps/web/public/icones/*.png` | Ícones PNG: 192 e 512 px, versões "maskable" para Android e `apple-touch-icon.png` (180 px) para iPhone e iPad. |
+| `apps/web/public/favicon.ico` | Ícone da aba para navegadores antigos (16, 32 e 48 px dentro do mesmo arquivo). |
+
+![Imagem de compartilhamento](../apps/web/public/og.png)
+
+**Para gerar de novo** os PNG, o favicon e as versões em curvas depois de mudar o logotipo, as cores ou a frase da imagem:
+
+```bash
+npm run imagens -w @apto/web
+```
+
+O script (`apps/web/scripts/gerar-imagens.mjs`) converte o texto em curvas com a fonte Inter e transforma o SVG em PNG. A frase e as cores ficam no próprio script.
+
+Sobre a imagem de compartilhamento:
+- o endereço completo dela (que o WhatsApp exige) é montado sozinho com o `WEB_ORIGIN` do servidor;
+- de propósito, ela **não traz o endereço do site**: ele entra quando o domínio estiver registrado;
+- o WhatsApp guarda a imagem em cache por um tempo, então, depois de trocar, a imagem nova pode demorar a aparecer em conversas onde o link já foi enviado.
 
 **Regras:**
 
@@ -113,7 +132,7 @@ Para materiais fora do site (apresentações, cartões), baixe a Inter em [rsms.
   - pôr o símbolo sem o fundo verde sobre uma foto;
   - usar o check vermelho, que é a cor de "impedimento".
 
-> Os arquivos SVG com o nome escrito usam a fonte Inter. Para uma gráfica, peça a versão com o texto convertido em curvas: qualquer designer faz isso em minutos, no Figma ou no Illustrator.
+> `logo.svg` e `logo-fundo-escuro.svg` têm o nome como texto editável (precisam da fonte Inter instalada). Para gráfica, use as versões `-curvas`.
 
 ## 7. Onde a marca aparece primeiro
 
@@ -125,6 +144,5 @@ Para materiais fora do site (apresentações, cartões), baixe a Inter em [rsms.
 
 ## 8. Ainda não feito
 
-- Versão do logotipo com o texto em curvas, para gráfica.
-- Imagem de compartilhamento (aparece quando alguém manda o link no WhatsApp), em PNG de 1200 × 630.
-- Ícones PNG para celulares antigos que não aceitam SVG.
+- Pôr o endereço do site na imagem de compartilhamento, depois de registrar o domínio.
+- Modelos para redes sociais (post e capa de perfil) e cartão de visita, a partir das cores e da assinatura deste guia.

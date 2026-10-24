@@ -1,8 +1,18 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+
+/**
+ * No desenvolvimento, troca o marcador __ENDERECO_DO_SITE__ das metatags pelo endereço local.
+ * Na versão de produção o marcador fica no arquivo e a API o troca pelo WEB_ORIGIN ao entregar a página.
+ */
+const enderecoLocal = (): Plugin => ({
+  name: 'endereco-do-site-local',
+  apply: 'serve',
+  transformIndexHtml: (html) => html.replaceAll('__ENDERECO_DO_SITE__', 'http://localhost:5180'),
+});
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), enderecoLocal()],
   server: {
     // Porta própria: a 5173 é o padrão do Vite e pode estar presa ao cache de outro projeto no navegador.
     port: 5180,
