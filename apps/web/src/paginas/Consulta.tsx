@@ -116,6 +116,9 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         <p className="subtitulo">
           Checamos os impedimentos socioambientais do Manual de Crédito Rural (MCR 2-9) nas mesmas bases públicas que o banco usa.
         </p>
+        <Link to="/lote" className="l-link consulta-lote-link">
+          <Icone nome="camadas" className="l-icone-p" /> Muitos imóveis? Consulte em lote, com uma planilha
+        </Link>
       </div>
 
       {saude?.demo && (

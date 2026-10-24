@@ -152,9 +152,14 @@ export function Carteira() {
           <h1 className="titulo-pagina">{titulo}</h1>
           <p className="subtitulo">Reconferimos estes imóveis todos os dias com as bases oficiais. Se algo mudar, avisamos aqui e por e-mail.</p>
         </div>
-        <Link to="/consultar" className="botao botao-primario botao-auto">
-          <span aria-hidden="true">+</span> Incluir imóvel
-        </Link>
+        <div className="topo-acoes">
+          <Link to="/lote" className="botao botao-secundario botao-auto">
+            Incluir em lote
+          </Link>
+          <Link to="/consultar" className="botao botao-primario botao-auto">
+            <span aria-hidden="true">+</span> Incluir imóvel
+          </Link>
+        </div>
       </div>
 
       {erro && <p className="alerta alerta-erro">{erro}</p>}

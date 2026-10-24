@@ -140,6 +140,8 @@ O caminho de uma consulta:
 
 **A carteira funciona assim:** às 4h os coletores atualizam as bases; às 6h o **monitor** reconfere cada fazenda acompanhada, compara com o resultado anterior e, se algo mudou, grava um resultado novo (com dossiê e QR), cria um aviso e manda **um e-mail por técnico** com todas as mudanças do dia. Mudança causada por uma base que falhou ao atualizar (item virando "Não verificado") não gera alarme.
 
+**A consulta em lote funciona assim** (página `/lote`, para escritórios e cooperativas): o técnico envia uma **planilha CSV** com os códigos do CAR (até 200) e, se tiver, **todos os arquivos de contorno de uma vez**. O site acha o contorno de cada imóvel pelo código do CAR no nome do arquivo ou na tabela de atributos (o .zip do Sicar traz o código na camada AREA_IMOVEL; um arquivo do escritório com várias fazendas também serve). Antes de gastar, a tela mostra a lista, quais imóveis têm contorno e quantos créditos o lote usa. Cada imóvel vira uma consulta normal, com resultado, mapa e QR. No fim, dá para **baixar o resultado em planilha** e **pôr todos na carteira** de uma vez.
+
 Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md)).
 
 ---
@@ -278,7 +280,7 @@ No computador de desenvolvimento, a API só aceita conexões do próprio computa
 ### Testes
 
 ```bash
-npm test            # regras do MCR + API (contas, compras, pagamentos)
+npm test            # regras do MCR + API (contas, compras, pagamentos) + leitura da planilha do lote
 npm run typecheck   # confere os tipos do código
 npm run build       # gera a versão de produção do site e da API
 ```
@@ -418,7 +420,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 **Para vender mais**
 
-- [ ] **Consulta em lote** (CSV ou planilha com vários CARs), para escritórios e cooperativas que atendem dezenas de fazendas. Combina com o plano Escritório.
+- [x] **Consulta em lote** (CSV ou planilha com vários CARs), para escritórios e cooperativas que atendem dezenas de fazendas. Combina com o plano Escritório. Feito: planilha do Excel em português, contornos casados pelo código do CAR, conferência antes de gastar, progresso por imóvel, resultado em planilha e "acompanhar todos" na carteira. Testado com 11 fazendas reais de MT e PA. Arquivo .xlsx ainda não: por enquanto, salvar como CSV.
 - [x] **Mapa no resultado e no dossiê**, mostrando onde a fazenda encosta no embargo, na terra indígena, na Unidade de Conservação etc., para o técnico explicar ao produtor e ao gerente do banco. Feito: mapa ilustrado com números no ponto de contato, hectares dentro do imóvel, o que está por perto com a distância, escala e norte; guardado como fotografia do dia da consulta. Testado com fazendas reais de MT e PA (veja [docs/frontend.md](docs/frontend.md)).
 
 **Depois do lançamento**

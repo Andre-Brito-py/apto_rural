@@ -8,6 +8,7 @@ import { Admin } from './paginas/Admin';
 import { AdminUsuario } from './paginas/AdminUsuario';
 import { Carteira } from './paginas/Carteira';
 import { Consulta } from './paginas/Consulta';
+import { Lote } from './paginas/Lote';
 import { Conta } from './paginas/Conta';
 import { Convite } from './paginas/Convite';
 import { Dossie } from './paginas/Dossie';
@@ -96,6 +97,7 @@ export function App() {
             {/* Visitante vê a página de vendas; quem tem conta vai direto para a consulta. */}
             <Route path="/" element={carregando ? null : sessao ? <Consulta saude={saude} /> : <Landing />} />
             <Route path="/consultar" element={<Consulta saude={saude} />} />
+            <Route path="/lote" element={<Lote saude={saude} />} />
             <Route path="/consulta/:id" element={<Resultado />} />
             <Route path="/consulta/:id/dossie" element={<Dossie />} />
             <Route path="/fontes" element={<Fontes />} />
@@ -142,6 +144,7 @@ export function App() {
             <div>
               <h2>Produto</h2>
               <Link to="/consultar">Consultar imóvel</Link>
+              <Link to="/lote">Consulta em lote</Link>
               <Link to="/planos">Planos e preços</Link>
               <Link to="/fontes">Regras e fontes</Link>
             </div>

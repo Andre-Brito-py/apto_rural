@@ -756,6 +756,9 @@ ul.l-planos { list-style: none; padding: 0; }
 /* Peças comuns das telas internas */
 .topo-com-acao { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 24px; }
 .topo-com-acao .topo-pagina { flex: 1 1 420px; }
+.topo-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 559px) { .topo-acoes { width: 100%; } .topo-acoes .botao-auto { flex: 1 1 140px; } }
+.consulta-lote-link { margin-top: 10px; font-size: 0.92rem; font-weight: 650; }
 .botao-auto { width: auto; }
 @media (max-width: 559px) { .topo-com-acao .botao-auto, .estado-vazio .botao-auto { width: 100%; } }
 .estado-vazio { display: grid; justify-items: start; gap: 12px; padding: 32px; }
@@ -852,6 +855,50 @@ ul.l-planos { list-style: none; padding: 0; }
   .col-conferido { grid-area: conferido; }
   .col-conferido::before { content: 'Conferido '; }
   .col-acoes { grid-area: acoes; }
+}
+
+/* Consulta em lote (paginas/Lote.tsx): reaproveita a tabela da carteira, com colunas próprias. */
+.lote-ajuda { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-top: 10px; font-size: 0.86rem; color: var(--tinta-suave); }
+.lote-ajuda p { margin: 0; flex: 1 1 380px; }
+.lote-ajuda code { padding: 1px 5px; border-radius: 4px; background: var(--neutro-fundo); color: var(--tinta); font-size: 0.82rem; }
+.lote-ajuda .link-botao { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.lote-problemas { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: var(--atencao-fundo); color: #5c3700; font-size: 0.88rem; }
+.lote-problemas summary { cursor: pointer; font-weight: 650; }
+.lote-problemas ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.lote-problemas .mono { font-size: 0.8rem; font-weight: 600; margin-right: 4px; }
+.lote-arquivos { margin-top: 12px; display: grid; gap: 6px; justify-items: start; font-size: 0.9rem; }
+.lote-arquivos p { margin: 0; }
+.lote-arquivos p svg { color: var(--ok); stroke-width: 2.6; vertical-align: -0.15em; margin-right: 4px; }
+.lote-erros { margin: 0; padding: 10px 14px 10px 30px; border-radius: 10px; background: var(--impedimento-fundo); color: #7a1a12; font-size: 0.85rem; display: grid; gap: 3px; }
+.lote-topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
+.lote-topo .secao-titulo { display: flex; align-items: center; gap: 10px; margin: 0; }
+.form-secao-num {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--marca); color: #fff; font-size: 0.82rem; font-weight: 700;
+}
+.lote-resumo { margin: 4px 0 0; font-size: 0.9rem; }
+.lote-acao { display: grid; justify-items: end; gap: 4px; }
+.lote-custo { font-size: 0.84rem; }
+@media (max-width: 559px) { .lote-topo > *, .lote-topo .botao-auto, .lote-acao { width: 100%; justify-items: stretch; } }
+.lote-progresso { display: grid; gap: 10px; }
+.lote-progresso-topo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; align-items: baseline; }
+.lote-progresso-topo .fonte-suave { font-size: 0.86rem; }
+.lote-barra { height: 12px; margin-top: 0; }
+.lote-barra-resto { background: transparent; }
+.lote-depois { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-top: 4px; }
+.lote-depois .botao { display: inline-flex; align-items: center; gap: 8px; }
+.linha-lote { grid-template-columns: minmax(0, 2fr) 130px 150px minmax(0, 1.7fr) 64px; }
+.col-contorno { font-size: 0.86rem; }
+.lote-contorno-sim { display: inline-flex; align-items: center; gap: 5px; color: var(--ok); font-weight: 600; }
+.lote-contorno-sim svg { stroke-width: 2.6; }
+.lote-estado { font-size: 0.86rem; color: var(--tinta-suave); }
+.lote-consultando { color: var(--marca); font-weight: 600; animation: piscar 1.2s ease-in-out infinite; }
+.lote-erro { color: var(--impedimento); font-weight: 650; }
+@keyframes piscar { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .lote-consultando { animation: none; } }
+@media (max-width: 759px) {
+  .linha-lote { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'imovel situacao' 'contorno contorno' 'pontos acoes'; }
+  .linha-lote .col-contorno { grid-area: contorno; }
 }
 
 /* Menu "⋯" */

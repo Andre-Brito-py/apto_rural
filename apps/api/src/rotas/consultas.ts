@@ -42,8 +42,10 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     atualizacoes: ctx.banco ? await ctx.banco.atualizacoes() : ctx.demo ? await ctx.demo.atualizacoes() : {},
   }));
 
-  // Contornos de fazendas grandes passam de 1 MB (o padrão do Fastify).
-  app.post('/v1/consultas', { bodyLimit: 8 * 1024 * 1024 }, async (req, reply) => {
+  // Contornos de fazendas grandes passam de 1 MB (o padrão do Fastify). A consulta em lote
+  // faz até 200 seguidas (3 ao mesmo tempo); o crédito já limita o abuso, então o freio
+  // aqui é mais largo que o geral, só para conter robôs.
+  app.post('/v1/consultas', { bodyLimit: 8 * 1024 * 1024, config: { rateLimit: { max: 300, timeWindow: '1 minute' } } }, async (req, reply) => {
     const geometriaRuim = conferirGeometriaRapido((req.body as { geometria?: unknown } | null)?.geometria);
     if (geometriaRuim) return erro(reply, 400, geometriaRuim, 'geometria');
     const corpo = novaConsulta.safeParse(req.body);
