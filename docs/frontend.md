@@ -38,6 +38,9 @@ As telas de quem já tem conta seguem o visual da landing, para o produto parece
 - **Planos:** os mesmos cartões de preço da landing; a compra avulsa aparece em dois cartões menores.
 - **Minha conta:** o saldo de consultas e dossiês em destaque, atalhos e a lista de compras em tabela.
 - **Consulta:** o formulário dividido em três partes numeradas (dados do imóvel, mapa, opcional) e os exemplos de demonstração como botões pequenos.
+  - **Arquivo do imóvel:** aceita **shapefile (.zip)**, KML e GeoJSON, escolhendo ou arrastando o arquivo. Depois de ler, a tela mostra uma **prévia**: o desenho do contorno, a área aproximada em hectares, o formato e quantos polígonos vieram. Assim o técnico confere se mandou a fazenda certa antes de gastar a consulta.
+  - **Como o shapefile é lido** (`arquivoImovel.ts`): tudo acontece no navegador, com a biblioteca livre `shpjs` (licença MIT), que só é baixada quando alguém escolhe um .zip. O .zip baixado do Sicar traz várias camadas (APP, reserva legal, vegetação…); o site usa a camada **AREA_IMOVEL**, que é o perímetro do imóvel. Se o arquivo estiver em **UTM** (metros, comum em escritórios de topografia), o arquivo `.prj` dentro do .zip diz qual é a projeção e o site converte para latitude e longitude. Sem o `.prj`, o site avisa e pede o arquivo, em vez de adivinhar.
+  - **A área da prévia é só uma conferência:** é uma conta aproximada (erro abaixo de 1%; numa fazenda real de MT deu 1.587 ha contra 1.581 ha do PostGIS). A área oficial continua sendo a do CAR.
 - **Resultado:** veredito maior, contagem em etiquetas e botões de ação lado a lado.
 
 - **Equipe (`/equipe`):** ocupação ("3 de 5 pessoas"), lista de pessoas com papel e consultas no mês, convites em aberto, formulário de convite e o que cada papel faz. O técnico vê só a lista e o botão de sair. Quem não tem plano de equipe vê o convite para conhecer o Escritório.

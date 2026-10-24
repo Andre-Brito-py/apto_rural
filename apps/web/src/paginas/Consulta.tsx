@@ -2,7 +2,9 @@ import { normalizarCar, type SituacaoCar } from '@apto/regras';
 import { useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ErroApi, type GeometriaImovel, type Saude } from '../api';
-import { lerArquivoImovel } from '../arquivoImovel';
+import { lerArquivoImovel, type ImovelLido } from '../arquivoImovel';
+import { MapaImovel } from '../componentes/MapaImovel';
+import { numeroBr } from '../textos';
 import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 
@@ -34,8 +36,11 @@ export function Consulta({ saude }: { saude: Saude | null }) {
   const [situacao, setSituacao] = useState<SituacaoCar | 'nao_sei'>('nao_sei');
   const [modulos, setModulos] = useState('');
   const [usoColetivo, setUsoColetivo] = useState(false);
-  const [geometria, setGeometria] = useState<GeometriaImovel>();
+  const [lido, setLido] = useState<ImovelLido>();
   const [nomeArquivo, setNomeArquivo] = useState('');
+  const [lendo, setLendo] = useState(false);
+  const [arrastando, setArrastando] = useState(false);
+  const geometria: GeometriaImovel | undefined = lido?.geometria;
   const [documento, setDocumento] = useState('');
   const [consentimento, setConsentimento] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -44,13 +49,16 @@ export function Consulta({ saude }: { saude: Saude | null }) {
   async function escolherArquivo(arquivo: File | undefined) {
     if (!arquivo) return;
     setErro(null);
+    setLendo(true);
     try {
-      setGeometria(await lerArquivoImovel(arquivo));
+      setLido(await lerArquivoImovel(arquivo));
       setNomeArquivo(arquivo.name);
     } catch (e) {
-      setGeometria(undefined);
+      setLido(undefined);
       setNomeArquivo('');
       setErro({ mensagem: (e as Error).message, campo: 'geometria' });
+    } finally {
+      setLendo(false);
     }
   }
 
@@ -177,19 +185,73 @@ export function Consulta({ saude }: { saude: Saude | null }) {
           <span className="rotulo" id={`${id}-arq`}>
             Contorno do imóvel
           </span>
-          <label className={`arquivo${geometria ? ' arquivo-ok' : ''}`} aria-labelledby={`${id}-arq`}>
-            <input type="file" accept=".kml,.geojson,.json" onChange={(e) => escolherArquivo(e.target.files?.[0])} />
-            <span className="arquivo-icone" aria-hidden="true">
-              <Icone nome={geometria ? 'check' : 'mapa'} />
-            </span>
-            <span>
-              <strong>{geometria ? nomeArquivo : 'Escolher arquivo KML ou GeoJSON'}</strong>
-              <br />
-              <span className="ajuda" style={{ marginTop: 0 }}>
-                {geometria ? 'Toque para trocar.' : 'Sem o arquivo, checamos só a lista do MMA.'}
+          {lido ? (
+            // Prévia do que foi lido: o técnico confere o desenho e a área antes de gastar a consulta.
+            <div className="arquivo-lido">
+              <div className="arquivo-lido-mapa">
+                <MapaImovel geometria={lido.geometria} />
+              </div>
+              <div className="arquivo-lido-info">
+                <span className="arquivo-lido-titulo">
+                  <Icone nome="check" className="l-icone-p" /> Contorno lido
+                </span>
+                <strong className="arquivo-lido-nome" title={nomeArquivo}>
+                  {nomeArquivo}
+                </strong>
+                <dl className="arquivo-lido-dados">
+                  <div>
+                    <dt>Área aproximada</dt>
+                    <dd>{numeroBr(lido.areaHa, lido.areaHa < 100 ? 1 : 0)} ha</dd>
+                  </div>
+                  <div>
+                    <dt>Formato</dt>
+                    <dd>
+                      {lido.formato}
+                      {lido.camada ? ` · ${lido.camada}` : ''}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Polígonos</dt>
+                    <dd>{lido.poligonos}</dd>
+                  </div>
+                </dl>
+                <span className="ajuda" style={{ marginTop: 0 }}>
+                  A área é uma conta do navegador, só para conferir o arquivo; a oficial é a do CAR.
+                </span>
+                <label className="botao botao-secundario botao-pequeno arquivo-trocar">
+                  <input type="file" accept=".zip,.kml,.geojson,.json" onChange={(e) => escolherArquivo(e.target.files?.[0])} />
+                  Trocar arquivo
+                </label>
+              </div>
+            </div>
+          ) : (
+            <label
+              className={`arquivo${arrastando ? ' arquivo-arrastando' : ''}`}
+              aria-labelledby={`${id}-arq`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setArrastando(true);
+              }}
+              onDragLeave={() => setArrastando(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setArrastando(false);
+                void escolherArquivo(e.dataTransfer.files?.[0]);
+              }}
+            >
+              <input type="file" accept=".zip,.kml,.geojson,.json" onChange={(e) => escolherArquivo(e.target.files?.[0])} disabled={lendo} />
+              <span className="arquivo-icone" aria-hidden="true">
+                <Icone nome="mapa" />
               </span>
-            </span>
-          </label>
+              <span>
+                <strong>{lendo ? 'Lendo o arquivo…' : 'Escolher ou arrastar o arquivo do imóvel'}</strong>
+                <br />
+                <span className="ajuda" style={{ marginTop: 0 }}>
+                  Shapefile (.zip), KML ou GeoJSON, como sai do CAR. Sem o arquivo, checamos só a lista do MMA.
+                </span>
+              </span>
+            </label>
+          )}
           {erroDe('geometria')}
         </div>
 

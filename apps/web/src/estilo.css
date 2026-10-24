@@ -691,6 +691,33 @@ ul.l-planos { list-style: none; padding: 0; }
 .arquivo-icone svg { width: 24px; height: 24px; }
 .arquivo-ok .arquivo-icone { background: #fff; color: var(--ok); }
 .credito-aviso { padding: 12px 14px; background: var(--papel); border-radius: 10px; }
+.arquivo-arrastando { border-color: var(--marca); background: var(--marca-clara); }
+
+/* Prévia do contorno lido: desenho do imóvel ao lado da área, do formato e da camada usada */
+.arquivo-lido {
+  display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 18px; align-items: start;
+  padding: 16px; border: 1px solid #c8ddcd; border-radius: 12px; background: #fbfdfb;
+}
+@media (max-width: 479px) {
+  /* No celular: miniatura e nome lado a lado; os dados e o botão usam a largura toda embaixo. */
+  .arquivo-lido { grid-template-columns: 72px minmax(0, 1fr); gap: 6px 14px; padding: 14px; align-items: center; }
+  .arquivo-lido .arquivo-lido-mapa { grid-row: 1 / span 2; }
+  .arquivo-lido .arquivo-lido-info { display: contents; }
+  .arquivo-lido .arquivo-lido-titulo { align-self: end; }
+  .arquivo-lido .arquivo-lido-nome { align-self: start; }
+  .arquivo-lido .arquivo-lido-info > :nth-child(n + 3) { grid-column: 1 / -1; }
+  .arquivo-lido .arquivo-lido-dados { margin-top: 8px; padding-top: 10px; border-top: 1px solid #dfe9e1; }
+}
+.arquivo-lido-mapa .mapa { max-width: none; width: 100%; background: #eef4ee; }
+.arquivo-lido-info { display: grid; gap: 6px; min-width: 0; }
+.arquivo-lido-titulo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 650; color: var(--ok); }
+.arquivo-lido-titulo svg { stroke-width: 2.6; }
+.arquivo-lido-nome { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arquivo-lido-dados { margin: 4px 0 0; display: grid; gap: 4px 18px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.arquivo-lido-dados dt { font-size: 0.72rem; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-suave); }
+.arquivo-lido-dados dd { margin: 1px 0 0; font-weight: 600; font-size: 0.93rem; overflow-wrap: anywhere; }
+.arquivo-trocar { position: relative; justify-self: start; margin-top: 6px; cursor: pointer; }
+.arquivo-trocar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
 /* Peças comuns das telas internas */
 .topo-com-acao { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 24px; }

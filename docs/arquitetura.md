@@ -38,4 +38,4 @@
 
 ## Por que o contorno do imóvel vem do técnico
 
-O download da consulta pública do Sicar é protegido por captcha e não declara licença (ver `conformidade-legal.md`). O técnico já tem o arquivo do CAR do cliente; no MVP ele o envia em KML ou GeoJSON. A lista do MMA, por sua vez, é consultada pelo código do CAR e já traz situação e módulos fiscais.
+O download da consulta pública do Sicar é protegido por captcha e não declara licença (ver `conformidade-legal.md`). O técnico já tem o arquivo do CAR do cliente; no MVP ele o envia em shapefile (.zip), KML ou GeoJSON. A lista do MMA, por sua vez, é consultada pelo código do CAR e já traz situação e módulos fiscais.

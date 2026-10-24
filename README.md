@@ -132,7 +132,7 @@ As outras regras (CAR, embargo, terra indígena, UC etc.) **já valem hoje**.
 
 O caminho de uma consulta:
 
-1. O técnico digita o **código do CAR**, informa a situação do CAR e os módulos fiscais e envia o **arquivo do contorno** da fazenda (KML ou GeoJSON).
+1. O técnico digita o **código do CAR**, informa a situação do CAR e os módulos fiscais e envia o **arquivo do contorno** da fazenda (shapefile em .zip, KML ou GeoJSON). O site mostra uma prévia do desenho e da área para o técnico conferir.
 2. O site manda isso para a **API**.
 3. A API pergunta ao **banco de mapas** o que se sobrepõe à fazenda e consulta as listas pelo código do CAR.
 4. O **motor de regras** transforma o que foi encontrado em semáforo, aplicando cada item do MCR e suas exceções.
@@ -408,7 +408,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 **Antes de lançar: melhorias rápidas, que evitam problema**
 
 - [ ] **Testes automáticos no GitHub a cada envio de código** (GitHub Actions rodando testes, conferência de tipos e build). Hoje não existe a pasta `.github/`, então nada confere o código enviado, e um erro em pagamento ou numa regra do MCR pode passar sem ninguém perceber.
-- [ ] **Aceitar shapefile (.zip com .shp)** no contorno do imóvel. Hoje a consulta só lê KML e GeoJSON, mas o arquivo que circula nos escritórios costuma vir em shapefile, e o técnico teria de converter logo na primeira consulta.
+- [x] **Aceitar shapefile (.zip com .shp)** no contorno do imóvel. Feito: o site lê o .zip do Sicar (camada AREA_IMOVEL), converte arquivos em UTM pelo `.prj` e mostra uma prévia do contorno e da área antes da consulta. Testado com uma fazenda real de MT (veja [docs/frontend.md](docs/frontend.md)).
 
 **Logo depois do lançamento: deixam o produto mais confiável**
 

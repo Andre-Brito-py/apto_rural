@@ -56,7 +56,7 @@ O que **fica guardado** e por quê:
 
 ## Coleta de dados públicos
 
-- **Sicar:** o download da consulta pública é protegido por captcha e a licença não é declarada. O Apto Rural **não contorna captcha**. No MVP, o imóvel entra pelo arquivo que o técnico já tem (GeoJSON/KML exportado do CAR) e a situação do CAR é informada a partir do demonstrativo. Acesso automatizado ao Sicar só com autorização ou convênio com o SFB.
+- **Sicar:** o download da consulta pública é protegido por captcha e a licença não é declarada. O Apto Rural **não contorna captcha**. No MVP, o imóvel entra pelo arquivo que o técnico já tem (shapefile, KML ou GeoJSON exportado do CAR) e a situação do CAR é informada a partir do demonstrativo. Acesso automatizado ao Sicar só com autorização ou convênio com o SFB.
 - Para cada base: conferir licença e exigência de citação antes de vender (ver `fontes-oficiais.md`).
 - Os coletores registram a URL, a data do download e o hash de cada arquivo, para provar a origem de cada resultado.
 
