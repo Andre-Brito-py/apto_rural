@@ -1,0 +1,59 @@
+# Ensaio geral de produção NESTE computador (docs/ensaio-producao.md).
+# Usa o docker-compose.prod.yml de verdade e troca só o que depende de contas externas:
+#   - e-mail: Mailpit (caixa de correio falsa; veja os e-mails em http://localhost:8025)
+#   - pagamento: Asaas falso (deploy/ensaio/asaas-falso.mjs, fatura em http://localhost:8099)
+#   - domínio: localhost (o Caddy gera um certificado próprio, que o navegador estranha)
+#
+# Uso (na pasta do projeto):
+#   docker compose -p apto-ensaio -f docker-compose.prod.yml -f deploy/ensaio/docker-compose.ensaio.yml --env-file .env.ensaio up -d --build
+# Projeto separado (-p apto-ensaio): volumes próprios, não mexe no banco de desenvolvimento.
+
+services:
+  api:
+    env_file: !override .env.ensaio
+    environment:
+      ASAAS_URL: http://asaas-falso:8099/v3
+    depends_on:
+      mailpit:
+        condition: service_started
+      asaas-falso:
+        condition: service_started
+
+  monitor:
+    env_file: !override .env.ensaio
+    environment:
+      ASAAS_URL: http://asaas-falso:8099/v3
+
+  caddy:
+    ports:
+      - "127.0.0.1:8081:8081"
+    # O Caddyfile de produção entra como Caddyfile.producao, importado pelo do ensaio.
+    volumes: !override
+      - ./deploy/ensaio/Caddyfile.ensaio:/etc/caddy/Caddyfile:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile.producao:ro
+      - ./deploy/cabecalhos.caddy:/etc/caddy/cabecalhos.caddy:ro
+      - caddy_data:/data
+
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    restart: unless-stopped
+    environment:
+      # Porta 25 sem TLS: o enviador só exige STARTTLS nas portas 587/465.
+      MP_SMTP_BIND_ADDR: 0.0.0.0:25
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  asaas-falso:
+    image: node:22.23.3-alpine
+    restart: unless-stopped
+    command: ["node", "/app/asaas-falso.mjs"]
+    volumes:
+      - ./deploy/ensaio/asaas-falso.mjs:/app/asaas-falso.mjs:ro
+    environment:
+      PORTA: "8099"
+      ENDERECO_PUBLICO: http://localhost:8099
+      WEBHOOK_URL: http://api:3333/v1/webhooks/asaas
+      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN}
+      SITE_URL: https://${DOMINIO}
+    ports:
+      - "127.0.0.1:8099:8099"

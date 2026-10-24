@@ -405,6 +405,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Direitos do titular (LGPD): em **Minha conta**, a pessoa baixa todos os seus dados em um arquivo e exclui a conta sozinha. O que é apagado e o que a lei manda guardar está em [docs/conformidade-legal.md](docs/conformidade-legal.md).
 - [x] Visual profissional em todo o site: landing page e telas do app no mesmo padrão.
 - [x] Equipes no plano Escritório: convite por e-mail, papéis (responsável, administrador, técnico) e créditos e carteira compartilhados (testado de ponta a ponta com o banco real).
+- [x] Ensaio geral de produção neste computador: as imagens de produção, HTTPS, as 7 bases, conta, e-mail, compra, consulta, dossiê em PDF, carteira, alertas e **backup com restauração**. Achou e corrigiu 6 problemas, entre eles o das terras indígenas, que não carregariam no servidor Linux. Roteiro, resultado e a lista do lançamento em [docs/ensaio-producao.md](docs/ensaio-producao.md).
 
 **Falta para lançar**
 

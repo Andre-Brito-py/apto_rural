@@ -15,6 +15,8 @@ Guia passo a passo, sem pressupor experiência com servidores.
 
 Tudo isso é descrito em `docker-compose.prod.yml` e sobe com um comando.
 
+> Antes de contratar o servidor, dá para rodar tudo isto no seu computador, com e-mail e pagamento de mentira: veja [ensaio-producao.md](ensaio-producao.md). O ensaio de 24/10/2026 passou de ponta a ponta, inclusive backup e restauração.
+
 ## 1. Contratar um servidor
 
 Um servidor virtual (VPS) com **Ubuntu 24.04**, **2 a 4 GB de memória** e **40 GB de disco** é suficiente para começar. Com as seis bases carregadas, o banco ocupa cerca de **310 MB** (medido em 23/10/2026); os arquivos baixados pelos coletores ocupam por volta de 1,5 GB. Provedores com data center no Brasil deixam o site mais rápido para quem está no campo.

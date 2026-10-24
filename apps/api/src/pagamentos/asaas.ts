@@ -39,8 +39,10 @@ export class ProvedorAsaas implements ProvedorPagamento {
     private chave: string,
     ambiente: 'producao' | 'sandbox',
     private tokenWebhook: string,
+    /** Endereço alternativo, só para o ensaio de produção (Asaas falso). */
+    url?: string,
   ) {
-    this.base = BASE[ambiente];
+    this.base = url ?? BASE[ambiente];
   }
 
   private async chamar<T>(caminho: string, corpo?: unknown, metodo: 'POST' | 'DELETE' | 'GET' = 'POST'): Promise<T> {

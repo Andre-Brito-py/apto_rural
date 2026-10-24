@@ -1,5 +1,13 @@
 # Imagem dos coletores: baixa as bases oficiais no horário agendado.
 FROM python:3.12.7-slim
+# O GeoServer da Funai não envia o certificado intermediário da Sectigo. O Windows
+# busca o que falta sozinho; o Linux, não, e a carga das terras indígenas falharia no
+# servidor. O intermediário público (de crt.sectigo.com, endereço que o próprio
+# certificado da Funai indica) entra no repositório do sistema. A verificação TLS
+# continua ligada: ele só vale porque é assinado por uma raiz já confiável.
+# Ver deploy/certificados/LEIA-ME.md.
+COPY deploy/certificados/*.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 WORKDIR /app/coletores
 COPY coletores/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

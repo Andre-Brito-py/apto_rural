@@ -43,7 +43,7 @@ export function criarContexto(): Contexto {
     config: new Configuracoes(pool),
     email,
     pagamento: config.asaas.chave
-      ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook)
+      ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook, config.asaas.url)
       : config.demo
         ? new ProvedorSimulado(config.webOrigin)
         : null,

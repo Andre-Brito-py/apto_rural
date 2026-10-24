@@ -313,7 +313,8 @@ export const regraEmbargo: Regra = {
     }
     const detalhes = embargos.map(
       (e) =>
-        `Termo ${e.numero}${e.areaHa != null ? `: ${ha(e.areaHa)}` : ''}${e.dataEmbargo ? `, de ${dataBr(e.dataEmbargo)}` : ''}${e.descricao ? ` — ${e.descricao}` : ''}.`,
+        // A descrição vem do Ibama e às vezes já termina em ponto: não repetir.
+        `Termo ${e.numero}${e.areaHa != null ? `: ${ha(e.areaHa)}` : ''}${e.dataEmbargo ? `, de ${dataBr(e.dataEmbargo)}` : ''}${e.descricao ? ` — ${e.descricao.trim().replace(/[.\s]+$/, '')}` : ''}.`,
     );
     // Polígono embargado do vizinho encostando na divisa (visto em dados reais: 0,01 ha).
     // Embargo sem área conhecida (só o ponto do termo) nunca é tratado como borda.

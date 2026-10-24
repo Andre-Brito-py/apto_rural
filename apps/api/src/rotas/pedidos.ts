@@ -14,12 +14,16 @@ const novoPedido = z.object({
 });
 
 export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
-  app.get('/v1/produtos', async () => ({
-    produtos: (await ctx.config.obter()).produtos.filter((p) => p.ativo),
-    pagamentoDisponivel: ctx.pagamento != null,
-    exigeDocumento: ctx.pagamento?.exigeDocumento ?? false,
-    simulado: ctx.pagamento?.nome === 'simulado',
-  }));
+  app.get('/v1/produtos', async (req) => {
+    // Quem já tem cadastro no provedor de pagamento não precisa informar o CPF/CNPJ de novo.
+    const u = await usuarioDaRequisicao(ctx, req);
+    return {
+      produtos: (await ctx.config.obter()).produtos.filter((p) => p.ativo),
+      pagamentoDisponivel: ctx.pagamento != null,
+      exigeDocumento: (ctx.pagamento?.exigeDocumento ?? false) && !u?.pagamentoClienteId,
+      simulado: ctx.pagamento?.nome === 'simulado',
+    };
+  });
 
   app.post('/v1/pedidos', async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);

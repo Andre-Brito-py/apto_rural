@@ -69,6 +69,7 @@ services:
       DOMINIO: ${DOMINIO}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/cabecalhos.caddy:/etc/caddy/cabecalhos.caddy:ro
       - caddy_data:/data
     depends_on:
       - api

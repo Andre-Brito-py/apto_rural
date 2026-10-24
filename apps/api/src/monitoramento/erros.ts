@@ -22,6 +22,8 @@ export class RegistroErros {
   private pendentes: NovoErro[] = [];
   private ultimoEnvio = 0;
   private agendado: NodeJS.Timeout | null = null;
+  /** Envio em andamento: enviarAgora espera por ele antes de o processo sair. */
+  private enviando: Promise<void> = Promise.resolve();
 
   constructor(
     private pool: pg.Pool | null,
@@ -53,12 +55,18 @@ export class RegistroErros {
     this.agendarAlerta();
   }
 
+  /** Só avisa por e-mail um erro que já está gravado (ex.: falha de coletor, gravada pelo próprio coletor). */
+  avisar(e: NovoErro) {
+    this.pendentes.push({ ...e, mensagem: e.mensagem.slice(0, 500) });
+    this.agendarAlerta();
+  }
+
   private agendarAlerta() {
     if (this.admins.length === 0 || this.agendado) return;
     const espera = Math.max(0, this.ultimoEnvio + INTERVALO_ALERTA_MS - Date.now());
     this.agendado = setTimeout(() => {
       this.agendado = null;
-      this.enviarAlerta().catch((x) => console.error('Falha ao enviar alerta:', x));
+      this.enviando = this.enviarAlerta().catch((x) => console.error('Falha ao enviar alerta:', x));
     }, espera);
     this.agendado.unref?.();
   }
@@ -67,6 +75,8 @@ export class RegistroErros {
   async enviarAgora(): Promise<void> {
     if (this.agendado) clearTimeout(this.agendado);
     this.agendado = null;
+    // O temporizador pode já ter disparado um envio: sair antes dele terminar perderia o e-mail.
+    await this.enviando;
     if (this.admins.length > 0) await this.enviarAlerta();
   }
 

@@ -9,6 +9,7 @@ export const PRAZO_BASE_DIAS: Partial<Record<FonteId, number>> = {
   mte_empregadores: 3,
   cnuc: 10,
   sfb_cnfp: 10,
+  incra_modulo_fiscal: 10,
 };
 
 export interface SaudeBase {
@@ -79,6 +80,15 @@ export class RepositorioAdmin {
     );
     const erros = await this.pool.query(`DELETE FROM erro_registro WHERE quando < now() - interval '90 days'`);
     return { sessoes: sessoes.rowCount ?? 0, tokens: tokens.rowCount ?? 0, erros: erros.rowCount ?? 0 };
+  }
+
+  /** Falhas dos coletores nas últimas horas (gravadas por eles no registro de erros). */
+  async falhasColetores(horas = 24): Promise<string[]> {
+    const { rows } = await this.pool.query<{ mensagem: string }>(
+      `SELECT mensagem FROM erro_registro WHERE origem = 'coletor' AND quando > now() - make_interval(hours => $1) ORDER BY quando`,
+      [horas],
+    );
+    return rows.map((r) => r.mensagem);
   }
 
   async saudeBases(): Promise<SaudeBase[]> {

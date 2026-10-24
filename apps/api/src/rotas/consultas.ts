@@ -25,7 +25,8 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     return usuario ? pessoasDaConta(ctx, await contaEmUso(ctx, usuario)) : [];
   }
 
-  app.get('/v1/saude', async () => {
+  // O healthcheck do Docker chama a cada 30 s: só registra no log se der problema.
+  app.get('/v1/saude', { logLevel: 'warn' }, async () => {
     const aviso = (await ctx.config.obter()).aviso_site;
     return {
       ok: true,

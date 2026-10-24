@@ -90,6 +90,11 @@ export async function verificarBases(ctx: Contexto): Promise<number> {
           : `Base "${b.nome}" está há ${b.diasSemConferir} dias sem conferência (veja o log dos coletores).`,
     });
   }
+  // Coletor que falhou mas ainda tem a carga anterior valendo só ficaria "atrasado" dias
+  // depois: as falhas das últimas 24 h já vão no e-mail de hoje (elas estão no painel).
+  for (const mensagem of await ctx.admin.falhasColetores(24)) {
+    ctx.erros.avisar({ origem: 'coletor', mensagem });
+  }
   return problemas.length;
 }
 

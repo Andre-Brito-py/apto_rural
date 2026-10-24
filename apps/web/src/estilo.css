@@ -641,7 +641,8 @@ details.extra[open] > summary::before { content: '−'; }
 @media (min-width: 720px) { .dossie-resumo { grid-template-columns: 1fr 200px; align-items: start; } }
 @media (min-width: 720px) { .dossie-resumo.dossie-resumo-sozinho { grid-template-columns: 1fr; } }
 /* Na impressão, o mapa não se parte entre duas páginas. */
-@media print { .dossie-secao-mapa { break-inside: avoid; } }
+/* Na impressão, o desenho do mapa não se parte; a legenda pode seguir na página seguinte. */
+@media print { .dossie-secao-mapa .mapa-desenho, .dossie-secao-mapa .mapa-legenda li { break-inside: avoid; } }
 .dossie-sumario { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
 .dossie-sumario li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--linha); border-radius: 10px; }
 .dossie-sumario li > span:nth-child(2) { flex: 1; min-width: 0; }
@@ -977,7 +978,11 @@ ul.l-planos { list-style: none; padding: 0; }
   .dossie-secao { break-before: auto; }
   .dossie-folha { border: 0; border-radius: 0; box-shadow: none; padding: 0; }
   .dossie-moldura { padding: 0; }
-  .dossie-sumario li, .dossie-secao-topo, .assinatura { break-inside: avoid; }
+  .dossie-sumario li, .dossie-secao-topo, .assinatura, .caminhos-dossie > li, .dossie-assinatura-secao { break-inside: avoid; }
+  /* Título nunca fica sozinho no pé da página, separado do que vem embaixo dele. */
+  .dossie-h2, .dossie-sub, .mapa-entorno-topo { break-after: avoid; }
+  /* Mapa mais baixo no papel: cabe logo depois do resumo, sem deixar a 1ª página vazia. */
+  .dossie-secao-mapa .mapa-desenho { max-height: 92mm; width: auto; max-width: 100%; margin: 0 auto; }
   .dossie-num, .dossie-cabecalho { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 16mm 14mm; }
   .pagina { max-width: none; padding: 0; }

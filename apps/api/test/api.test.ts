@@ -264,6 +264,18 @@ describe('painel administrativo e erros', () => {
     expect(caixa.enviadas[0]!.assunto).toContain('2 erros');
     expect(caixa.enviadas[0]!.texto).toContain('https://aptorural.com.br/admin');
   });
+
+  it('enviarAgora espera o envio que o temporizador já começou (o processo não sai antes)', async () => {
+    // Achado no ensaio de produção: na reconferência rodada uma vez, o temporizador disparava o
+    // envio, o processo saía no meio e o e-mail de alerta se perdia.
+    const enviadas: string[] = [];
+    const lenta = { enviar: async (m: { assunto: string }) => void (await new Promise((r) => setTimeout(r, 50)), enviadas.push(m.assunto)) };
+    const reg = new RegistroErros(null, lenta as never, ['admin@exemplo.com'], 'https://aptorural.com.br');
+    reg.avisar({ origem: 'coletor', mensagem: 'Coletor funai_ti falhou' });
+    await new Promise((r) => setTimeout(r, 5)); // o temporizador dispara e o envio começa
+    await reg.enviarAgora();
+    expect(enviadas).toEqual(['[Apto Rural] 1 erro: Coletor funai_ti falhou']);
+  });
 });
 
 describe('configurações editáveis', () => {
