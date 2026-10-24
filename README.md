@@ -405,6 +405,22 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.
 - [ ] Registrar os domínios `aptorural.com.br` e `aptorural.com` (pareciam livres em 23/10/2026), reservar `@aptorural` nas redes e pesquisar a marca no INPI com um advogado (veja [docs/marca.md](docs/marca.md)).
 
+**Antes de lançar: melhorias rápidas, que evitam problema**
+
+- [ ] **Testes automáticos no GitHub a cada envio de código** (GitHub Actions rodando testes, conferência de tipos e build). Hoje não existe a pasta `.github/`, então nada confere o código enviado, e um erro em pagamento ou numa regra do MCR pode passar sem ninguém perceber.
+- [ ] **Aceitar shapefile (.zip com .shp)** no contorno do imóvel. Hoje a consulta só lê KML e GeoJSON, mas o arquivo que circula nos escritórios costuma vir em shapefile, e o técnico teria de converter logo na primeira consulta.
+
+**Logo depois do lançamento: deixam o produto mais confiável**
+
+- [ ] **Preencher a situação do CAR sozinho** (ativo, pendente, suspenso ou cancelado), em vez de o técnico digitar. É a regra que mais derruba crédito, e depender do que o usuário digita enfraquece o "nunca verde sem checar". **Condição:** a consulta pública do Sicar tem captcha e não declara licença, e o Apto Rural não contorna captcha. Só com autorização ou convênio do Serviço Florestal Brasileiro (veja [docs/conformidade-legal.md](docs/conformidade-legal.md)).
+- [ ] **Calcular os módulos fiscais sozinho**, com a área do contorno e o valor do módulo fiscal de cada município (Incra). É um campo a menos e um erro a menos na data do Prodes. Antes, confirmar a fonte oficial da tabela, que ainda está "A CONFIRMAR" em [docs/fontes-oficiais.md](docs/fontes-oficiais.md).
+- [ ] **Buscar o contorno da fazenda só pelo código do CAR**, sem o técnico mandar arquivo: "digitei o código, saiu o semáforo". **Mesma condição** do item da situação do CAR: só com autorização ou convênio do Serviço Florestal.
+
+**Para vender mais**
+
+- [ ] **Consulta em lote** (CSV ou planilha com vários CARs), para escritórios e cooperativas que atendem dezenas de fazendas. Combina com o plano Escritório.
+- [ ] **Mapa no resultado e no dossiê**, mostrando onde a fazenda encosta no embargo, na terra indígena, na Unidade de Conservação etc., para o técnico explicar ao produtor e ao gerente do banco.
+
 **Depois do lançamento**
 
 - [ ] Plano anual com desconto e troca de plano sem precisar cancelar.
