@@ -16,6 +16,6 @@
     "typecheck": "npm run build -w @apto/regras && npm run typecheck -w @apto/api && npm run typecheck -w @apto/web"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
   }
 }

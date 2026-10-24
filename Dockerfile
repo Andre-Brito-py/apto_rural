@@ -1,7 +1,9 @@
 # Imagem de produção: API + site no mesmo endereço.
 # Na subida, aplica as migrações do banco e depois inicia a API.
 
-FROM node:22.11.0-alpine AS build
+# Node 22.12 ou mais novo: o Vite 8 (rolldown) exige. Com 22.11, o npm pula em silêncio o binário
+# do rolldown para Alpine e o build do site falha.
+FROM node:22.23.3-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/regras/package.json packages/regras/
@@ -14,7 +16,7 @@ COPY apps apps
 RUN npm run build && npm test -w @apto/regras
 RUN npm prune --omit=dev
 
-FROM node:22.11.0-alpine
+FROM node:22.23.3-alpine
 ENV NODE_ENV=production \
     PORT=3333 \
     WEB_DIST=/app/apps/web/dist \

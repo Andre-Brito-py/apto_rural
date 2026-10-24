@@ -210,7 +210,7 @@ Outras regras:
 
 ### O que precisa estar instalado
 
-- **Node.js 20 ou mais novo**: roda a API e o site.
+- **Node.js 22.12 ou mais novo**: roda a API e o site (o Vite 8 não funciona em versões anteriores).
 - **Python 3.11 ou mais novo**: roda os coletores das bases.
 - **Docker Desktop**: roda o banco de mapas (PostGIS).
 

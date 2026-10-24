@@ -1,0 +1,119 @@
+# Verificação automática: roda a cada envio para o GitHub (push) e em cada pull request.
+# Se algo falhar, o GitHub marca o commit com um X vermelho e manda e-mail ao autor.
+# Explicação em linguagem simples: docs/verificacao-automatica.md
+name: Verificação
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # botão "Run workflow" na aba Actions, para rodar à mão
+
+# Só leitura do código: este fluxo não publica nada nem mexe no repositório.
+permissions:
+  contents: read
+
+# Um envio novo cancela a verificação ainda em andamento do envio anterior.
+concurrency:
+  group: verificacao-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codigo:
+    name: Testes, tipos e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências (exatamente as do package-lock.json)
+        run: npm ci
+      - name: Conferir os tipos (TypeScript)
+        run: npm run typecheck
+      - name: Testes (regras do MCR e API)
+        run: npm test
+      - name: Build de produção (regras, API e site)
+        run: npm run build
+
+  banco:
+    name: Migrações num banco novo
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: apto
+          POSTGRES_PASSWORD: apto
+          POSTGRES_DB: apto_rural
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U apto -h 127.0.0.1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://apto:apto@127.0.0.1:5432/apto_rural
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Aplicar todas as migrações num banco vazio
+        run: npm run migrar -w @apto/api
+      - name: Rodar de novo (não pode aplicar nada duas vezes)
+        run: npm run migrar -w @apto/api
+
+  coletores:
+    name: Coletores (Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # a mesma do Dockerfile.coletores
+          cache: pip
+          cache-dependency-path: coletores/requirements.txt
+      - name: Instalar dependências
+        run: pip install -r coletores/requirements.txt
+      - name: Conferir que todo o código Python compila
+        run: python -m compileall -q coletores
+      - name: Conferir que os módulos abrem (sem baixar nada)
+        working-directory: coletores
+        run: python -c "import importlib, pkgutil, coletores; [importlib.import_module(f'coletores.{m.name}') for m in pkgutil.iter_modules(coletores.__path__)]"
+
+  dependencias:
+    name: Bibliotecas sem falhas conhecidas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm audit (falhas altas ou críticas)
+        run: npm audit --audit-level=high
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: pip-audit (coletores)
+        run: |
+          pip install pip-audit
+          pip-audit -r coletores/requirements.txt
+
+  docker:
+    name: Imagens de produção (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Montar a imagem da API e do site
+        run: docker build -t apto-rural:verificacao .
+      - name: Montar a imagem dos coletores
+        run: docker build -f Dockerfile.coletores -t apto-rural-coletores:verificacao .
