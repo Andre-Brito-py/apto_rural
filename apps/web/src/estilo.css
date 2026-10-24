@@ -16,9 +16,14 @@
   /* Os mesmos tons da landing, para as telas do app usarem as peças dela. */
   --l-borda: #e3e7e1;
   --l-texto-suave: #566158;
-  --marca: #14532d;
+  /* Cores da marca (docs/marca.md). Mata: principal. Broto: só desenho e fundo escuro (não é cor de texto sobre branco).
+     Ouro: destaque pontual em fundo escuro. */
+  --marca: #14532d; /* Verde Mata */
   --marca-forte: #0f3f22;
   --marca-clara: #e8f1ea;
+  --broto: #4ade80; /* Verde Broto */
+  --broto-fundo-claro: #22a35a; /* Broto para pontos e ícones sobre fundo claro */
+  --ouro: #e9b949; /* Ouro Colheita */
   --foco: #f59e0b;
   --altura-cabecalho: 64px;
 
@@ -78,7 +83,10 @@ a { color: var(--marca); text-underline-offset: 2px; }
   height: var(--altura-cabecalho); display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
 .marca { display: flex; align-items: center; gap: 10px; color: var(--marca-forte); text-decoration: none; font-weight: 700; font-size: 1.08rem; letter-spacing: -0.02em; white-space: nowrap; }
-.marca img { width: 30px; height: 30px; border-radius: 8px; }
+.marca img { width: 30px; height: 30px; }
+.marca-nome { font-weight: 500; letter-spacing: -0.025em; }
+.marca-nome b { font-weight: 750; }
+.rodape-slogan { font-weight: 650; color: var(--marca-forte); letter-spacing: -0.01em; }
 .nav { display: flex; align-items: center; gap: 2px; }
 .nav a {
   color: var(--tinta-suave); text-decoration: none; padding: 0 12px; min-height: 38px;
@@ -640,11 +648,11 @@ details.extra[open] > summary::before { content: '−'; }
   background: radial-gradient(500px 300px at 100% 0%, rgb(250 204 21 / 0.12), transparent 60%), linear-gradient(165deg, #14532d 0%, #0d3a1f 100%);
 }
 @media (min-width: 860px) { .acesso-lado { display: block; position: sticky; top: 24px; } }
-.acesso-lado .sobretitulo { color: #facc15; }
+.acesso-lado .sobretitulo { color: var(--ouro); }
 .acesso-lado h2 { font-size: 1.75rem; font-weight: 700; line-height: 1.15; margin-top: 10px; }
 .acesso-lado ul { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 14px; }
 .acesso-lado li { display: flex; gap: 12px; align-items: flex-start; color: #e3efe6; }
-.acesso-lado .l-check { background: rgb(255 255 255 / 0.12); color: #facc15; }
+.acesso-lado .l-check { background: rgb(255 255 255 / 0.12); color: var(--broto); }
 .acesso-nota { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgb(255 255 255 / 0.15); font-size: 0.85rem; color: #b9d4bf; }
 
 /* Planos */

@@ -5,6 +5,7 @@ import { api, ErroApi, type ConsultaSalva } from '../api';
 import { useSessao } from '../sessao';
 import { CodigoQr } from '../componentes/CodigoQr';
 import { Icone } from '../componentes/Icones';
+import { Marca } from '../componentes/Marca';
 import { MapaImovel } from '../componentes/MapaImovel';
 import { SeloStatus } from '../componentes/SeloStatus';
 import { dataBr } from '../textos';
@@ -78,8 +79,7 @@ export function Dossie() {
         <article className="dossie-folha">
           <header className="dossie-cabecalho">
             <div className="dossie-marca">
-              <img src="/icone.svg" alt="" />
-              <span>Apto Rural</span>
+              <Marca tamanho={28} />
               <span className="dossie-tipo">Dossiê do imóvel</span>
             </div>
             <div className="dossie-cabecalho-corpo">

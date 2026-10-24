@@ -3,6 +3,7 @@ import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { api, type Saude } from './api';
 import { FaixaPersonificacao } from './componentes/FaixaPersonificacao';
 import { LimiteErro } from './componentes/LimiteErro';
+import { Marca } from './componentes/Marca';
 import { Admin } from './paginas/Admin';
 import { AdminUsuario } from './paginas/AdminUsuario';
 import { Carteira } from './paginas/Carteira';
@@ -36,9 +37,8 @@ export function App() {
 
       <header className="cabecalho">
         <div className="cabecalho-dentro">
-          <Link to="/" className="marca">
-            <img src="/icone.svg" alt="" />
-            Apto Rural
+          <Link to="/" className="marca" aria-label="Apto Rural, página inicial">
+            <Marca />
           </Link>
           <nav className="nav" aria-label="Principal">
             <NavLink to="/consultar" className="so-largo">
@@ -132,10 +132,10 @@ export function App() {
       <footer className="rodape">
         <div className="rodape-dentro">
           <div className="rodape-marca">
-            <Link to="/" className="marca">
-              <img src="/icone.svg" alt="" />
-              Apto Rural
+            <Link to="/" className="marca" aria-label="Apto Rural, página inicial">
+              <Marca />
             </Link>
+            <p className="rodape-slogan">Do vermelho ao verde.</p>
             <p>Pré-checagem dos impedimentos socioambientais do crédito rural (MCR 2-9), com as bases oficiais que o banco usa.</p>
           </div>
           <nav className="rodape-colunas" aria-label="Rodapé">

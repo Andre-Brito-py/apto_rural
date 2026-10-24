@@ -403,6 +403,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
 - [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.
+- [ ] Registrar os domínios `aptorural.com.br` e `aptorural.com` (pareciam livres em 23/10/2026), reservar `@aptorural` nas redes e pesquisar a marca no INPI com um advogado (veja [docs/marca.md](docs/marca.md)).
 
 **Depois do lançamento**
 
@@ -434,4 +435,5 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
 | [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
+| [docs/marca.md](docs/marca.md) | A marca: logotipo e arquivos, cores, fonte, tom de voz, slogan e as checagens do nome (domínio, INPI). |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |

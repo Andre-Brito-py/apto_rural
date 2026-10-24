@@ -6,16 +6,18 @@ function escapar(t: string): string {
 
 /** HTML simples, legível em qualquer leitor de e-mail e no celular. */
 function html(titulo: string, paragrafos: string[], botao: { texto: string; link: string }, rodape: string): string {
-  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f7f5ef;font-family:Arial,Helvetica,sans-serif;color:#1b1c18">
+  // Cores e assinatura da marca (docs/marca.md). Sem imagens: muitos leitores de e-mail bloqueiam SVG e imagens externas.
+  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f6f7f4;font-family:Inter,'Segoe UI',Arial,Helvetica,sans-serif;color:#111a14">
 <div style="max-width:520px;margin:0 auto;padding:24px 16px">
-<p style="font-weight:bold;color:#14532d;font-size:18px;margin:0 0 16px">Apto Rural</p>
-<div style="background:#fff;border:1px solid #d9d5c8;border-radius:12px;padding:20px">
+<p style="color:#0f3f22;font-size:19px;letter-spacing:-0.3px;margin:0 0 16px"><span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:#14532d;vertical-align:-4px;margin-right:8px"></span><b>Apto</b> Rural</p>
+<div style="background:#fff;border:1px solid #e3e7e1;border-radius:12px;padding:20px">
 <h1 style="font-size:20px;margin:0 0 12px">${escapar(titulo)}</h1>
 ${paragrafos.map((p) => `<p style="font-size:16px;line-height:1.5;margin:0 0 12px">${escapar(p)}</p>`).join('')}
 <p style="margin:20px 0"><a href="${escapar(botao.link)}" style="background:#14532d;color:#fff;text-decoration:none;font-weight:bold;padding:14px 20px;border-radius:10px;display:inline-block">${escapar(botao.texto)}</a></p>
-<p style="font-size:13px;color:#4a4d45;margin:0">Se o botão não funcionar, copie este endereço no navegador:<br>${escapar(botao.link)}</p>
+<p style="font-size:13px;color:#566158;margin:0">Se o botão não funcionar, copie este endereço no navegador:<br>${escapar(botao.link)}</p>
 </div>
-<p style="font-size:12px;color:#4a4d45;margin:16px 4px">${escapar(rodape)}</p>
+<p style="font-size:12px;color:#566158;margin:16px 4px">${escapar(rodape)}</p>
+<p style="font-size:12px;color:#566158;margin:0 4px"><b style="color:#0f3f22">Apto Rural</b> · Do vermelho ao verde.</p>
 </div></body></html>`;
 }
 
