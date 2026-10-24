@@ -4,7 +4,8 @@ container "coletores" em produção).
 
 - Todo dia às 4h (Brasília): Ibama (atualização diária), MMA (a cada ~15 dias),
   Funai e MTE (arquivos leves).
-- Domingo às 4h: também CNUC e CNFP (arquivos grandes, mudam pouco).
+- Domingo às 4h: também CNUC, CNFP (arquivos grandes, mudam pouco) e o módulo
+  fiscal do Incra (muda raramente; só recarrega se o PDF oficial mudar).
 
 Cada coletor só recarrega se o arquivo oficial mudou (SHA-256). A falha de um
 não impede os outros, e a carga anterior continua valendo.
@@ -27,7 +28,7 @@ from .comum import registrar_erro
 FUSO = ZoneInfo("America/Sao_Paulo")
 HORA = 4
 DIARIOS = ["ibama_embargos", "mma_lista_mcr", "funai_ti", "mte_empregadores"]
-SEMANAIS = ["cnuc", "sfb_cnfp"]
+SEMANAIS = ["cnuc", "sfb_cnfp", "incra_modulo_fiscal"]
 
 
 def rodar(coletores: list[str]) -> None:

@@ -67,5 +67,7 @@ export interface Repositorio {
   ): Promise<ConsultaSalva>;
   buscar(id: string): Promise<ConsultaSalva | null>;
   liberarDossie(id: string): Promise<void>;
+  /** Módulo fiscal (Incra) do município do CAR, ou null se a tabela não tem o município. */
+  moduloFiscal(car: string): Promise<{ municipio: string; ha: number } | null>;
   atualizacoes(): Promise<Partial<Record<FonteId, string>>>;
 }

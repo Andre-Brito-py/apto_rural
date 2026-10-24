@@ -1,5 +1,5 @@
 import { normalizarCar, type SituacaoCar } from '@apto/regras';
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ErroApi, type GeometriaImovel, type Saude } from '../api';
 import { lerArquivoImovel, type ImovelLido } from '../arquivoImovel';
@@ -45,6 +45,24 @@ export function Consulta({ saude }: { saude: Saude | null }) {
   const [consentimento, setConsentimento] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
+  const [mfMunicipio, setMfMunicipio] = useState<{ chave: string; municipio: string; ha: number } | null>(null);
+
+  // Módulo fiscal do município (tabela do Incra), pelo código do município que está no CAR.
+  const codigoCar = normalizarCar(car);
+  const chaveMunicipio = codigoCar?.slice(0, 10) ?? '';
+  useEffect(() => {
+    if (!codigoCar || mfMunicipio?.chave === chaveMunicipio) return;
+    let vivo = true;
+    api
+      .moduloFiscal(codigoCar)
+      .then((r) => vivo && setMfMunicipio({ chave: chaveMunicipio, municipio: r.municipio, ha: r.moduloFiscalHa }))
+      .catch(() => vivo && setMfMunicipio(null));
+    return () => {
+      vivo = false;
+    };
+  }, [codigoCar, chaveMunicipio, mfMunicipio?.chave]);
+  const mfDoMunicipio = mfMunicipio?.chave === chaveMunicipio ? mfMunicipio : null;
+  const estimativaMf = mfDoMunicipio && lido ? lido.areaHa / mfDoMunicipio.ha : undefined;
 
   async function escolherArquivo(arquivo: File | undefined) {
     if (!arquivo) return;
@@ -173,11 +191,28 @@ export function Consulta({ saude }: { saude: Saude | null }) {
             inputMode="decimal"
             value={modulos}
             onChange={(e) => setModulos(e.target.value)}
-            placeholder="Ex.: 8,5"
-            style={{ maxWidth: 200 }}
+            placeholder={estimativaMf != null ? `Estimativa: ${numeroBr(estimativaMf, 2)}` : 'Ex.: 8,5'}
+            style={{ maxWidth: 220 }}
             {...invalido('modulosFiscais')}
           />
           <span className="ajuda">Define a data em que a checagem do Prodes passa a valer para este imóvel.</span>
+          {mfDoMunicipio && (
+            <span className="estimativa-mf" aria-live="polite">
+              <Icone nome="camadas" className="l-icone-p" />
+              {estimativaMf != null ? (
+                <span>
+                  <strong>Estimativa: {numeroBr(estimativaMf, 2)} módulos fiscais</strong> ({numeroBr(lido!.areaHa, 0)} ha do contorno ÷{' '}
+                  {numeroBr(mfDoMunicipio.ha, 0)} ha, o módulo fiscal de {mfDoMunicipio.municipio} na tabela do Incra). Deixe em branco para
+                  usar a estimativa, ou digite o número que está no CAR.
+                </span>
+              ) : (
+                <span>
+                  Módulo fiscal de {mfDoMunicipio.municipio}: <strong>{numeroBr(mfDoMunicipio.ha, 0)} ha</strong> (Incra). Com o arquivo do
+                  imóvel, calculamos os módulos fiscais sozinhos.
+                </span>
+              )}
+            </span>
+          )}
           {erroDe('modulosFiscais')}
         </label>
 

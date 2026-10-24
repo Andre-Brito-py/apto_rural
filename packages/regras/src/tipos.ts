@@ -10,7 +10,8 @@ export type FonteId =
   | 'incra_quilombolas'
   | 'ibama_embargos'
   | 'sfb_cnfp'
-  | 'mma_lista_mcr';
+  | 'mma_lista_mcr'
+  | 'incra_modulo_fiscal';
 
 export interface Norma {
   /** Item do Manual de Crédito Rural, ex.: "MCR 2-9-10". */
@@ -56,6 +57,13 @@ export interface Evidencias {
     car: string;
     areaHa?: number;
     modulosFiscais?: number;
+    /**
+     * De onde vieram os módulos fiscais: informado pelo técnico, lista oficial do MMA
+     * ou estimado (área do contorno ÷ módulo fiscal do município, tabela do Incra).
+     */
+    origemModulosFiscais?: 'informado' | 'lista_mma' | 'estimado';
+    /** Módulo fiscal do município (Incra), usado na estimativa. */
+    moduloFiscalMunicipio?: { municipio: string; ha: number };
     situacaoCar?: SituacaoCar;
     /** CAR de perímetro de uso coletivo (assentamento, povos e comunidades tradicionais). */
     usoColetivo?: boolean;

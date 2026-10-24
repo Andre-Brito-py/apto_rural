@@ -265,8 +265,8 @@ export function Lote({ saude }: { saude: Saude | null }) {
         <div className="lote-ajuda">
           <p>
             <strong>Colunas:</strong> <code>car</code> (obrigatória) e, se quiser, <code>apelido</code>, <code>situacao_car</code> (ativo,
-            pendente, suspenso ou cancelado, como no demonstrativo) e <code>modulos_fiscais</code>. Os nomes podem variar: &quot;Código do
-            CAR&quot;, &quot;Nome da fazenda&quot;…
+            pendente, suspenso ou cancelado, como no demonstrativo) e <code>modulos_fiscais</code> (sem ela, usamos a lista do MMA ou
+            estimamos pela área do contorno e pela tabela do Incra). Os nomes podem variar: &quot;Código do CAR&quot;, &quot;Nome da fazenda&quot;…
           </p>
           <button type="button" className="link-botao" onClick={() => baixar(new Blob(['﻿' + MODELO_PLANILHA], { type: 'text/csv' }), 'modelo-lote-apto-rural.csv')}>
             <Icone nome="documento" className="l-icone-p" /> Baixar planilha-modelo

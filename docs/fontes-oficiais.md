@@ -2,7 +2,7 @@
 
 Registro das normas e bases que o Apto Rural usa. **Regra do projeto:** nenhuma regra entra no motor sem norma oficial citada aqui. Fontes secundárias (imprensa, escritórios) servem só como pista. O que não foi confirmado em fonte oficial fica marcado como **A CONFIRMAR** e não deve virar regra.
 
-Última revisão: 23/10/2026.
+Última revisão: 24/10/2026 (módulo fiscal do Incra).
 
 ## 1. Normas (Manual de Crédito Rural, Capítulo 2, Seção 9)
 
@@ -54,7 +54,23 @@ Registro das normas e bases que o Apto Rural usa. **Regra do projeto:** nenhuma 
 | 2-9-14 | Florestas públicas (CNFP 2025) | Serviço Florestal Brasileiro | Item público `2b752dfbf9254920bf8990ce363918af` em mapas.florestal.gov.br (SHP, 229 MB) | CC BY | Coletor pronto. Campo `tipo` = "TIPO B" (1.742 de 12.874 polígonos). |
 | 2-9-4 | Cadastro de empregadores | MTE | [PDF oficial](https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/inspecao-do-trabalho/areas-de-atuacao/cadastro_de_empregadores.pdf) (Portaria Interministerial 18/2024, semestral) | Ato público | Coletor pronto. Edição de 6/10/2026: 335 CPFs e 163 CNPJs; gravados só como HMAC. |
 | 2-9-2/3 | Imóveis do CAR | SFB / Sicar | consultapublica.car.gov.br | **Não declarada** | Download protegido por captcha — ver conformidade |
-| 2-9-15/17 | Módulo fiscal por município | Incra | A CONFIRMAR | A CONFIRMAR | A CONFIRMAR |
+| 2-9-15/17 | Módulo fiscal por município | Incra | [PDF "Índices Básicos de 2013"](https://www.gov.br/incra/pt-br/acesso-a-informacao/indices_basicos_2013_por_municipio.pdf/@@download/file), ligado pela [página oficial do módulo fiscal](https://www.gov.br/incra/pt-br/assuntos/governanca-fundiaria/modulo-fiscal); valores em vigor pela IE Incra 5/2022 | Ato público | **Confirmado em 24/10/2026** (seção 2.1). Coletor pronto: 5.569 municípios, 27 UFs, MF de 5 a 110 ha. Usado só para **estimar** os módulos do imóvel quando o técnico não informa e o CAR não está na lista do MMA. |
+
+### 2.1 Módulo fiscal: como a fonte foi confirmada (24/10/2026)
+
+- **Base legal:** a Lei 6.746/1979 criou o módulo fiscal (art. 50 do Estatuto da Terra), e o [Decreto 84.685/1980, art. 4º](https://www.planalto.gov.br/ccivil_03/decreto/1980-1989/d84685.htm), manda o Incra fixar o módulo fiscal de cada município, em hectares, por Instrução Especial.
+- **Norma em vigor:** a [página de Instruções Especiais do Incra](https://www.gov.br/incra/pt-br/centrais-de-conteudos/legislacao/instrucao-especial) lista como vigentes a **IE nº 5, de 29/7/2022** (índices básicos por município, Anexo IV; DOU de 1/8/2022) e a **IE nº 6, de 4/7/2025** (inclui Boa Esperança do Norte/MT). As IEs antigas (20/1980, 51/1997, 3/2005 etc.) foram revogadas.
+- **Onde está a tabela:**
+  - **Consulta do Incra:** o canal atual é a "Consultar Índices Básicos" da Plataforma de Governança Territorial. Ela **tem captcha**, e o Apto Rural não contorna captcha, então não é usada pelo sistema.
+  - **Anexo IV no DOU:** não abriu deste computador (o site in.gov.br recusou a conexão).
+  - **Arquivos em gov.br/incra:** a página oficial do módulo fiscal liga dois arquivos, o PDF "Índices Básicos de 2013" (tabela completa por código IBGE) e a planilha da IE 5/2022 com os municípios que tiveram a fração mínima de parcelamento alterada (`tabela-fmp_alterado.xls`).
+- **Por que o PDF de 2013 vale hoje:**
+  - **A IE 5/2022 não mudou o MF:** na planilha da IE 5/2022 há colunas "NOVA FMP", "NOVA ZTM" e "NOVO L.E." e **nenhuma de módulo fiscal novo**. Nos **1.885 municípios** da planilha, o MF é **idêntico** ao do PDF de 2013.
+  - **Bate com a lista oficial do MMA:** nos **3.998 imóveis** reais da amostra do MMA, que traz os módulos fiscais oficiais de cada CAR, a conta "área do polígono ÷ MF do município" ficou a menos de 1% do valor do MMA em **98,7%** deles (diferença mediana de 0,065%). As 38 divergências acima de 5% aparecem em imóveis diferentes do mesmo município, ou seja, vêm da área declarada no CAR e não da tabela.
+- **Limites conhecidos:**
+  - **Municípios fora do PDF:** os criados depois de 2013 (ex.: Boa Esperança do Norte/MT, da IE 6/2025) ficam sem valor, e a consulta pede o número ao técnico.
+  - **É uma estimativa:** o número oficial do imóvel é o do CAR, porque a área declarada pode diferir do desenho. Perto dos limites de 4 e 15 módulos (5% de folga), o resultado pede para confirmar.
+  - **Pendência:** quando o DOU abrir, conferir o Anexo IV da IE 5/2022 contra a tabela carregada.
 
 ## 3. Avisos oficiais que o produto deve repetir
 

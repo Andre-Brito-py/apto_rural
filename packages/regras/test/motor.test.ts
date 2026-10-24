@@ -171,6 +171,33 @@ describe('MCR 2-9-17 — cronograma da Resolução CMN 5.303/2026', () => {
   });
 });
 
+describe('módulos fiscais estimados (área do contorno ÷ módulo fiscal do município, Incra)', () => {
+  const estimado = (mf: number) =>
+    limpo({}, { modulosFiscais: mf, areaHa: mf * 80, origemModulosFiscais: 'estimado', moduloFiscalMunicipio: { municipio: 'Jangada/MT', ha: 80 } });
+
+  it('o resultado diz que é estimativa e como foi calculada', () => {
+    const detalhes = item(estimado(19.76), 'prodes').detalhes.join(' ');
+    expect(detalhes).toContain('estimados em 19,76');
+    expect(detalhes).toContain('Jangada/MT (80 ha');
+    expect(detalhes).not.toContain('muito perto');
+  });
+  it('perto de 4 ou 15 módulos, pede para confirmar o número oficial do CAR', () => {
+    expect(item(estimado(14.6), 'prodes').detalhes.join(' ')).toContain('muito perto do limite de 15');
+    expect(item(estimado(4.1), 'prodes').detalhes.join(' ')).toContain('muito perto do limite de 4');
+  });
+  it('valor informado ou da lista do MMA não leva nota de estimativa', () => {
+    const informado = limpo({}, { modulosFiscais: 14.6, origemModulosFiscais: 'informado' });
+    expect(item(informado, 'prodes').detalhes.join(' ')).not.toContain('estimad');
+  });
+  it('floresta pública: estimativa perto de 15 não decide a exceção sozinha', () => {
+    const ev = { ...estimado(15.3), florestasTipoB: [{ nome: 'Gleba X', areaHa: 50 }] };
+    const caminho = item(ev, 'floresta-publica').caminhos.find((c) => c.titulo.includes('15 módulos'))!;
+    expect(caminho.verificacao).toEqual({ atende: null, texto: expect.stringContaining('confirme') });
+    const longe = { ...estimado(30), florestasTipoB: [{ nome: 'Gleba X', areaHa: 50 }] };
+    expect(item(longe, 'floresta-publica').caminhos.find((c) => c.titulo.includes('15 módulos'))!.verificacao!.atende).toBe(false);
+  });
+});
+
 describe('comparação para a carteira', () => {
   it('embargo novo aparece como piora', () => {
     const antes = avaliar(limpo(), '2026-10-23');

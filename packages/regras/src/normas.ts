@@ -62,6 +62,12 @@ export const FONTES: Record<FonteId, Fonte> = {
     orgao: 'MMA / Inpe',
     url: 'https://www.gov.br/mma/pt-br/assuntos/controle-ao-desmatamento-queimadas-e-ordenamento-ambiental-territorial/controle-do-desmatamento-1/atendimento-ao-manual-de-credito-rural',
   },
+  incra_modulo_fiscal: {
+    id: 'incra_modulo_fiscal',
+    nome: 'Índices básicos: módulo fiscal de cada município (IE Incra 5/2022)',
+    orgao: 'Incra',
+    url: 'https://www.gov.br/incra/pt-br/assuntos/governanca-fundiaria/modulo-fiscal',
+  },
 };
 
 export const CONTESTACAO_PRODES_URL = 'https://www.gov.br/inpe/pt-br/canais_atendimento/biomasbr';

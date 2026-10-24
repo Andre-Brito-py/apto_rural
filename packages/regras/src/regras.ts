@@ -409,13 +409,51 @@ export const regraFlorestaPublica: Regra = {
           verificacao:
             mf == null
               ? { atende: null, texto: 'Informe os módulos fiscais do imóvel para checar o limite.' }
-              : { atende: mf <= 15, texto: `O imóvel tem ${mf.toLocaleString('pt-BR')} módulos fiscais.` },
+              : estimativaIncerta(ev, 15)
+                ? { atende: null, texto: `Estimativa de ${mfBr(mf)} módulos fiscais, perto do limite de 15: confirme o número oficial no CAR.` }
+                : {
+                    atende: mf <= 15,
+                    texto: `O imóvel tem ${mfBr(mf)} módulos fiscais${ev.imovel.origemModulosFiscais === 'estimado' ? ' (estimativa pela área do contorno e pela tabela do Incra)' : ''}.`,
+                  },
         },
       ],
       dossie: 'plano_de_saida',
     };
   },
 };
+
+/**
+ * Folga em que uma estimativa de módulos fiscais pode estar do lado errado de um limite.
+ * Critério do produto: na conferência com a lista do MMA, a estimativa ficou a menos de 1%
+ * do valor oficial em 98,7% dos imóveis; acima de 5%, só quando a área declarada no CAR
+ * difere do desenho (docs/fontes-oficiais.md).
+ */
+export const MARGEM_ESTIMATIVA_MF = 0.05;
+
+const mfBr = (mf: number) => mf.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+
+/**
+ * Explica quando os módulos fiscais foram estimados (e não informados ou lidos da lista do
+ * MMA) e avisa se a estimativa está perto de um dos limites que mudam a regra.
+ */
+export function notasModulosFiscais(ev: Evidencias, limites: number[]): string[] {
+  const { modulosFiscais: mf, origemModulosFiscais: origem, moduloFiscalMunicipio: mun, areaHa } = ev.imovel;
+  if (mf == null || origem !== 'estimado' || !mun) return [];
+  const notas = [
+    `Módulos fiscais estimados em ${mfBr(mf)}: área do contorno${areaHa != null ? ` (${ha(areaHa)})` : ''} dividida pelo módulo fiscal de ${mun.municipio} (${ha(mun.ha)}, tabela do Incra). O número oficial está no recibo e no demonstrativo do CAR.`,
+  ];
+  const perto = limites.find((l) => Math.abs(mf - l) <= l * MARGEM_ESTIMATIVA_MF);
+  if (perto != null) {
+    notas.push(`A estimativa está muito perto do limite de ${perto} módulos fiscais: confirme o número oficial do CAR, porque ele muda a regra deste item.`);
+  }
+  return notas;
+}
+
+/** A estimativa está tão perto de um limite que pode estar do outro lado dele. */
+function estimativaIncerta(ev: Evidencias, limite: number): boolean {
+  const mf = ev.imovel.modulosFiscais;
+  return ev.imovel.origemModulosFiscais === 'estimado' && mf != null && Math.abs(mf - limite) <= limite * MARGEM_ESTIMATIVA_MF;
+}
 
 /** Início da exigência do MCR 2-9-17, conforme a Resolução CMN 5.303/2026. */
 export function inicioExigenciaProdes(ev: Evidencias): string | null {
@@ -444,13 +482,15 @@ export const regraProdes: Regra = {
     const quando = inicio
       ? `Para este imóvel, a verificação passa a ser exigida em ${dataBr(inicio)}.`
       : 'Informe os módulos fiscais para saber quando a verificação passa a ser exigida (4/1/2027, 1/7/2027 ou 3/1/2028).';
+    // Coletivo tem data própria; nos demais, a data depende dos limites de 4 e 15 módulos.
+    const notasMf = ev.imovel.usoColetivo ? [] : notasModulosFiscais(ev, [4, 15]);
 
     if (!lista.consta) {
       const resultado: ResultadoItem = {
         ...base(this),
         status: 'sem_impedimento',
         resumo: 'O CAR não consta na lista do MMA.',
-        detalhes: [quando],
+        detalhes: [quando, ...notasMf],
       };
       const mf = ev.imovel.modulosFiscais;
       if (mf == null || mf <= 4) {
@@ -478,6 +518,7 @@ export const regraProdes: Regra = {
     const detalhes = [
       `Consta na lista${supressao}, acima do limite do bioma${lista.criterio ? ` (${lista.criterio})` : ''}.`,
       quando,
+      ...notasMf,
       'Segundo o MMA, a sobreposição entre o Prodes e o CAR não configura, por si só, presunção de ilegalidade ou infração ambiental.',
       'O item 18 condiciona o crédito com recursos controlados (MCR 6-1-2) e direcionados (MCR 6-7-7-"a").',
     ];

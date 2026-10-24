@@ -113,6 +113,14 @@ A checagem de desmatamento (Prodes) entra em vigor aos poucos, pela **Resoluçã
 
 As outras regras (CAR, embargo, terra indígena, UC etc.) **já valem hoje**.
 
+**De onde vem o número de módulos fiscais do imóvel**, nesta ordem:
+
+1. **O que o técnico digitar**, tirado do recibo ou do demonstrativo do CAR.
+2. **A lista oficial do MMA**, que traz o número de cada CAR que está nela.
+3. **Uma estimativa**, quando não há nenhum dos dois: a área do contorno dividida pelo **módulo fiscal do município**, que é fixado pelo Incra (Decreto 84.685/1980, art. 4º; Instrução Especial Incra 5/2022). Exemplo: 1.581 ha em Jangada/MT, onde o módulo fiscal é de 80 ha, dão 19,8 módulos.
+
+O resultado avisa quando o número é estimativa e pede para conferir no CAR se ele estiver perto de 4 ou de 15, porque ali a data muda. Na reconferência diária da carteira, a lista do MMA vem antes do que foi digitado. Como a fonte foi confirmada está em [docs/fontes-oficiais.md](docs/fontes-oficiais.md).
+
 ---
 
 ## 5. Como o sistema funciona
@@ -249,6 +257,7 @@ Abra http://localhost:5180 (porta própria do Apto Rural, para não misturar com
    python -m coletores.funai_ti
    python -m coletores.sfb_cnfp
    python -m coletores.mte_empregadores
+   python -m coletores.incra_modulo_fiscal
    ```
 
    Dicas: `--simular` só lê e conta, sem gravar; `--arquivo caminho` usa um arquivo já baixado. Se uma carga falhar no meio, a anterior continua valendo.
@@ -415,7 +424,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 **Logo depois do lançamento: deixam o produto mais confiável**
 
 - [ ] **Preencher a situação do CAR sozinho** (ativo, pendente, suspenso ou cancelado), em vez de o técnico digitar. É a regra que mais derruba crédito, e depender do que o usuário digita enfraquece o "nunca verde sem checar". **Condição:** a consulta pública do Sicar tem captcha e não declara licença, e o Apto Rural não contorna captcha. Só com autorização ou convênio do Serviço Florestal Brasileiro (veja [docs/conformidade-legal.md](docs/conformidade-legal.md)).
-- [ ] **Calcular os módulos fiscais sozinho**, com a área do contorno e o valor do módulo fiscal de cada município (Incra). É um campo a menos e um erro a menos na data do Prodes. Antes, confirmar a fonte oficial da tabela, que ainda está "A CONFIRMAR" em [docs/fontes-oficiais.md](docs/fontes-oficiais.md).
+- [x] **Calcular os módulos fiscais sozinho**, com a área do contorno e o valor do módulo fiscal de cada município (Incra). É um campo a menos e um erro a menos na data do Prodes. Feito: fonte oficial confirmada (PDF de índices básicos do Incra, conferido contra a planilha da IE 5/2022 e contra 3.998 imóveis da lista do MMA, veja [docs/fontes-oficiais.md](docs/fontes-oficiais.md)). Coletor `incra_modulo_fiscal`, estimativa na tela e no resultado, aviso perto de 4 e 15 módulos. Falta conferir o Anexo IV no DOU quando o site abrir.
 - [ ] **Buscar o contorno da fazenda só pelo código do CAR**, sem o técnico mandar arquivo: "digitei o código, saiu o semáforo". **Mesma condição** do item da situação do CAR: só com autorização ou convênio do Serviço Florestal.
 
 **Para vender mais**

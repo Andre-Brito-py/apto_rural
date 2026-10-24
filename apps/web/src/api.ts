@@ -330,6 +330,7 @@ export const api = {
   regras: () => pedir<CatalogoRegras>('/v1/regras'),
   consultar: (dados: NovaConsulta) => pedir<ConsultaSalva>('/v1/consultas', post(dados)),
   consulta: (id: string) => pedir<ConsultaSalva>(`/v1/consultas/${encodeURIComponent(id)}`),
+  moduloFiscal: (car: string) => pedir<{ municipio: string; moduloFiscalHa: number }>(`/v1/modulo-fiscal/${encodeURIComponent(car)}`),
   liberarDossie: (id: string) => pedir<{ ok: boolean; saldo?: Saldo }>(`/v1/consultas/${encodeURIComponent(id)}/dossie`, post()),
 
   eu: () => pedir<Sessao>('/v1/eu'),

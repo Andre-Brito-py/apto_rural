@@ -81,7 +81,7 @@ export class RepositorioPostgis implements Repositorio {
       return rows.map((r) => ({ ...r, areaHa: Number(r.areaHa) })) as T[];
     };
 
-    const [areaImovel, uc, ti, quilombolas, florestas, embargos, mma, trabalhoEscravo] = await Promise.all([
+    const [areaImovel, uc, ti, quilombolas, florestas, embargos, mma, trabalhoEscravo, mfMunicipio] = await Promise.all([
       geo
         ? this.pool.query<{ area: string }>(`SELECT ST_Area(${GEOM}::geography) / 10000 AS area`, [geo]).then((r) => Number(r.rows[0]!.area))
         : Promise.resolve(undefined),
@@ -99,16 +99,25 @@ export class RepositorioPostgis implements Repositorio {
       this.embargos(geo, carregada('ibama_embargos')),
       this.listaMma(e.car, carregada('mma_lista_mcr')),
       this.trabalhoEscravo(e.hashesCadastro, carregada('mte_empregadores')),
+      carregada('incra_modulo_fiscal') ? this.moduloFiscal(e.car) : Promise.resolve(null),
     ]);
 
     // Na consulta, o que o técnico informou prevalece; na reconferência da
-    // carteira, prevalece a lista oficial do MMA (mais recente).
+    // carteira, prevalece a lista oficial do MMA (mais recente). Sem nenhum dos
+    // dois, estima pela área do contorno e pelo módulo fiscal do município (Incra).
     const oficialPrimeiro = e.preferirBaseOficial === true;
+    const estimado = areaImovel != null && mfMunicipio ? Math.round((areaImovel / mfMunicipio.ha) * 100) / 100 : undefined;
+    const opcoes: [number | undefined, 'informado' | 'lista_mma' | 'estimado'][] = oficialPrimeiro
+      ? [[mma?.modulosFiscais, 'lista_mma'], [e.modulosFiscais, 'informado'], [estimado, 'estimado']]
+      : [[e.modulosFiscais, 'informado'], [mma?.modulosFiscais, 'lista_mma'], [estimado, 'estimado']];
+    const [modulosFiscais, origemModulosFiscais] = opcoes.find(([v]) => v != null) ?? [undefined, undefined];
     return {
       imovel: {
         car: e.car,
         areaHa: areaImovel,
-        modulosFiscais: oficialPrimeiro ? (mma?.modulosFiscais ?? e.modulosFiscais) : (e.modulosFiscais ?? mma?.modulosFiscais),
+        modulosFiscais,
+        origemModulosFiscais,
+        moduloFiscalMunicipio: origemModulosFiscais === 'estimado' ? mfMunicipio! : undefined,
         situacaoCar: oficialPrimeiro ? (mma?.situacaoCar ?? e.situacaoCar) : (e.situacaoCar ?? mma?.situacaoCar),
         usoColetivo: e.usoColetivo,
       },
@@ -121,6 +130,17 @@ export class RepositorioPostgis implements Repositorio {
       trabalhoEscravo,
       atualizacoes,
     };
+  }
+
+  /** Módulo fiscal do município do CAR (o código do meio é o código IBGE do município). */
+  async moduloFiscal(car: string): Promise<{ municipio: string; ha: number } | null> {
+    const [uf, codIbge] = car.split('-');
+    const { rows } = await this.pool.query<{ municipio: string; ha: string }>(
+      'SELECT municipio, modulo_fiscal_ha AS ha FROM incra_modulo_fiscal WHERE cod_ibge = $1',
+      [codIbge],
+    );
+    const r = rows[0];
+    return r ? { municipio: `${r.municipio}/${uf}`, ha: Number(r.ha) } : null;
   }
 
   private async embargos(geo: string | null, carregada: boolean): Promise<Evidencias['embargos']> {

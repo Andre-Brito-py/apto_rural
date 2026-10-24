@@ -129,6 +129,7 @@ export class RepositorioDemo implements Repositorio {
         car: e.car,
         areaHa,
         modulosFiscais: e.modulosFiscais ?? mf,
+        origemModulosFiscais: e.modulosFiscais != null ? 'informado' : 'lista_mma',
         situacaoCar: e.situacaoCar,
         usoColetivo: e.usoColetivo,
       },
@@ -163,4 +164,9 @@ export class RepositorioDemo implements Repositorio {
   }
 
   async liberarDossie() {}
+
+  // Os CARs de exemplo usam o município fictício 0000000.
+  async moduloFiscal() {
+    return null;
+  }
 }

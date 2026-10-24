@@ -42,6 +42,16 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     atualizacoes: ctx.banco ? await ctx.banco.atualizacoes() : ctx.demo ? await ctx.demo.atualizacoes() : {},
   }));
 
+  // Módulo fiscal do município (tabela do Incra), para a tela mostrar a estimativa antes
+  // da consulta. Dado público, sem conta: só o código do CAR, que não identifica pessoa.
+  app.get<{ Params: { car: string } }>('/v1/modulo-fiscal/:car', async (req, reply) => {
+    const car = normalizarCar(req.params.car);
+    if (!car) return erro(reply, 400, 'Código do CAR inválido.', 'car');
+    const mf = ctx.banco ? await ctx.banco.moduloFiscal(car) : null;
+    if (!mf) return erro(reply, 404, 'Não temos o módulo fiscal deste município.');
+    return { municipio: mf.municipio, moduloFiscalHa: mf.ha };
+  });
+
   // Contornos de fazendas grandes passam de 1 MB (o padrão do Fastify). A consulta em lote
   // faz até 200 seguidas (3 ao mesmo tempo); o crédito já limita o abuso, então o freio
   // aqui é mais largo que o geral, só para conter robôs.
