@@ -136,7 +136,7 @@ O caminho de uma consulta:
 2. O site manda isso para a **API**.
 3. A API pergunta ao **banco de mapas** o que se sobrepõe à fazenda e consulta as listas pelo código do CAR.
 4. O **motor de regras** transforma o que foi encontrado em semáforo, aplicando cada item do MCR e suas exceções.
-5. O resultado volta para a tela e fica guardado, para poder ser conferido depois pelo **código QR** do relatório.
+5. O resultado volta para a tela e fica guardado, para poder ser conferido depois pelo **código QR** do relatório. Junto vai um **mapa do imóvel e do entorno**, que mostra onde a fazenda encosta em embargo, terra indígena, Unidade de Conservação etc.
 
 **A carteira funciona assim:** às 4h os coletores atualizam as bases; às 6h o **monitor** reconfere cada fazenda acompanhada, compara com o resultado anterior e, se algo mudou, grava um resultado novo (com dossiê e QR), cria um aviso e manda **um e-mail por técnico** com todas as mudanças do dia. Mudança causada por uma base que falhou ao atualizar (item virando "Não verificado") não gera alarme.
 
@@ -419,7 +419,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 **Para vender mais**
 
 - [ ] **Consulta em lote** (CSV ou planilha com vários CARs), para escritórios e cooperativas que atendem dezenas de fazendas. Combina com o plano Escritório.
-- [ ] **Mapa no resultado e no dossiê**, mostrando onde a fazenda encosta no embargo, na terra indígena, na Unidade de Conservação etc., para o técnico explicar ao produtor e ao gerente do banco.
+- [x] **Mapa no resultado e no dossiê**, mostrando onde a fazenda encosta no embargo, na terra indígena, na Unidade de Conservação etc., para o técnico explicar ao produtor e ao gerente do banco. Feito: mapa ilustrado com números no ponto de contato, hectares dentro do imóvel, o que está por perto com a distância, escala e norte; guardado como fotografia do dia da consulta. Testado com fazendas reais de MT e PA (veja [docs/frontend.md](docs/frontend.md)).
 
 **Depois do lançamento**
 

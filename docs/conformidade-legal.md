@@ -58,6 +58,7 @@ O que **fica guardado** e por quê:
 
 - **Sicar:** o download da consulta pública é protegido por captcha e a licença não é declarada. O Apto Rural **não contorna captcha**. No MVP, o imóvel entra pelo arquivo que o técnico já tem (shapefile, KML ou GeoJSON exportado do CAR) e a situação do CAR é informada a partir do demonstrativo. Acesso automatizado ao Sicar só com autorização ou convênio com o SFB.
 - Para cada base: conferir licença e exigência de citação antes de vender (ver `fontes-oficiais.md`).
+- **Mapa do resultado e do dossiê:** mostra recortes dessas mesmas bases públicas em volta do imóvel, sempre com a citação dos órgãos (Ibama, Funai, MMA/CNUC, Incra, SFB) e a data da consulta, e com o aviso de que o desenho é simplificado e os limites oficiais são os de cada órgão. A conferência de licença acima vale também para esse uso. O mapa não tem dado pessoal: só o contorno enviado pelo técnico e áreas públicas.
 - Os coletores registram a URL, a data do download e o hash de cada arquivo, para provar a origem de cada resultado.
 
 ## Critérios do produto (não estão na norma)

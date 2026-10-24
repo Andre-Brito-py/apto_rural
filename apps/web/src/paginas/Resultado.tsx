@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { api, type ConsultaSalva } from '../api';
 import { IconeStatus } from '../componentes/Icones';
 import { ItemResultado } from '../componentes/ItemResultado';
+import { MapaEntorno } from '../componentes/MapaEntorno';
 import { MapaImovel } from '../componentes/MapaImovel';
 import { dataBr, PESO_STATUS, ROTULO_STATUS, VEREDITO } from '../textos';
 
@@ -171,7 +172,7 @@ export function Resultado() {
           <dt>Código</dt>
           <dd style={{ fontSize: '0.85rem' }}>{consulta.id}</dd>
         </dl>
-        {consulta.geometria && <MapaImovel geometria={consulta.geometria} />}
+        {consulta.geometria && !consulta.mapa && <MapaImovel geometria={consulta.geometria} />}
       </section>
 
       <div className="acoes-resultado nao-imprimir">
@@ -194,6 +195,12 @@ export function Resultado() {
       </div>
 
       {consulta.minha && !consulta.demo && <Acompanhar consultaId={consulta.id} />}
+
+      {consulta.geometria && consulta.mapa && (
+        <section className="cartao" aria-label="Mapa do imóvel e do entorno">
+          <MapaEntorno mapa={consulta.mapa} geometria={consulta.geometria} data={r.dataReferencia} />
+        </section>
+      )}
 
       <section className="pilha-p secao-itens" aria-labelledby="titulo-itens">
         <h2 id="titulo-itens" className="secao-titulo">

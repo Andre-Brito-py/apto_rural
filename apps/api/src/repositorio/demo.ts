@@ -1,6 +1,6 @@
 import type { Evidencias, ResultadoConsulta } from '@apto/regras';
 import type { GeometriaImovel } from '../esquemas.js';
-import type { ConsultaSalva, EntradaColeta, Repositorio } from './tipos.js';
+import type { CamadaMapa, ConsultaSalva, EntradaColeta, MapaEntorno, Repositorio } from './tipos.js';
 
 /**
  * Cenários FICTÍCIOS para desenvolver e demonstrar a interface sem as bases
@@ -60,6 +60,60 @@ function cenario(car: string): Omit<Evidencias, 'imovel' | 'trabalhoEscravo'> & 
   return limpo;
 }
 
+const retangulo = (o: number, s: number, l: number, n: number) => ({
+  type: 'Polygon',
+  coordinates: [[[o, s], [l, s], [l, n], [o, n], [o, s]]],
+});
+
+/** Mapa do entorno FICTÍCIO, desenhado em volta do contorno, coerente com cada cenário. */
+function mapaFicticio(car: string, geometria: GeometriaImovel): MapaEntorno {
+  const pontos = (geometria.type === 'Polygon' ? [geometria.coordinates] : geometria.coordinates).flat(2) as number[][];
+  const xs = pontos.map((p) => p[0]!);
+  const ys = pontos.map((p) => p[1]!);
+  const [o, s, l, n] = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  const w = l - o;
+  const h = n - s;
+  const folga = Math.max(w, h) * 0.45 + 0.01;
+  const janela: MapaEntorno['janela'] = [o - folga, s - folga, l + folga, n + folga];
+  const meio = (a: number, b: number) => (a + b) / 2;
+  const camadas: CamadaMapa[] = [
+    // Em todos os cenários: uma UC ao norte, fora do imóvel, para o mapa mostrar o entorno.
+    {
+      tipo: 'uc',
+      nome: 'Parque Estadual Exemplo (fictício)',
+      detalhe: 'Parque',
+      toca: false,
+      distanciaM: Math.round(folga * 0.35 * 111_000),
+      rotulo: [meio(o, l), n + folga * 0.7],
+      geometria: retangulo(o - folga, n + folga * 0.35, l + folga, n + folga),
+    },
+  ];
+  if (car === CARS_DEMO.embargoEProdes) {
+    const [x, y] = [o + w * 0.45, s + h * 0.35];
+    camadas.unshift({
+      tipo: 'embargo',
+      nome: 'Embargo DEMO-0001 (fictício)',
+      detalhe: '10/03/2025',
+      toca: true,
+      areaHa: 18,
+      rotulo: [x + w * 0.06, y + h * 0.05],
+      geometria: retangulo(x, y, x + w * 0.12, y + h * 0.1),
+    });
+  }
+  if (car === CARS_DEMO.bordaTerraIndigena) {
+    camadas.unshift({
+      tipo: 'terra_indigena',
+      nome: 'Terra Indígena Exemplo (fictícia)',
+      detalhe: 'Regularizada',
+      toca: true,
+      areaHa: 0.04,
+      rotulo: [l, meio(s, n)],
+      geometria: retangulo(l - w * 0.004, s - folga, l + folga, n * 0.5 + s * 0.5 + h * 0.2),
+    });
+  }
+  return { janela, camadas };
+}
+
 export class RepositorioDemo implements Repositorio {
   private consultas = new Map<string, ConsultaSalva>();
 
@@ -88,11 +142,13 @@ export class RepositorioDemo implements Repositorio {
     resultado: ResultadoConsulta,
     meta: { id: string; usuarioId?: string },
   ): Promise<ConsultaSalva> {
+    const geometria = e.geometria ?? quadrado(-55.9, -12.6, 0.03);
     const salva: ConsultaSalva = {
       id: meta.id,
       criadaEm: new Date().toISOString(),
       resultado,
-      geometria: e.geometria ?? quadrado(-55.9, -12.6, 0.03),
+      geometria,
+      mapa: mapaFicticio(e.car, geometria),
       demo: true,
       usuarioId: meta.usuarioId,
       // Exemplos fictícios: dossiê aberto, sem gastar crédito.

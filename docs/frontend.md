@@ -42,6 +42,15 @@ As telas de quem já tem conta seguem o visual da landing, para o produto parece
   - **Como o shapefile é lido** (`arquivoImovel.ts`): tudo acontece no navegador, com a biblioteca livre `shpjs` (licença MIT), que só é baixada quando alguém escolhe um .zip. O .zip baixado do Sicar traz várias camadas (APP, reserva legal, vegetação…); o site usa a camada **AREA_IMOVEL**, que é o perímetro do imóvel. Se o arquivo estiver em **UTM** (metros, comum em escritórios de topografia), o arquivo `.prj` dentro do .zip diz qual é a projeção e o site converte para latitude e longitude. Sem o `.prj`, o site avisa e pede o arquivo, em vez de adivinhar.
   - **A área da prévia é só uma conferência:** é uma conta aproximada (erro abaixo de 1%; numa fazenda real de MT deu 1.587 ha contra 1.581 ha do PostGIS). A área oficial continua sendo a do CAR.
 - **Resultado:** veredito maior, contagem em etiquetas e botões de ação lado a lado.
+- **Mapa do imóvel e do entorno** (`componentes/MapaEntorno.tsx`), no resultado e no dossiê:
+  - **O que mostra:** o contorno do imóvel e, em volta, as áreas das bases públicas: embargos do Ibama, terras indígenas, Unidades de Conservação, territórios quilombolas e florestas públicas.
+  - **O que encosta no imóvel** ganha cor forte, um **número** colocado onde encosta e, na legenda, quantos hectares ficam dentro do imóvel. A parte que fica dentro do imóvel aparece com realce sólido.
+  - **O que está perto** aparece claro e tracejado. Na legenda, essas áreas são agrupadas por base ("39 embargos do Ibama por perto, o mais próximo a 204 m"), para a lista não ficar enorme.
+  - **Cada base tem cor e textura próprias** (listras, pontos, quadriculado), para dar para distinguir mesmo sem perceber bem as cores ou numa impressão em preto e branco.
+  - **Escala em km e seta do norte**, como num mapa de verdade.
+  - **É uma fotografia do dia da consulta.** A API recorta as bases numa janela em volta do imóvel quando a consulta é feita e guarda o recorte junto com o resultado (coluna `consulta.mapa`, migração 011). Assim, o mapa do dossiê mostra exatamente o que foi checado, mesmo que as bases mudem depois. Consultas antigas, de antes do mapa, mostram só o contorno.
+  - **Leve:** o recorte é simplificado (menos de um pixel de diferença na tela) e fica entre 1 e 30 KB por consulta. O desenho é SVG feito no próprio código: sem biblioteca de mapa e sem imagem de terceiros. Por isso funciona na impressão e respeita a política de segurança do site.
+  - Se o recorte falhar, a consulta segue normalmente, só sem o mapa: o mapa ilustra, quem decide é o motor de regras.
 
 - **Equipe (`/equipe`):** ocupação ("3 de 5 pessoas"), lista de pessoas com papel e consultas no mês, convites em aberto, formulário de convite e o que cada papel faz. O técnico vê só a lista e o botão de sair. Quem não tem plano de equipe vê o convite para conhecer o Escritório.
 - **Convite (`/convite?token=…`):** o que a pessoa vê ao abrir o link do e-mail. Sem conta, cria pelo próprio link (o e-mail já vem preenchido); com outra conta aberta, oferece sair e entrar com o e-mail certo.

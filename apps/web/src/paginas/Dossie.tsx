@@ -6,6 +6,7 @@ import { useSessao } from '../sessao';
 import { CodigoQr } from '../componentes/CodigoQr';
 import { Icone } from '../componentes/Icones';
 import { Marca } from '../componentes/Marca';
+import { MapaEntorno } from '../componentes/MapaEntorno';
 import { MapaImovel } from '../componentes/MapaImovel';
 import { SeloStatus } from '../componentes/SeloStatus';
 import { dataBr } from '../textos';
@@ -109,7 +110,7 @@ export function Dossie() {
           </header>
 
           {(consulta.geometria || itens.length > 0) && (
-            <section className="dossie-resumo">
+            <section className={`dossie-resumo${consulta.geometria && !consulta.mapa ? '' : ' dossie-resumo-sozinho'}`}>
               <div>
                 <h2 className="dossie-h2">Resumo</h2>
                 {itens.length === 0 ? (
@@ -128,12 +129,18 @@ export function Dossie() {
                   </ol>
                 )}
               </div>
-              {consulta.geometria && (
+              {consulta.geometria && !consulta.mapa && (
                 <figure className="dossie-mapa">
                   <MapaImovel geometria={consulta.geometria} />
                   <figcaption>Contorno do imóvel usado na consulta.</figcaption>
                 </figure>
               )}
+            </section>
+          )}
+
+          {consulta.geometria && consulta.mapa && (
+            <section className="dossie-secao dossie-secao-mapa">
+              <MapaEntorno mapa={consulta.mapa} geometria={consulta.geometria} data={r.dataReferencia} />
             </section>
           )}
 

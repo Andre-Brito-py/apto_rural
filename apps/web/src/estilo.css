@@ -294,6 +294,37 @@ details.extra[open] > summary::before { content: '−'; }
 .dados dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .mapa { width: 100%; max-width: 180px; aspect-ratio: 1; justify-self: center; background: #eef3ea; border-radius: 10px; border: 1px solid var(--linha); }
 
+/* Mapa ilustrado do imóvel e do entorno (componentes/MapaEntorno.tsx). */
+.mapa-entorno { display: grid; gap: 14px; }
+.mapa-entorno-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.mapa-entorno-titulo { margin: 0; font-size: 1.08rem; font-weight: 700; letter-spacing: -0.01em; }
+.mapa-selo {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 600; background: var(--superficie); border: 1px solid var(--linha-forte);
+}
+.mapa-selo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--cor); }
+.mapa-desenho {
+  display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--linha-forte);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.mapa-legenda { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px 20px; }
+@media (min-width: 640px) { .mapa-legenda { grid-template-columns: 1fr 1fr; } }
+.mapa-legenda li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 0.9rem; line-height: 1.4; }
+.mapa-legenda strong { font-weight: 650; overflow-wrap: anywhere; }
+.mapa-legenda-sub { display: block; font-size: 0.82rem; color: var(--tinta-suave); }
+.mapa-dentro { display: block; margin-top: 2px; font-size: 0.82rem; font-weight: 650; color: var(--impedimento); }
+.mapa-num {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; font-size: 0.78rem; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.mapa-chave {
+  width: 24px; height: 16px; margin-top: 2px; border-radius: 4px; border: 1.5px dashed var(--cor);
+  background: color-mix(in srgb, var(--cor) 14%, #fff); -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.mapa-chave-imovel { --cor: var(--marca); border: 2.5px solid var(--marca); background: #fff; }
+.mapa-nota { margin: 0; font-size: 0.78rem; line-height: 1.45; color: var(--tinta-suave); }
+.dossie-secao .mapa-entorno-titulo { font-size: 1.05rem; }
+
 .avisos { font-size: 0.9rem; color: var(--tinta-suave); }
 
 .fonte-linha { display: grid; grid-template-columns: 56px 1fr; gap: 8px; font-size: 0.92rem; }
@@ -608,6 +639,9 @@ details.extra[open] > summary::before { content: '−'; }
 .dossie-h2 { font-size: 1.15rem; font-weight: 700; }
 .dossie-resumo { display: grid; gap: 24px; }
 @media (min-width: 720px) { .dossie-resumo { grid-template-columns: 1fr 200px; align-items: start; } }
+@media (min-width: 720px) { .dossie-resumo.dossie-resumo-sozinho { grid-template-columns: 1fr; } }
+/* Na impressão, o mapa não se parte entre duas páginas. */
+@media print { .dossie-secao-mapa { break-inside: avoid; } }
 .dossie-sumario { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
 .dossie-sumario li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--linha); border-radius: 10px; }
 .dossie-sumario li > span:nth-child(2) { flex: 1; min-width: 0; }

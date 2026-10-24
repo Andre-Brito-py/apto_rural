@@ -5,11 +5,36 @@ export interface GeometriaImovel {
   coordinates: number[][][] | number[][][][];
 }
 
+export type TipoCamadaMapa = 'embargo' | 'terra_indigena' | 'uc' | 'quilombola' | 'floresta_publica';
+
+/** Uma área das bases públicas no mapa do entorno (recorte guardado no dia da consulta). */
+export interface CamadaMapa {
+  tipo: TipoCamadaMapa;
+  nome: string;
+  detalhe?: string;
+  /** Encosta no imóvel. */
+  toca: boolean;
+  /** Hectares dentro do imóvel, quando encosta. */
+  areaHa?: number;
+  /** Metros até o imóvel, quando não encosta. */
+  distanciaM?: number;
+  rotulo?: [number, number];
+  geometria: { type: string; coordinates?: unknown; geometries?: CamadaMapa['geometria'][] };
+}
+
+export interface MapaEntorno {
+  /** Oeste, sul, leste, norte. */
+  janela: [number, number, number, number];
+  camadas: CamadaMapa[];
+}
+
 export interface ConsultaSalva {
   id: string;
   criadaEm: string;
   resultado: ResultadoConsulta;
   geometria?: GeometriaImovel;
+  /** Mapa do entorno; ausente em consultas sem contorno ou anteriores ao mapa. */
+  mapa?: MapaEntorno;
   demo: boolean;
   /** A consulta é de quem está logado. */
   minha: boolean;
