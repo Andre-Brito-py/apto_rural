@@ -54,6 +54,13 @@ O que **fica guardado** e por quê:
 - A conta e os dados continuam sendo de cada pessoa: cada membro baixa os próprios dados e exclui a própria conta. Ao sair da equipe, volta a usar só a própria conta.
 - As consultas feitas por um membro ficam ligadas a ele (não ao responsável); o crédito gasto fica no extrato do responsável com a indicação de quem usou.
 
+## Explicação por inteligência artificial (docs/ia.md)
+
+- **A IA não decide nada:** o resultado é do motor de regras. A explicação só reescreve, sempre com o aviso de que foi gerada por IA e de que vale o resultado oficial. Texto que mude a situação ou prometa aprovação é barrado antes de aparecer.
+- **O que vai para a OpenAI** são fatos sobre o imóvel tirados das bases públicas. Antes do envio, o site tira CPF, CNPJ, código do CAR e e-mail. Nome, contato e o desenho do imóvel nunca são enviados, e o pedido vai com `store: false`.
+- **A política de privacidade deve dizer** que a explicação, quando pedida, é gerada por um fornecedor de IA (OpenAI), com servidores fora do Brasil (LGPD, arts. 33 a 36, transferência internacional). **A CONFIRMAR** com advogado: a redação e se os termos de uso da OpenAI para a API bastam como garantia.
+- **A chave da OpenAI fica cifrada no banco** e não aparece no painel nem na auditoria.
+
 ## Coleta de dados públicos
 
 - **Sicar:** o download da consulta pública é protegido por captcha e a licença não é declarada. O Apto Rural **não contorna captcha**. No MVP, o imóvel entra pelo arquivo que o técnico já tem (shapefile, KML ou GeoJSON exportado do CAR) e a situação do CAR é informada a partir do demonstrativo. Acesso automatizado ao Sicar só com autorização ou convênio com o SFB.

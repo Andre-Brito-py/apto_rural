@@ -72,10 +72,44 @@ button.s{background:#eee;color:#111}code{font-size:.85em}</style>
 ${historico ? `<div class="caixa"><strong>Avisos enviados à API</strong><ul>${historico}</ul></div>` : ''}</html>`;
 }
 
+// OpenAI FALSA (Responses API), para o ensaio da explicação por IA (docs/ia.md). Escreve
+// um texto simples a partir dos fatos recebidos, no formato que a OpenAI devolve.
+// Chave terminada em "ruim" é recusada (401), para testar o caminho de erro.
+function openaiFalsa(req, corpo) {
+  const chave = String(req.headers.authorization ?? '').replace(/^Bearer /, '');
+  if (!chave.startsWith('sk-') || chave.endsWith('ruim')) return [401, { error: { message: 'Incorrect API key provided' } }];
+  const fatos = JSON.parse(corpo.input ?? '{}');
+  const comProblema = (fatos.itens ?? []).filter((i) => i.resultado === 'impedimento' || i.resultado === 'atenção');
+  const inicio = {
+    impedimento: 'Hoje o seu imóvel tem um ponto que impede o crédito rural.',
+    atencao: 'Hoje nada impede o crédito, mas há pontos que o banco vai olhar com cuidado.',
+    sem_impedimento: 'Nas bases oficiais, o seu imóvel não tem nenhum impedimento socioambiental para o crédito rural.',
+    incompleto: 'Nada foi encontrado contra o seu imóvel, mas a checagem ainda está incompleta.',
+  }[fatos.situacao];
+  const partes = comProblema.map((i) => {
+    const saida = i.saidas_que_a_norma_admite?.[0];
+    return `No item ${i.item.toLowerCase()}, ${i.o_que_foi_encontrado.charAt(0).toLowerCase()}${i.o_que_foi_encontrado.slice(1)}${saida ? ` Uma saída prevista é: ${saida.toLowerCase()}.` : ''}`;
+  });
+  const texto = [inicio, ...partes, 'O técnico pode ajudar você a juntar os documentos. A decisão final é sempre do banco.'].join(' ');
+  return [
+    200,
+    {
+      status: 'completed',
+      output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify({ situacao: fatos.situacao, texto }) }] }],
+      usage: { input_tokens: Math.round(String(corpo.input).length / 4), output_tokens: Math.round(texto.length / 4) },
+    },
+  ];
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url, ENDERECO);
   const caminho = url.pathname;
   try {
+    if (req.method === 'POST' && caminho === '/openai/v1/responses') {
+      const [status, corpo] = openaiFalsa(req, await lerCorpo(req));
+      console.log(`openai falsa → ${status}`);
+      return json(res, status, corpo);
+    }
     // Rotas da API v3 (o que o Apto Rural chama). Exige a chave, como o Asaas.
     if (caminho.startsWith('/v3/')) {
       if (!req.headers.access_token) return json(res, 401, { errors: [{ description: 'Sem access_token' }] });

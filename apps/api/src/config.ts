@@ -22,6 +22,13 @@ export const config = {
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean),
+  /**
+   * Chave que cifra os segredos guardados pelo painel (ex.: chave da OpenAI): 32 bytes
+   * em hexadecimal (64 caracteres). Obrigatória em produção. Ver docs/ia.md.
+   */
+  chaveSegredos: process.env.CHAVE_SEGREDOS ?? '',
+  /** Só para o ensaio de produção e testes: aponta para uma IA falsa. */
+  iaUrl: process.env.IA_URL || undefined,
   smtp: {
     host: process.env.SMTP_HOST ?? '',
     porta: Number(process.env.SMTP_PORTA ?? 587),
@@ -38,6 +45,9 @@ if (producao) {
   if (!config.databaseUrl) throw new Error('Em produção, DATABASE_URL é obrigatório.');
   if (!config.asaas.chave || config.asaas.tokenWebhook.length < 32) {
     throw new Error('Em produção, ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN (32+ caracteres) são obrigatórios.');
+  }
+  if (!/^[0-9a-f]{64}$/i.test(config.chaveSegredos)) {
+    throw new Error('Em produção, CHAVE_SEGREDOS é obrigatória: 64 caracteres hexadecimais (gere com: openssl rand -hex 32).');
   }
   if (config.asaas.url && config.asaas.ambiente === 'producao') {
     throw new Error('ASAAS_URL (Asaas falso do ensaio) não pode ser usado com ASAAS_AMBIENTE=producao.');

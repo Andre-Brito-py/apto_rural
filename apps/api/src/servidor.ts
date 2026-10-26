@@ -19,6 +19,10 @@ import { RepositorioContasPostgres } from './contas/postgres.js';
 import { COOKIE_SESSAO, usuarioDaRequisicao, type Contexto } from './contexto.js';
 import { EnviadorConsole, EnviadorSmtp } from './email/enviador.js';
 import { RepositorioEquipe } from './equipe/repositorio.js';
+import { ServicoExplicacao } from './ia/explicacao.js';
+import { ProvedorOpenAI } from './ia/provedor.js';
+import { chaveMestra, Segredos } from './ia/segredos.js';
+import { UsoIA } from './ia/uso.js';
 import { rotasEquipe } from './rotas/equipe.js';
 import { ProvedorAsaas } from './pagamentos/asaas.js';
 import { ProvedorSimulado } from './pagamentos/simulado.js';
@@ -32,6 +36,9 @@ export function criarContexto(): Contexto {
   const pool = config.databaseUrl ? new pg.Pool({ connectionString: config.databaseUrl, max: 10 }) : null;
   if (!pool && !config.demo) throw new Error('Sem DATABASE_URL, só o modo demonstração (APTO_DEMO=1) funciona.');
   const email = config.smtp.host ? new EnviadorSmtp(config.smtp, config.smtp.remetente) : new EnviadorConsole();
+  const configuracoes = new Configuracoes(pool);
+  const segredos = new Segredos(pool, chaveMestra(config.chaveSegredos, config.segredoDocumento || 'desenvolvimento'));
+  const uso = new UsoIA(pool);
   return {
     banco: pool ? new RepositorioPostgis(pool) : null,
     demo: config.demo ? new RepositorioDemo() : null,
@@ -40,8 +47,18 @@ export function criarContexto(): Contexto {
     admin: pool ? new RepositorioAdmin(pool) : null,
     equipe: pool ? new RepositorioEquipe(pool) : null,
     erros: new RegistroErros(pool, email, config.adminEmails, config.webOrigin),
-    config: new Configuracoes(pool),
+    config: configuracoes,
     email,
+    ia: {
+      explicacao: new ServicoExplicacao({
+        config: configuracoes,
+        segredos,
+        uso,
+        provedor: (chave) => new ProvedorOpenAI(chave, config.iaUrl),
+      }),
+      segredos,
+      uso,
+    },
     pagamento: config.asaas.chave
       ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook, config.asaas.url)
       : config.demo

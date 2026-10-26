@@ -2,6 +2,7 @@
 # Usa o docker-compose.prod.yml de verdade e troca só o que depende de contas externas:
 #   - e-mail: Mailpit (caixa de correio falsa; veja os e-mails em http://localhost:8025)
 #   - pagamento: Asaas falso (deploy/ensaio/asaas-falso.mjs, fatura em http://localhost:8099)
+#   - IA: OpenAI falsa, no mesmo servidor (explicação para o produtor, docs/ia.md)
 #   - domínio: localhost (o Caddy gera um certificado próprio, que o navegador estranha)
 #
 # Uso (na pasta do projeto):
@@ -13,6 +14,8 @@ services:
     env_file: !override .env.ensaio
     environment:
       ASAAS_URL: http://asaas-falso:8099/v3
+      # OpenAI falsa (mesmo servidor do Asaas falso): a chave cadastrada no painel não sai deste computador.
+      IA_URL: http://asaas-falso:8099/openai/v1
     depends_on:
       mailpit:
         condition: service_started

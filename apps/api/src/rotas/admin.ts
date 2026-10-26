@@ -25,6 +25,14 @@ const ajuste = z.object({
 const comMotivo = z.object({ motivo: z.string().trim().min(3, 'Explique o motivo.').max(200) });
 const comPapel = z.object({ papel: z.enum(['usuario', 'suporte', 'admin']) });
 
+// Chave de API da OpenAI: começa com "sk-" (as de projeto, com "sk-proj-").
+const chaveIA = z.object({
+  chave: z
+    .string()
+    .trim()
+    .regex(/^sk-[A-Za-z0-9_-]{20,300}$/, 'Isso não parece uma chave da OpenAI: ela começa com "sk-" e é bem longa.'),
+});
+
 const erroDoSite = z.object({
   mensagem: z.string().min(1).max(500),
   detalhe: z.string().max(4000).optional(),
@@ -272,6 +280,43 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
       if (e instanceof ErroConfiguracao) return erro(reply, 400, e.message);
       throw e;
     }
+  });
+
+  // ---- inteligência artificial (só admin): a chave nunca volta, só o final dela ----
+
+  app.get('/v1/admin/ia', async (req, reply) => {
+    if (!(await exigir(req, reply, 'admin'))) return reply;
+    const [configuracao, chave, hoje, mes] = await Promise.all([
+      ctx.config.obter().then((c) => c.ia),
+      ctx.ia.segredos.info('openai_api_key'),
+      ctx.ia.uso.hoje(),
+      ctx.ia.uso.doMes(),
+    ]);
+    return { configuracao, chave, uso: { hoje, mes } };
+  });
+
+  app.put('/v1/admin/ia/chave', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    const corpo = chaveIA.safeParse(req.body);
+    if (!corpo.success) return erro(reply, 400, corpo.error.issues[0]!.message, 'chave');
+    const info = await ctx.ia.segredos.definir('openai_api_key', corpo.data.chave, admin.id);
+    // Na auditoria, só o final da chave: o suficiente para saber qual foi cadastrada.
+    await ctx.admin!.auditar(admin.id, 'definiu_chave_ia', null, { final: info.final });
+    return { chave: info };
+  });
+
+  app.delete('/v1/admin/ia/chave', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    await ctx.ia.segredos.apagar('openai_api_key');
+    await ctx.admin!.auditar(admin.id, 'apagou_chave_ia', null);
+    return { chave: { definida: false } };
+  });
+
+  app.post('/v1/admin/ia/testar', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (req, reply) => {
+    if (!(await exigir(req, reply, 'admin'))) return reply;
+    return ctx.ia.explicacao.testar();
   });
 
   // Erros do navegador (tela quebrada, falha de JavaScript). Sem login obrigatório.

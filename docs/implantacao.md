@@ -80,6 +80,10 @@ Em produção a API não sobe sem `SMTP_HOST` e `EMAIL_REMETENTE`. No desenvolvi
 
 Coloque seu e-mail em `ADMIN_EMAILS` no `.env.producao` (vários e-mails separados por vírgula), suba de novo, crie sua conta no site com esse e-mail e confirme. O painel fica em `https://seu-dominio/admin`. Os alertas de erro chegam nesses e-mails.
 
+## 8. Explicação por IA (opcional, pelo painel)
+
+A `CHAVE_SEGREDOS` do `.env.producao` (gere com `openssl rand -hex 32`) é obrigatória: sem ela a API não sobe. Ela cifra a chave da OpenAI que você vai cadastrar no painel. A chave da OpenAI **não** vai no `.env`: entra pelo painel, na aba **Inteligência artificial**, e passa a valer sem reiniciar nada. Passo a passo e cuidados em [ia.md](ia.md).
+
 ## Tarefas do dia a dia
 
 | Quero… | Comando |
@@ -103,6 +107,7 @@ docker compose -f docker-compose.prod.yml exec backup sh -c \
 
 - O `.env.producao` tem senhas: **nunca** envie ao GitHub (ele já está no `.gitignore`).
 - **Não troque** o `DOCUMENTO_HASH_SECRET` depois de carregar o cadastro do MTE. Se trocar, rode o coletor do MTE de novo com `--forcar`.
+- Se trocar a `CHAVE_SEGREDOS`, a chave da OpenAI salva no painel deixa de abrir: cadastre de novo na aba Inteligência artificial.
 - Em produção a API se recusa a subir sem banco e sem as chaves do Asaas, e o modo demonstração fica desligado.
 - Os backups ficam no próprio servidor. Para segurança extra, copie-os periodicamente para fora dele.
 - Antes de lançar, faça a lista "O que depende de você" de [seguranca.md](seguranca.md) (duas etapas nas contas, SSH só por chave, firewall com 22, 80 e 443).

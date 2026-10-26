@@ -1,5 +1,6 @@
 import type { Evidencias, ResultadoConsulta } from '@apto/regras';
 import type { GeometriaImovel } from '../esquemas.js';
+import type { Explicacao } from '../ia/explicacao.js';
 import type { CamadaMapa, ConsultaSalva, EntradaColeta, MapaEntorno, Repositorio } from './tipos.js';
 
 /**
@@ -164,6 +165,11 @@ export class RepositorioDemo implements Repositorio {
   }
 
   async liberarDossie() {}
+
+  async salvarExplicacao(id: string, explicacao: Explicacao) {
+    const c = this.consultas.get(id);
+    if (c && !c.explicacao) c.explicacao = explicacao;
+  }
 
   // Os CARs de exemplo usam o município fictício 0000000.
   async moduloFiscal() {

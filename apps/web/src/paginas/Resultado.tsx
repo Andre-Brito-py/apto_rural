@@ -1,8 +1,9 @@
 import { formatarCar, type Status } from '@apto/regras';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { api, type ConsultaSalva } from '../api';
-import { IconeStatus } from '../componentes/Icones';
+import { api, type ConsultaSalva, type Explicacao } from '../api';
+import { Icone, IconeStatus } from '../componentes/Icones';
+import { useSessao } from '../sessao';
 import { ItemResultado } from '../componentes/ItemResultado';
 import { MapaEntorno } from '../componentes/MapaEntorno';
 import { MapaImovel } from '../componentes/MapaImovel';
@@ -30,6 +31,94 @@ function textoWhatsapp(c: ConsultaSalva): string {
     'Pré-checagem com bases públicas; não substitui a análise do banco.',
   ];
   return linhas.join('\n');
+}
+
+/**
+ * Explicação em linguagem simples para mandar ao produtor (docs/ia.md). A IA só reescreve
+ * o que as regras já decidiram; o resultado oficial continua sendo o de cima.
+ */
+function ExplicacaoProdutor({ consulta }: { consulta: ConsultaSalva }) {
+  const { sessao } = useSessao();
+  const [explicacao, setExplicacao] = useState<Explicacao | undefined>(consulta.explicacao);
+  const [gerando, setGerando] = useState(false);
+  const [erro, setErro] = useState('');
+  const [copiado, setCopiado] = useState(false);
+  const podeGerar = !!sessao && (consulta.minha || consulta.demo);
+  if (!explicacao && !podeGerar) return null;
+
+  async function gerar() {
+    setGerando(true);
+    setErro('');
+    try {
+      setExplicacao((await api.explicar(consulta.id)).explicacao);
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(explicacao!.texto);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch {
+      setErro('Não deu para copiar: selecione o texto e copie à mão.');
+    }
+  }
+
+  const whatsapp = explicacao
+    ? `*Apto Rural*: o resultado do seu imóvel em palavras simples\n\n${explicacao.texto}\n\nResultado completo: ${window.location.href}`
+    : '';
+
+  return (
+    <section className="cartao explicacao-produtor" aria-labelledby="titulo-explicacao">
+      <div className="explicacao-topo">
+        <span className="l-icone-caixa" aria-hidden="true">
+          <Icone nome="conversa" />
+        </span>
+        <div>
+          <h2 id="titulo-explicacao" className="secao-titulo">
+            Explicação para o produtor
+          </h2>
+          {!explicacao && (
+            <p className="fonte-suave explicacao-sub">
+              Um resumo em palavras simples do que deu, do que pesa e do que dá para fazer, pronto para mandar no WhatsApp.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {explicacao ? (
+        <>
+          <p className="explicacao-texto" aria-live="polite">
+            {explicacao.texto}
+          </p>
+          <p className="explicacao-nota">
+            {explicacao.origem === 'ia'
+              ? 'Explicação gerada por inteligência artificial a partir do resultado oficial e conferida automaticamente. O que vale é o resultado acima.'
+              : 'Explicação montada direto do resultado oficial.'}
+          </p>
+          <div className="explicacao-acoes nao-imprimir">
+            <button type="button" className="botao botao-secundario botao-auto" onClick={copiar}>
+              {copiado ? 'Copiado ✓' : 'Copiar texto'}
+            </button>
+            <a className="botao botao-whatsapp botao-auto" href={`https://wa.me/?text=${encodeURIComponent(whatsapp)}`} target="_blank" rel="noreferrer">
+              Mandar para o produtor
+            </a>
+          </div>
+        </>
+      ) : (
+        <div className="nao-imprimir">
+          <button type="button" className="botao botao-primario botao-auto" onClick={gerar} disabled={gerando}>
+            {gerando ? 'Escrevendo a explicação…' : 'Explicar para o produtor'}
+          </button>
+        </div>
+      )}
+      {erro && <p className="alerta alerta-erro">{erro}</p>}
+    </section>
+  );
 }
 
 /** Coloca o imóvel na carteira, para ser reconferido todo dia. */
@@ -193,6 +282,8 @@ export function Resultado() {
           </Link>
         )}
       </div>
+
+      <ExplicacaoProdutor consulta={consulta} />
 
       {consulta.minha && !consulta.demo && <Acompanhar consultaId={consulta.id} />}
 

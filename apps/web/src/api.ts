@@ -35,6 +35,8 @@ export interface ConsultaSalva {
   geometria?: GeometriaImovel;
   /** Mapa do entorno; ausente em consultas sem contorno ou anteriores ao mapa. */
   mapa?: MapaEntorno;
+  /** Explicação para o produtor, quando já foi gerada pela IA. */
+  explicacao?: Explicacao;
   demo: boolean;
   /** A consulta é de quem está logado. */
   minha: boolean;
@@ -287,6 +289,31 @@ export interface Configs {
   limite_carteira: number;
   creditos_boas_vindas: Saldo;
   aviso_site: { ativo: boolean; texto: string; tipo: 'info' | 'alerta' };
+  ia: ConfigIA;
+}
+
+export interface ConfigIA {
+  ativo: boolean;
+  modelo: string;
+  limiteDiario: number;
+}
+
+/** Explicação em linguagem simples para o produtor (docs/ia.md). */
+export interface Explicacao {
+  texto: string;
+  /** "ia": escrita pela IA e conferida; "modelo": montada direto das regras, sem IA. */
+  origem: 'ia' | 'modelo';
+  modelo?: string;
+  geradaEm: string;
+}
+
+export interface PainelIA {
+  configuracao: ConfigIA;
+  chave: { definida: boolean; final?: string; atualizadaEm?: string };
+  uso: {
+    hoje: number;
+    mes: { chamadas: number; ok: number; rejeitadas: number; erros: number; tokensEntrada: number; tokensSaida: number; custoEstimadoUsd: number | null };
+  };
 }
 
 export interface CatalogoRegras {
@@ -332,6 +359,11 @@ export const api = {
   consulta: (id: string) => pedir<ConsultaSalva>(`/v1/consultas/${encodeURIComponent(id)}`),
   moduloFiscal: (car: string) => pedir<{ municipio: string; moduloFiscalHa: number }>(`/v1/modulo-fiscal/${encodeURIComponent(car)}`),
   liberarDossie: (id: string) => pedir<{ ok: boolean; saldo?: Saldo }>(`/v1/consultas/${encodeURIComponent(id)}/dossie`, post()),
+  explicar: (id: string) =>
+    pedir<{ explicacao: Explicacao; motivo?: 'desligada' | 'sem_chave' | 'limite_diario' | 'falha' | 'barrada' }>(
+      `/v1/consultas/${encodeURIComponent(id)}/explicacao`,
+      post(),
+    ),
 
   eu: () => pedir<Sessao>('/v1/eu'),
   criarConta: (dados: { nome: string; email: string; whatsapp?: string; profissao?: string; senha: string; aceiteTermos: boolean }) =>
@@ -398,6 +430,11 @@ export const api = {
     desbloquear: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/desbloquear`, post()),
     definirPapel: (id: string, papel: Papel) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/papel`, post({ papel })),
     reenviarConfirmacao: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/reenviar-confirmacao`, post()),
+    ia: () => pedir<PainelIA>('/v1/admin/ia'),
+    salvarChaveIA: (chave: string) =>
+      pedir<{ chave: PainelIA['chave'] }>('/v1/admin/ia/chave', { method: 'PUT', body: JSON.stringify({ chave }) }),
+    apagarChaveIA: () => pedir<{ chave: PainelIA['chave'] }>('/v1/admin/ia/chave', { method: 'DELETE' }),
+    testarIA: () => pedir<{ ok: boolean; mensagem: string; ms?: number }>('/v1/admin/ia/testar', post()),
   },
 
   pagarSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/pedidos/${encodeURIComponent(id)}/pagar`, post()),

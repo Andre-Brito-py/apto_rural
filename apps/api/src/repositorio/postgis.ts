@@ -1,5 +1,6 @@
 import type { Evidencias, FonteId, ResultadoConsulta, Sobreposicao } from '@apto/regras';
 import pg from 'pg';
+import type { Explicacao } from '../ia/explicacao.js';
 import type { CamadaMapa, ConsultaSalva, EntradaColeta, MapaEntorno, Repositorio, TipoCamadaMapa } from './tipos.js';
 
 // Geometria do imóvel em SIRGAS 2000. Arquivos GeoJSON/KML vêm em WGS 84,
@@ -221,7 +222,7 @@ export class RepositorioPostgis implements Repositorio {
   async buscar(id: string): Promise<ConsultaSalva | null> {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
     const { rows } = await this.pool.query(
-      `SELECT id, usuario_id, criada_em, resultado, dossie_liberado_em, mapa, ST_AsGeoJSON(geom)::json AS geometria
+      `SELECT id, usuario_id, criada_em, resultado, dossie_liberado_em, mapa, explicacao, ST_AsGeoJSON(geom)::json AS geometria
          FROM consulta WHERE id = $1`,
       [id],
     );
@@ -233,6 +234,7 @@ export class RepositorioPostgis implements Repositorio {
       resultado: r.resultado,
       geometria: r.geometria ?? undefined,
       mapa: r.mapa ?? undefined,
+      explicacao: r.explicacao ?? undefined,
       demo: false,
       usuarioId: r.usuario_id ?? undefined,
       dossieLiberado: r.dossie_liberado_em != null,
@@ -275,6 +277,11 @@ export class RepositorioPostgis implements Repositorio {
       console.error('Mapa do entorno falhou; consulta segue sem mapa.', e);
       return undefined;
     }
+  }
+
+  async salvarExplicacao(id: string, explicacao: Explicacao) {
+    // Só grava se ainda não houver: dois cliques ao mesmo tempo não sobrescrevem.
+    await this.pool.query('UPDATE consulta SET explicacao = $2 WHERE id = $1 AND explicacao IS NULL', [id, explicacao]);
   }
 
   async liberarDossie(id: string) {

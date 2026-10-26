@@ -294,6 +294,36 @@ details.extra[open] > summary::before { content: '−'; }
 .dados dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .mapa { width: 100%; max-width: 180px; aspect-ratio: 1; justify-self: center; background: #eef3ea; border-radius: 10px; border: 1px solid var(--linha); }
 
+/* Explicação para o produtor (Resultado.tsx) e aba de IA do painel (IAPainel.tsx). */
+.explicacao-produtor { display: grid; gap: 14px; }
+.explicacao-topo { display: flex; gap: 14px; align-items: flex-start; }
+.explicacao-topo .l-icone-caixa { flex: none; }
+.explicacao-topo .secao-titulo { margin: 0; }
+.explicacao-sub { margin: 4px 0 0; font-size: 0.9rem; }
+.explicacao-texto {
+  margin: 0; padding: 16px 18px; border-left: 4px solid var(--marca); border-radius: 0 10px 10px 0;
+  background: var(--marca-clara); font-size: 1.02rem; line-height: 1.65; color: var(--tinta);
+}
+.explicacao-nota { margin: 0; font-size: 0.8rem; color: var(--tinta-suave); }
+.explicacao-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 559px) { .explicacao-acoes .botao-auto, .explicacao-produtor > .nao-imprimir .botao-auto { width: 100%; } }
+@media print { .explicacao-texto { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; } }
+
+.ia-situacao { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+@media (max-width: 559px) { .ia-situacao { grid-template-columns: auto minmax(0, 1fr); } .ia-situacao .selo { grid-column: 1 / -1; justify-self: start; } }
+.ia-grade { display: grid; gap: 16px; }
+@media (min-width: 860px) { .ia-grade { grid-template-columns: 1fr 1fr; align-items: start; } }
+.ia-h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; font-weight: 650; }
+.ia-chave-atual { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; }
+.ia-chave-atual .mono { font-weight: 650; padding: 2px 8px; border-radius: 6px; background: var(--neutro-fundo); }
+.ia-botoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.ia-numeros { display: grid; gap: 16px 24px; margin-top: 12px; }
+@media (min-width: 720px) { .ia-numeros { grid-template-columns: 1fr 1.3fr 1.6fr; } }
+.ia-numeros > div { display: grid; gap: 4px; align-content: start; }
+.ia-numeros small { font-size: 0.95rem; font-weight: 500; color: var(--tinta-suave); }
+.ia-detalhe { font-size: 0.82rem; line-height: 1.4; }
+.ia-privacidade p { margin: 0; font-size: 0.9rem; color: var(--tinta-suave); }
+
 /* Mapa ilustrado do imóvel e do entorno (componentes/MapaEntorno.tsx). */
 .mapa-entorno { display: grid; gap: 14px; }
 .mapa-entorno-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }

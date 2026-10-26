@@ -8,6 +8,9 @@ import type { RegistroErros } from './monitoramento/erros.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { Enviador } from './email/enviador.js';
 import type { RepositorioEquipe } from './equipe/repositorio.js';
+import type { ServicoExplicacao } from './ia/explicacao.js';
+import type { Segredos } from './ia/segredos.js';
+import type { UsoIA } from './ia/uso.js';
 import type { ProvedorPagamento } from './pagamentos/tipos.js';
 import type { Repositorio } from './repositorio/tipos.js';
 
@@ -28,6 +31,8 @@ export interface Contexto {
   admin: RepositorioAdmin | null;
   /** Equipes do plano Escritório; null sem banco (cada pessoa usa só a própria conta). */
   equipe: RepositorioEquipe | null;
+  /** Explicação por IA para o produtor, a chave cifrada e o uso (docs/ia.md). */
+  ia: { explicacao: ServicoExplicacao; segredos: Segredos; uso: UsoIA };
 }
 
 export type NivelAdmin = 'admin' | 'suporte';

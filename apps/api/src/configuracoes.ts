@@ -16,12 +16,21 @@ export interface AvisoSite {
   tipo: 'info' | 'alerta';
 }
 
+/** Explicação por IA (a chave fica à parte, cifrada: ia/segredos.ts). */
+export interface ConfigIA {
+  ativo: boolean;
+  modelo: string;
+  /** Máximo de chamadas à IA por dia (Brasília), para o custo não disparar. */
+  limiteDiario: number;
+}
+
 export interface Configs {
   produtos: Produto[];
   planos: Plano[];
   limite_carteira: number;
   creditos_boas_vindas: { consulta: number; dossie: number };
   aviso_site: AvisoSite;
+  ia: ConfigIA;
 }
 
 export type ChaveConfig = keyof Configs;
@@ -32,6 +41,8 @@ const PADRAO: Configs = {
   limite_carteira: LIMITE_CARTEIRA_PADRAO,
   creditos_boas_vindas: CREDITOS_BOAS_VINDAS_PADRAO,
   aviso_site: { ativo: false, texto: '', tipo: 'info' },
+  // gpt-6-luna: o mais econômico da linha atual da OpenAI (developers.openai.com/api/docs/pricing, 26/10/2026).
+  ia: { ativo: false, modelo: 'gpt-6-luna', limiteDiario: 300 },
 };
 
 const creditos = z.object({
@@ -87,6 +98,14 @@ export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], unknown> } = 
     ativo: z.boolean(),
     texto: z.string().trim().max(300),
     tipo: z.enum(['info', 'alerta']),
+  }),
+  ia: z.object({
+    ativo: z.boolean(),
+    modelo: z
+      .string()
+      .trim()
+      .regex(/^[a-z0-9][a-z0-9.\-]{1,60}$/i, 'Use o nome do modelo como a OpenAI escreve (ex.: gpt-6-luna).'),
+    limiteDiario: z.number().int().min(0, 'O limite não pode ser negativo.').max(100000),
   }),
 };
 

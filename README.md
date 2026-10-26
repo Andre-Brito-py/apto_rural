@@ -150,6 +150,14 @@ O caminho de uma consulta:
 
 **A consulta em lote funciona assim** (página `/lote`, para escritórios e cooperativas): o técnico envia uma **planilha CSV** com os códigos do CAR (até 200) e, se tiver, **todos os arquivos de contorno de uma vez**. O site acha o contorno de cada imóvel pelo código do CAR no nome do arquivo ou na tabela de atributos (o .zip do Sicar traz o código na camada AREA_IMOVEL; um arquivo do escritório com várias fazendas também serve). Antes de gastar, a tela mostra a lista, quais imóveis têm contorno e quantos créditos o lote usa. Cada imóvel vira uma consulta normal, com resultado, mapa e QR. No fim, dá para **baixar o resultado em planilha** e **pôr todos na carteira** de uma vez.
 
+**Explicação para o produtor (IA):**
+- **O que faz:** no resultado, o botão "Explicar para o produtor" escreve em palavras simples o que deu e o que dá para fazer, pronto para o WhatsApp.
+- **A IA não decide nada:** ela só reescreve o que as regras já decidiram, sem receber dado pessoal. O texto é conferido antes de aparecer, e é barrado se mudar a situação, prometer aprovação ou inventar número.
+- **Sem IA:** vale uma explicação montada direto das regras.
+- **A chave da OpenAI** entra pelo painel (aba Inteligência artificial), guardada cifrada e sem reinstalar nada.
+
+Detalhes em [docs/ia.md](docs/ia.md).
+
 Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md)).
 
 ---
@@ -406,6 +414,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Visual profissional em todo o site: landing page e telas do app no mesmo padrão.
 - [x] Equipes no plano Escritório: convite por e-mail, papéis (responsável, administrador, técnico) e créditos e carteira compartilhados (testado de ponta a ponta com o banco real).
 - [x] Ensaio geral de produção neste computador: as imagens de produção, HTTPS, as 7 bases, conta, e-mail, compra, consulta, dossiê em PDF, carteira, alertas e **backup com restauração**. Achou e corrigiu 6 problemas, entre eles o das terras indígenas, que não carregariam no servidor Linux. Roteiro, resultado e a lista do lançamento em [docs/ensaio-producao.md](docs/ensaio-producao.md).
+- [x] Explicação para o produtor por IA (OpenAI), com conferência automática do texto, explicação de modelo sem IA, chave cifrada pelo painel, limite diário e uso do mês (veja [docs/ia.md](docs/ia.md)).
 
 **Falta para lançar**
 
@@ -413,6 +422,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [ ] Contratar um provedor de e-mail (SMTP) e verificar o domínio nele (o código já está pronto).
 - [ ] Revisão de um advogado: termos de uso, privacidade (LGPD), prazos de guarda depois da exclusão de conta e linguagem do dossiê.
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
+- [ ] (Opcional) Conta na OpenAI com limite de gasto, e a chave cadastrada no painel (aba Inteligência artificial). Incluir o fornecedor de IA na política de privacidade.
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
 - [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.
 - [ ] Registrar os domínios `aptorural.com.br` e `aptorural.com` (pareciam livres em 23/10/2026), reservar `@aptorural` nas redes e pesquisar a marca no INPI com um advogado (veja [docs/marca.md](docs/marca.md)).

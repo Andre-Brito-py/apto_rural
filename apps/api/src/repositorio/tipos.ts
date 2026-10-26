@@ -1,5 +1,6 @@
 import type { Evidencias, FonteId, ResultadoConsulta } from '@apto/regras';
 import type { GeometriaImovel } from '../esquemas.js';
+import type { Explicacao } from '../ia/explicacao.js';
 
 export interface EntradaColeta {
   car: string;
@@ -52,6 +53,8 @@ export interface ConsultaSalva {
   geometria?: GeometriaImovel;
   /** Ausente nas consultas sem contorno e nas anteriores ao mapa. */
   mapa?: MapaEntorno;
+  /** Explicação da IA para o produtor, quando já foi gerada (docs/ia.md). */
+  explicacao?: Explicacao;
   demo: boolean;
   usuarioId?: string;
   dossieLiberado: boolean;
@@ -67,6 +70,7 @@ export interface Repositorio {
   ): Promise<ConsultaSalva>;
   buscar(id: string): Promise<ConsultaSalva | null>;
   liberarDossie(id: string): Promise<void>;
+  salvarExplicacao(id: string, explicacao: Explicacao): Promise<void>;
   /** Módulo fiscal (Incra) do município do CAR, ou null se a tabela não tem o município. */
   moduloFiscal(car: string): Promise<{ municipio: string; ha: number } | null>;
   atualizacoes(): Promise<Partial<Record<FonteId, string>>>;

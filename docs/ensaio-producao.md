@@ -9,6 +9,7 @@ Antes de contratar o servidor, dá para rodar o Apto Rural **exatamente como vai
 | --- | --- | --- |
 | Provedor de e-mail (SMTP) | **Mailpit**, uma caixa de correio falsa que guarda todos os e-mails | http://localhost:8025 |
 | Asaas (Pix, cartão, boleto) | **Asaas falso** (`deploy/ensaio/asaas-falso.mjs`), com uma fatura de teste e o botão "Pagar" que manda o aviso (webhook) igual ao Asaas | http://localhost:8099 |
+| OpenAI (explicação para o produtor) | **OpenAI falsa**, no mesmo servidor: responde no formato da Responses API. Qualquer chave começando com `sk-` funciona; terminada em `ruim`, é recusada | (interna) |
 | Seu domínio | `localhost`, com um certificado que o próprio Caddy gera | https://localhost |
 
 Assim, quando o servidor for contratado, a implantação vira a repetição de algo já testado.
@@ -20,7 +21,8 @@ Assim, quando o servidor for contratado, a implantação vira a repetição de a
    - senhas aleatórias;
    - `ASAAS_AMBIENTE=sandbox` e qualquer texto em `ASAAS_API_KEY`;
    - `SMTP_HOST=mailpit` e `SMTP_PORTA=25`;
-   - `ADMIN_EMAILS=admin@ensaio.local`.
+   - `ADMIN_EMAILS=admin@ensaio.local`;
+   - `CHAVE_SEGREDOS` com 64 caracteres hexadecimais (`openssl rand -hex 32`).
 2. **Subir tudo** (projeto separado, que não mexe no banco de desenvolvimento):
 
    ```bash

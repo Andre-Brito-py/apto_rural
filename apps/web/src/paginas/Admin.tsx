@@ -4,6 +4,7 @@ import { api, type ErroRegistrado, type PainelResumo, type RegistroAuditoria, ty
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
 import { ConfiguracoesPainel } from './ConfiguracoesPainel';
+import { IAPainel } from './IAPainel';
 
 export const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const dataHora = (iso: string | null) =>
@@ -15,7 +16,7 @@ const SITUACAO_BASE = {
   nao_carregada: { texto: 'Não carregada', classe: 's-impedimento' },
 } as const;
 
-type Aba = 'geral' | 'usuarios' | 'pedidos' | 'configuracoes' | 'auditoria';
+type Aba = 'geral' | 'usuarios' | 'pedidos' | 'configuracoes' | 'ia' | 'auditoria';
 
 /** Painel interno, em abas: saúde do sistema e do negócio, usuários, vendas, preços e auditoria. */
 export function Admin() {
@@ -54,7 +55,12 @@ export function Admin() {
     { id: 'usuarios', rotulo: 'Usuários' },
     { id: 'pedidos', rotulo: 'Pedidos', marca: r?.pedidosPendentes || undefined },
     { id: 'configuracoes', rotulo: 'Preços e limites' },
-    ...(nivel === 'admin' ? [{ id: 'auditoria' as const, rotulo: 'Auditoria' }] : []),
+    ...(nivel === 'admin'
+      ? [
+          { id: 'ia' as const, rotulo: 'Inteligência artificial' },
+          { id: 'auditoria' as const, rotulo: 'Auditoria' },
+        ]
+      : []),
   ];
 
   return (
@@ -91,6 +97,7 @@ export function Admin() {
 
       {aba === 'usuarios' && <Usuarios />}
       {aba === 'configuracoes' && <ConfiguracoesPainel podeAlterar={nivel === 'admin'} />}
+      {aba === 'ia' && nivel === 'admin' && <IAPainel />}
       {aba === 'auditoria' && nivel === 'admin' && <Auditoria />}
 
       {aba === 'geral' && r && (
@@ -316,6 +323,8 @@ export const NOME_ACAO: Record<string, string> = {
   estornou_pedido: 'Estornou um pedido',
   cancelou_pedido: 'Cancelou um pedido',
   mudou_configuracao: 'Mudou uma configuração',
+  definiu_chave_ia: 'Cadastrou a chave da OpenAI',
+  apagou_chave_ia: 'Apagou a chave da OpenAI',
   cancelou_assinatura: 'Cancelou uma assinatura',
 };
 

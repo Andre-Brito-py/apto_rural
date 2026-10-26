@@ -129,6 +129,29 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     return paraCliente(salva, await pessoasDoVisitante(usuario));
   });
 
+  /**
+   * Explicação em linguagem simples para o produtor (docs/ia.md). Já gerada: devolve a
+   * guardada, para qualquer um que abra a consulta. Gerar (que custa uma chamada à IA)
+   * só quem fez a consulta ou a equipe dela, e nos exemplos fictícios quem tem conta.
+   */
+  app.post<{ Params: { id: string } }>(
+    '/v1/consultas/:id/explicacao',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const salva = await buscar(req.params.id);
+      if (!salva) return erro(reply, 404, 'Consulta não encontrada.');
+      if (salva.explicacao) return { explicacao: salva.explicacao };
+      const usuario = await usuarioDaRequisicao(ctx, req);
+      if (!usuario) return erro(reply, 401, 'Entre na sua conta para gerar a explicação.');
+      const daConta = salva.usuarioId != null && (await pessoasDoVisitante(usuario)).includes(salva.usuarioId);
+      if (!daConta && !salva.demo) return erro(reply, 403, 'Só quem fez a consulta (ou a equipe dessa pessoa) pode gerar a explicação.');
+
+      const r = await ctx.ia.explicacao.explicar(salva.resultado);
+      if (r.guardar) await (salva.demo ? ctx.demo : ctx.banco)?.salvarExplicacao(salva.id, r.explicacao);
+      return { explicacao: r.explicacao, motivo: r.motivo };
+    },
+  );
+
   app.post<{ Params: { id: string } }>('/v1/consultas/:id/dossie', async (req, reply) => {
     const salva = await buscar(req.params.id);
     if (!salva) return erro(reply, 404, 'Consulta não encontrada.');
