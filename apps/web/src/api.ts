@@ -50,6 +50,8 @@ export interface Usuario {
   whatsapp?: string;
   profissao?: string;
   emailConfirmado: boolean;
+  /** Já viu (ou pulou) o tour de boas-vindas. */
+  tourVisto?: boolean;
 }
 
 export interface Saldo {
@@ -383,6 +385,7 @@ export const api = {
   sair: () => pedir<{ ok: boolean }>('/v1/sessao', { method: 'DELETE' }),
   confirmarEmail: (token: string) => pedir<{ ok: boolean; saldo: Saldo }>('/v1/conta/confirmar', post({ token })),
   reenviarConfirmacao: () => pedir<{ ok: boolean; jaConfirmado?: boolean }>('/v1/conta/confirmacao', post()),
+  marcarTour: () => pedir<{ ok: boolean }>('/v1/conta/tour', post()),
   /** Endereço do arquivo com os dados da conta (o navegador baixa direto, com o cookie). */
   enderecoMeusDados: '/v1/conta/dados',
   excluirConta: (senha: string) => pedir<{ ok: boolean }>('/v1/conta/excluir', post({ senha, confirmo: true })),

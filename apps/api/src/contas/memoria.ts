@@ -65,6 +65,11 @@ export class RepositorioContasMemoria implements RepositorioContas {
     if (u) u.pagamentoClienteId = clienteId;
   }
 
+  async marcarTourVisto(usuarioId: string) {
+    const u = this.usuarios.get(usuarioId);
+    if (u) u.tourVisto = true;
+  }
+
   async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string) {
     this.sessoes.set(tokenHash, { usuarioId, expiraEm, personificadoPor });
   }

@@ -3,7 +3,7 @@ import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas,
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em`;
+const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em, tour_visto_em`;
 
 function usuario(r: Record<string, unknown>): Usuario {
   return {
@@ -16,6 +16,7 @@ function usuario(r: Record<string, unknown>): Usuario {
     emailConfirmado: r.email_confirmado_em != null,
     papel: (r.papel as Usuario['papel']) ?? 'usuario',
     bloqueado: r.bloqueado_em != null,
+    tourVisto: r.tour_visto_em != null,
     personificadoPor: (r.personificado_por as string) ?? undefined,
   };
 }
@@ -120,6 +121,10 @@ export class RepositorioContasPostgres implements RepositorioContas {
 
   async definirClientePagamento(usuarioId: string, clienteId: string) {
     await this.pool.query('UPDATE usuario SET pagamento_cliente_id = $2 WHERE id = $1', [usuarioId, clienteId]);
+  }
+
+  async marcarTourVisto(usuarioId: string) {
+    await this.pool.query('UPDATE usuario SET tour_visto_em = coalesce(tour_visto_em, now()) WHERE id = $1', [usuarioId]);
   }
 
   async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string) {

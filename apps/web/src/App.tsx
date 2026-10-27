@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
+import { abrirAjuda } from './ajuda/eventos';
 import { api, type Saude } from './api';
+import { Cabecalho } from './componentes/Cabecalho';
+import { CentralAjuda } from './componentes/CentralAjuda';
 import { FaixaPersonificacao } from './componentes/FaixaPersonificacao';
 import { LimiteErro } from './componentes/LimiteErro';
 import { Marca } from './componentes/Marca';
+import { Tour } from './componentes/Tour';
 import { Admin } from './paginas/Admin';
+import { Ajuda } from './paginas/Ajuda';
 import { AdminUsuario } from './paginas/AdminUsuario';
 import { Carteira } from './paginas/Carteira';
 import { Consulta } from './paginas/Consulta';
@@ -22,7 +27,6 @@ import { Planos } from './paginas/Planos';
 import { Resultado } from './paginas/Resultado';
 import { AvisoConfirmarEmail, ConfirmarEmail, EsqueciSenha, RedefinirSenha } from './paginas/Senha';
 import { useSessao } from './sessao';
-import { contagem } from './textos';
 
 export function App() {
   const [saude, setSaude] = useState<Saude | null>(null);
@@ -36,50 +40,7 @@ export function App() {
     <>
       <FaixaPersonificacao />
 
-      <header className="cabecalho">
-        <div className="cabecalho-dentro">
-          <Link to="/" className="marca" aria-label="Apto Rural, página inicial">
-            <Marca />
-          </Link>
-          <nav className="nav" aria-label="Principal">
-            <NavLink to="/consultar" className="so-largo">
-              Consultar
-            </NavLink>
-            {sessao && (
-              <NavLink to="/carteira" className="so-largo">
-                Carteira
-              </NavLink>
-            )}
-            {sessao?.equipe && (
-              <NavLink to="/equipe" className="so-largo">
-                Equipe
-              </NavLink>
-            )}
-            <NavLink to="/planos">Planos</NavLink>
-            {/* Só para administração e suporte. No celular, o atalho fica em Minha conta. */}
-            {sessao?.nivelAdmin && (
-              <NavLink to="/admin" className="so-largo nav-painel">
-                Painel
-              </NavLink>
-            )}
-            {!carregando &&
-              (sessao ? (
-                <NavLink to="/conta" className="saldo" title="Sua conta e seus créditos">
-                  {contagem(sessao.saldo.consulta, 'consulta', 'consultas')}
-                </NavLink>
-              ) : (
-                <>
-                  <NavLink to="/entrar" end>
-                    Entrar
-                  </NavLink>
-                  <Link to="/entrar?modo=criar" className="nav-cta">
-                    Criar conta
-                  </Link>
-                </>
-              ))}
-          </nav>
-        </div>
-      </header>
+      <Cabecalho />
 
       {saude?.demo && (
         <div className="faixa-demo" role="note">
@@ -107,6 +68,7 @@ export function App() {
             <Route path="/consulta/:id" element={<Resultado />} />
             <Route path="/consulta/:id/dossie" element={<Dossie />} />
             <Route path="/fontes" element={<Fontes />} />
+            <Route path="/ajuda" element={<Ajuda />} />
             <Route path="/entrar" element={<Entrar />} />
             <Route path="/conta" element={<Conta />} />
             <Route path="/carteira" element={<Carteira />} />
@@ -127,9 +89,17 @@ export function App() {
               element={
                 <div className="pagina">
                   <h1 className="titulo-pagina">Página não encontrada</h1>
-                  <p>
-                    <Link to="/">Voltar para a consulta</Link>
+                  <p className="subtitulo" style={{ marginTop: 8 }}>
+                    O endereço pode ter mudado ou estar incompleto.
                   </p>
+                  <div className="botoes" style={{ marginTop: 20 }}>
+                    <Link to="/consultar" className="botao botao-primario">
+                      Fazer uma consulta
+                    </Link>
+                    <Link to="/ajuda" className="botao botao-secundario">
+                      Central de ajuda
+                    </Link>
+                  </div>
                 </div>
               }
             />
@@ -170,7 +140,11 @@ export function App() {
               )}
             </div>
             <div>
-              <h2>Legal</h2>
+              <h2>Ajuda</h2>
+              <Link to="/ajuda">Central de ajuda</Link>
+              <button type="button" className="rodape-link" onClick={() => abrirAjuda()}>
+                Tirar uma dúvida agora
+              </button>
               <Link to="/termos">Termos de uso</Link>
               <Link to="/privacidade">Privacidade</Link>
             </div>
@@ -182,6 +156,9 @@ export function App() {
           </p>
         </div>
       </footer>
+
+      <CentralAjuda />
+      <Tour />
     </>
   );
 }

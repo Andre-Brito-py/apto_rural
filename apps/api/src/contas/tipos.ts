@@ -10,6 +10,8 @@ export interface Usuario {
   emailConfirmado: boolean;
   papel: Papel;
   bloqueado: boolean;
+  /** Já viu (ou pulou) o tour de boas-vindas. */
+  tourVisto?: boolean;
   /** Preenchido quando a sessão é de um administrador "entrando como" este usuário. */
   personificadoPor?: string;
 }
@@ -85,6 +87,8 @@ export interface RepositorioContas {
   consumirTokenEmail(tokenHash: string, tipo: TipoTokenEmail): Promise<string | null>;
   buscarPorEmail(email: string): Promise<(Usuario & { senhaHash: string }) | null>;
   definirClientePagamento(usuarioId: string, clienteId: string): Promise<void>;
+  /** Marca que a pessoa já viu (ou pulou) o tour de boas-vindas. */
+  marcarTourVisto(usuarioId: string): Promise<void>;
 
   /** personificadoPor: id do administrador que está "entrando como" (sessão só de leitura). */
   criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string): Promise<void>;

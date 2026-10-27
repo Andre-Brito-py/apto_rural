@@ -24,8 +24,12 @@ export async function linkDoEmail(para: string, caminho: string): Promise<string
   throw new Error(`Nenhum e-mail para ${para} com link ${caminho}`);
 }
 
-/** Cria a conta pela tela e confirma o e-mail pelo link que chegou na caixa. */
-export async function criarContaConfirmada(page: Page, email: string, nome = 'Técnica de Teste') {
+/**
+ * Cria a conta pela tela e confirma o e-mail pelo link que chegou na caixa. Por padrão marca
+ * o tour de boas-vindas como visto, para ele não cobrir a tela nos outros testes
+ * (o próprio tour é testado em ajuda.spec.ts).
+ */
+export async function criarContaConfirmada(page: Page, email: string, nome = 'Técnica de Teste', { pularTour = true } = {}) {
   await page.goto('/entrar?modo=criar');
   await page.getByLabel('Nome').fill(nome);
   await page.getByLabel('E-mail').fill(email);
@@ -34,6 +38,8 @@ export async function criarContaConfirmada(page: Page, email: string, nome = 'T�
   await page.getByRole('button', { name: 'Criar conta' }).click();
   // O aviso aparece na faixa do topo (e às vezes também na página): basta um.
   await expect(page.getByText('Confirme seu e-mail').first()).toBeVisible();
+  if (pularTour) expect((await page.request.post('/v1/conta/tour', { data: {} })).ok()).toBe(true);
+  // O goto recarrega a página: a sessão vem de novo da API, já com o tour visto.
   await page.goto(await linkDoEmail(email, '/confirmar-email'));
   await expect(page.getByText('E-mail confirmado')).toBeVisible();
 }

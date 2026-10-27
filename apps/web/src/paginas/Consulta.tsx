@@ -137,7 +137,7 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         <p className="subtitulo">
           Checamos os impedimentos socioambientais do Manual de Crédito Rural (MCR 2-9) nas mesmas bases públicas que o banco usa.
         </p>
-        <Link to="/lote" className="l-link consulta-lote-link">
+        <Link to="/lote" className="l-link consulta-lote-link" data-tour="lote">
           <Icone nome="camadas" className="l-icone-p" /> Muitos imóveis? Consulte em lote, com uma planilha
         </Link>
       </div>
@@ -157,7 +157,7 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         <h2 className="form-secao">
           <span>1</span> Dados do imóvel
         </h2>
-        <label className="campo">
+        <label className="campo" data-tour="car">
           <span className="rotulo">Código do CAR</span>
           <input
             className="entrada entrada-car"
@@ -222,7 +222,7 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         <h2 className="form-secao">
           <span>2</span> Mapa do imóvel
         </h2>
-        <div className="campo">
+        <div className="campo" data-tour="arquivo">
           <span className="rotulo" id={`${id}-arq`}>
             Contorno do imóvel
           </span>
@@ -343,7 +343,7 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         </p>
 
         <div style={{ marginTop: 12 }}>
-          <button className="botao botao-primario" type="submit" disabled={enviando}>
+          <button className="botao botao-primario" type="submit" disabled={enviando} data-tour="consultar">
             {enviando ? 'Consultando as bases…' : 'Consultar imóvel'}
           </button>
         </div>

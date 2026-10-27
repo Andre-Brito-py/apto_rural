@@ -155,6 +155,14 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     };
   });
 
+  // Tour de boas-vindas visto (ou pulado): não aparece de novo, em nenhum aparelho.
+  app.post('/v1/conta/tour', async (req, reply) => {
+    const u = await usuarioDaRequisicao(ctx, req);
+    if (!u) return erro(reply, 401, 'Entre na sua conta.');
+    await ctx.contas.marcarTourVisto(u.id);
+    return { ok: true };
+  });
+
   app.post('/v1/conta/confirmar', LIMITE_CONFIRMAR, async (req, reply) => {
     const corpo = comToken.safeParse(req.body);
     const usuarioId = corpo.success ? await ctx.contas.consumirTokenEmail(hashToken(corpo.data.token), 'confirmacao') : null;

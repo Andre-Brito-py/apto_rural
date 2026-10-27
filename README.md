@@ -158,6 +158,13 @@ O caminho de uma consulta:
 
 Detalhes em [docs/ia.md](docs/ia.md).
 
+**Ajuda sem esperar ninguém:**
+- **Central de ajuda:** o botão verde "Dúvidas?", em todas as telas, abre um chat com **respostas prontas**. Ele sugere as dúvidas da tela aberta e entende a pergunta escrita com as próprias palavras. Não usa IA nem custa nada.
+- **Tour:** na primeira entrada, 8 passos mostram as funções principais. Ele não volta depois, mas pode ser revisto pela ajuda.
+- **Menu:** no celular, o botão "Menu" leva a todas as telas.
+
+Como acrescentar uma resposta: [docs/central-de-ajuda.md](docs/central-de-ajuda.md).
+
 Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md)).
 
 ---
@@ -421,6 +428,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Testes no navegador a cada envio para o GitHub (Playwright, computador e celular): conta, e-mail, compra, consulta, dossiê, lote, carteira, painel e LGPD. Acharam e corrigiram um limite de acessos que fazia o logo e os botões sumirem em escritórios com vários técnicos (veja [docs/testes-navegador.md](docs/testes-navegador.md)).
 - [x] Backup fora do servidor (cópia cifrada todo dia, em qualquer armazenamento S3) e alertas de site fora do ar e de backup que não rodou (vigia a cada 5 min, pelo endereço público, avisando um serviço externo como o healthchecks.io). Bloco "Servidor" no painel. Testado no ensaio, inclusive a queda do site e a volta da cópia (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [x] Explicação para o produtor por IA (OpenAI), com conferência automática do texto, explicação de modelo sem IA, chave cifrada pelo painel, limite diário e uso do mês (veja [docs/ia.md](docs/ia.md)).
+- [x] Central de ajuda com cara de chat, com 53 respostas prontas conferidas no código, busca que entende a pergunta escrita e página `/ajuda`. Também: tour de boas-vindas na primeira entrada, gravado na conta, e menu com todas as telas no celular. Testado no navegador (veja [docs/central-de-ajuda.md](docs/central-de-ajuda.md)).
 
 **Falta para lançar**
 
@@ -436,7 +444,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 **Antes de lançar: melhorias rápidas, que evitam problema**
 
-- [ ] **Testes automáticos no GitHub a cada envio de código** (GitHub Actions rodando testes, conferência de tipos e build). Hoje não existe a pasta `.github/`, então nada confere o código enviado, e um erro em pagamento ou numa regra do MCR pode passar sem ninguém perceber.
+- [x] **Testes automáticos no GitHub a cada envio de código** (GitHub Actions rodando testes, conferência de tipos, build e os testes no navegador). Assim, um erro em pagamento ou numa regra do MCR não passa sem ninguém perceber (veja [docs/testes-navegador.md](docs/testes-navegador.md)).
 - [x] **Aceitar shapefile (.zip com .shp)** no contorno do imóvel. Feito: o site lê o .zip do Sicar (camada AREA_IMOVEL), converte arquivos em UTM pelo `.prj` e mostra uma prévia do contorno e da área antes da consulta. Testado com uma fazenda real de MT (veja [docs/frontend.md](docs/frontend.md)).
 
 **Logo depois do lançamento: deixam o produto mais confiável**
@@ -477,6 +485,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 | [docs/conformidade-legal.md](docs/conformidade-legal.md) | Cuidados legais e critérios do produto que precisam de revisão jurídica. |
 | [docs/arquitetura.md](docs/arquitetura.md) | Como as peças se encaixam e por quê. |
 | [docs/frontend.md](docs/frontend.md) | Decisões de interface para o técnico do campo. |
+| [docs/central-de-ajuda.md](docs/central-de-ajuda.md) | Central de ajuda (respostas prontas), tour de boas-vindas e menu: como funcionam e como acrescentar uma resposta. |
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
 | [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
