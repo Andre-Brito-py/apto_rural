@@ -442,6 +442,34 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.
 - [ ] Registrar os domínios `aptorural.com.br` e `aptorural.com` (pareciam livres em 23/10/2026), reservar `@aptorural` nas redes e pesquisar a marca no INPI com um advogado (veja [docs/marca.md](docs/marca.md)).
 
+**Próximos passos no código (revisão de 26/10/2026)**
+
+O produto está completo para lançar. Estes são os pontos que ainda valem a pena, em ordem:
+
+*Antes de abrir para clientes*
+
+- [ ] **Canal de contato com uma pessoa.** Hoje o site não tem nenhum e-mail ou WhatsApp de suporte. Quando a central de ajuda não acha a resposta, a pessoa fica sem saída, e casos como "paguei e não caiu" ou "o embargo não é do meu imóvel" precisam de gente. O contato deve aparecer na central de ajuda (na resposta "não achei"), na página `/ajuda` e no rodapé. **Falta definir** qual e-mail e qual WhatsApp usar.
+- [ ] **Entrar com a conta Google**, para facilitar o cadastro:
+  - **Na tela:** um botão "Continuar com o Google" em Entrar e em Criar conta.
+  - **Por dentro:** login padrão OpenID Connect do Google, pedindo só nome e e-mail.
+  - **Cadastro:** o e-mail que o Google já confirmou libera a consulta grátis na hora, mas a pessoa ainda precisa aceitar os termos de uso.
+  - **Conta que já existe:** se o e-mail já tem conta com senha, as duas viram uma só.
+  - **Precisa:** criar o projeto no Google Cloud (ID do cliente, endereço de retorno) e citar o Google na política de privacidade.
+  - **Antes de começar:** conferir as regras na documentação oficial do Google.
+- [ ] **Confirmar que os testes passaram no GitHub** (aba Actions do repositório). O repositório é privado, e a primeira execução ainda não foi conferida.
+- [ ] **Beta com 3 a 5 técnicos ou escritórios reais**, para achar as dúvidas e os atritos que nenhum teste pega. As dúvidas que surgirem viram respostas novas na central de ajuda.
+
+*Logo depois do lançamento*
+
+- [ ] Trocar de plano sem cancelar, e plano anual com desconto.
+- [ ] Aceitar a planilha do Excel (.xlsx) direto na consulta em lote. Hoje é só CSV.
+- [ ] Conferir o Anexo IV da IE 5/2022 do Incra no DOU contra a tabela de módulos fiscais carregada, quando o site do DOU abrir.
+
+*Dependem de terceiros, não de código*
+
+- [ ] Situação do CAR e contorno buscados sozinhos pelo código do CAR: só com autorização ou convênio do Serviço Florestal Brasileiro, porque o Sicar tem captcha.
+- [ ] Territórios quilombolas: só quando houver uma base aberta e oficial.
+
 **Antes de lançar: melhorias rápidas, que evitam problema**
 
 - [x] **Testes automáticos no GitHub a cada envio de código** (GitHub Actions rodando testes, conferência de tipos, build e os testes no navegador). Assim, um erro em pagamento ou numa regra do MCR não passa sem ninguém perceber (veja [docs/testes-navegador.md](docs/testes-navegador.md)).
@@ -460,10 +488,8 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 **Depois do lançamento**
 
-- [ ] Plano anual com desconto e troca de plano sem precisar cancelar.
 - [ ] Imagens de satélite antes e depois de 2019 no dossiê.
 - [ ] Consulta pelo WhatsApp, inclusive a consulta grátis para o produtor.
-- [ ] Fonte aberta para territórios quilombolas.
 
 ---
 
