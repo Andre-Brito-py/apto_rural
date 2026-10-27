@@ -20,9 +20,12 @@ import { RepositorioCuponsMemoria } from './cupons/memoria.js';
 import { RepositorioCuponsPostgres } from './cupons/postgres.js';
 import { rotasCupons } from './rotas/cupons.js';
 import { rotasDoisFatores } from './rotas/doisFatores.js';
+import { rotasIA } from './rotas/ia.js';
 import { COOKIE_SESSAO, usuarioDaRequisicao, type Contexto } from './contexto.js';
 import { EnviadorConsole, EnviadorSmtp } from './email/enviador.js';
 import { RepositorioEquipe } from './equipe/repositorio.js';
+import { RepositorioApoio } from './ia/apoio.js';
+import { ExecutorIA } from './ia/executor.js';
 import { ServicoExplicacao } from './ia/explicacao.js';
 import { ProvedorOpenAI } from './ia/provedor.js';
 import { chaveMestra, Segredos } from './ia/segredos.js';
@@ -43,6 +46,7 @@ export function criarContexto(): Contexto {
   const configuracoes = new Configuracoes(pool);
   const segredos = new Segredos(pool, chaveMestra(config.chaveSegredos, config.segredoDocumento || 'desenvolvimento'));
   const uso = new UsoIA(pool);
+  const dependenciasIA = { config: configuracoes, segredos, uso, provedor: (chave: string) => new ProvedorOpenAI(chave, config.iaUrl) };
   const contas = pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria();
   return {
     banco: pool ? new RepositorioPostgis(pool) : null,
@@ -66,12 +70,9 @@ export function criarContexto(): Contexto {
       }
     },
     ia: {
-      explicacao: new ServicoExplicacao({
-        config: configuracoes,
-        segredos,
-        uso,
-        provedor: (chave) => new ProvedorOpenAI(chave, config.iaUrl),
-      }),
+      explicacao: new ServicoExplicacao(dependenciasIA),
+      executor: new ExecutorIA(dependenciasIA),
+      apoio: new RepositorioApoio(pool),
       segredos,
       uso,
     },
@@ -127,6 +128,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasEquipe(app, ctx);
     rotasCupons(app, ctx);
     rotasDoisFatores(app, ctx);
+    rotasIA(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.

@@ -9,6 +9,8 @@ import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { RepositorioCupons } from './cupons/tipos.js';
 import type { Enviador } from './email/enviador.js';
 import type { RepositorioEquipe } from './equipe/repositorio.js';
+import type { RepositorioApoio } from './ia/apoio.js';
+import type { ExecutorIA } from './ia/executor.js';
 import type { ServicoExplicacao } from './ia/explicacao.js';
 import type { Segredos } from './ia/segredos.js';
 import type { UsoIA } from './ia/uso.js';
@@ -37,7 +39,11 @@ export interface Contexto {
   /** O banco responde agora? true/false; null quando não há banco (modo demonstração). */
   bancoResponde: () => Promise<boolean | null>;
   /** Explicação por IA para o produtor, a chave cifrada e o uso (docs/ia.md). */
-  ia: { explicacao: ServicoExplicacao; segredos: Segredos; uso: UsoIA };
+  /**
+   * IA (docs/ia.md): a explicação do resultado e o executor das outras funções (recibo do
+   * CAR, documentos e rascunhos do dossiê, frase da carteira, análise de norma).
+   */
+  ia: { explicacao: ServicoExplicacao; executor: ExecutorIA; apoio: RepositorioApoio; segredos: Segredos; uso: UsoIA };
 }
 
 export type NivelAdmin = 'admin' | 'suporte';

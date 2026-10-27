@@ -7,6 +7,11 @@ export interface PedidoIA {
   modelo: string;
   instrucoes: string;
   entrada: string;
+  /**
+   * Páginas de documento escaneado ou fotos, como data URL (image/jpeg ou image/png). Só nas
+   * funções que leem documento; a explicação do resultado manda só texto.
+   */
+  imagens?: string[];
   esquema: { nome: string; schema: Record<string, unknown> };
   maxTokens: number;
 }
@@ -66,7 +71,14 @@ export class ProvedorOpenAI implements ProvedorIA {
         body: JSON.stringify({
           model: p.modelo,
           instructions: p.instrucoes,
-          input: p.entrada,
+          input: p.imagens?.length
+            ? [
+                {
+                  role: 'user',
+                  content: [{ type: 'input_text', text: p.entrada }, ...p.imagens.map((u) => ({ type: 'input_image', image_url: u, detail: 'high' }))],
+                },
+              ]
+            : p.entrada,
           max_output_tokens: p.maxTokens,
           ...(pensaAntes(p.modelo) ? { reasoning: { effort: 'low' } } : {}),
           // Nada do que mandamos fica guardado na OpenAI para consulta posterior.

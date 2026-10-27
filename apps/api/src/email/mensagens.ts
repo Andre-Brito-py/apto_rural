@@ -32,7 +32,7 @@ const NOME_STATUS: Record<string, string> = {
 export function mensagemAvisosCarteira(
   nome: string,
   para: string,
-  avisos: { codCar: string; apelido?: string; alteracoes: { titulo: string; de: string; para: string; piorou: boolean }[] }[],
+  avisos: { codCar: string; apelido?: string; alteracoes: { titulo: string; de: string; para: string; piorou: boolean }[]; frase?: string }[],
   link: string,
 ): Mensagem {
   const primeiro = nome.split(' ')[0];
@@ -40,6 +40,8 @@ export function mensagemAvisosCarteira(
   const linhas = avisos.flatMap((a) => [
     `${a.apelido ?? 'Imóvel'} (CAR ${a.codCar}):`,
     ...a.alteracoes.map((x) => `• ${x.titulo}: ${NOME_STATUS[x.de]} → ${NOME_STATUS[x.para]}${x.piorou ? ' ⚠' : ''}`),
+    // O que isso significa e o que fazer (docs/ia.md).
+    ...(a.frase ? [a.frase] : []),
   ]);
   const abertura = `Olá, ${primeiro}! A reconferência de hoje encontrou mudanças em ${avisos.length === 1 ? '1 imóvel' : `${avisos.length} imóveis`} da sua carteira.`;
   const rodape = 'Você recebe este e-mail porque acompanha estes imóveis no Apto Rural. Pré-checagem com bases públicas; não substitui a análise do banco.';

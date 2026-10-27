@@ -1246,3 +1246,26 @@ ul.l-planos { list-style: none; padding: 0; }
 .chave-2fa { display: inline-block; padding: 2px 6px; border-radius: 6px; background: var(--papel); word-spacing: 0.2em; }
 .codigos-recuperacao { list-style: none; padding: 12px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px 16px; background: var(--papel); border: 1px solid var(--linha); border-radius: 10px; font-size: 1rem; }
 .painel-bloqueado { max-width: 640px; }
+
+/* ---- Apoio por IA (docs/ia.md) ---- */
+.recibo-car { display: grid; gap: 6px; justify-items: start; }
+.recibo-car .botao, .apoio-arquivo { position: relative; cursor: pointer; }
+.recibo-car .botao input, .apoio-arquivo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.apoio { margin-top: 20px; padding: 16px; border: 1px dashed var(--linha-forte); border-radius: 12px; display: grid; gap: 14px; }
+.apoio-bloco { display: grid; gap: 8px; justify-items: start; }
+.apoio-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.apoio-confirmar { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: var(--atencao-fundo); }
+.apoio-confirmar p { margin: 0; }
+.apoio-cartao { width: 100%; display: grid; gap: 8px; padding: 12px; border: 1px solid var(--linha-forte); border-radius: 10px; background: var(--superficie); }
+.apoio-cartao-topo { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.apoio-cartao-topo .l-link { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+.apoio-dados { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; }
+.apoio-dados dt { font-size: 0.8em; opacity: 0.7; }
+.apoio-dados dd { margin: 0; }
+.apoio-pontos { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.apoio-etiqueta { display: inline-block; min-width: 68px; font-size: 0.78em; font-weight: 600; padding: 1px 6px; border-radius: 6px; margin-right: 6px; text-align: center; }
+.apoio-ponto-confere .apoio-etiqueta { background: var(--ok-fundo); color: var(--ok); }
+.apoio-ponto-diverge .apoio-etiqueta { background: var(--impedimento-fundo); color: var(--impedimento); }
+.apoio-ponto-conferir .apoio-etiqueta { background: var(--atencao-fundo); color: var(--atencao); }
+.apoio-texto { width: 100%; font-family: inherit; line-height: 1.5; }
+.ia-funcoes { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 6px; }

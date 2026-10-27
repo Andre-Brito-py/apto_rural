@@ -60,6 +60,13 @@ export function Privacidade() {
         <p>
           O código do CAR, o contorno enviado e o resultado ficam guardados para que o relatório possa ser conferido depois pelo código QR.
         </p>
+        <h2 className="secao-titulo">Apoio por inteligência artificial</h2>
+        <p>
+          Quando você pede uma explicação, um rascunho, a leitura do recibo do CAR ou a conferência de um documento do dossiê, o pedido é
+          processado por um fornecedor de IA (OpenAI), com servidores fora do Brasil, marcado para não ser guardado por ele. Antes do envio,
+          tiramos CPF, CNPJ, código do CAR e e-mail do texto. Documento escaneado ou foto vai como imagem, do jeito que está, e só depois de
+          você confirmar. Os arquivos não ficam guardados no Apto Rural: guardamos só o que foi lido e conferido, junto com a consulta.
+        </p>
         <h2 className="secao-titulo">Seus direitos (LGPD, art. 18)</h2>
         <p>
           Em <Link to="/conta">Minha conta</Link> você pode, a qualquer momento e sem custo, <strong>baixar uma cópia dos seus dados</strong>{' '}

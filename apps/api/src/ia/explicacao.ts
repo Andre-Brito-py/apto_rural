@@ -1,6 +1,18 @@
 import type { ResultadoConsulta, ResultadoItem, Status, Veredito } from '@apto/regras';
 import type { Configuracoes } from '../configuracoes.js';
-import { ErroIA, type ProvedorIA } from './provedor.js';
+import {
+  expressaoProibida,
+  numeroInventado,
+  numerosPermitidos,
+  PADROES_PESSOAIS,
+  PROIBIDAS_SEMPRE,
+  semDadosPessoais,
+  temFormatacao,
+} from './comum.js';
+import { ExecutorIA, type DependenciasExecutor, type MotivoSemIA } from './executor.js';
+import { ErroIA } from './provedor.js';
+
+export { semDadosPessoais };
 import type { Segredos } from './segredos.js';
 import type { UsoIA } from './uso.js';
 
@@ -20,7 +32,7 @@ export interface Explicacao {
   geradaEm: string;
 }
 
-export type MotivoSemIA = 'desligada' | 'sem_chave' | 'limite_diario' | 'falha' | 'barrada';
+export type { MotivoSemIA };
 
 export interface RespostaExplicacao {
   explicacao: Explicacao;
@@ -49,18 +61,6 @@ const PESO: Record<Status, number> = { impedimento: 0, atencao: 1, nao_verificad
 // 1. O que vai para a IA: só o que as regras decidiram, sem dado pessoal.
 // ---------------------------------------------------------------------------
 
-const PADROES_PESSOAIS: RegExp[] = [
-  /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, // CPF
-  /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, // CNPJ
-  /\b[A-Z]{2}-?\d{7}-?(?:[0-9A-F]{4}\.?){7}[0-9A-F]{4}\b/gi, // código do CAR
-  /[^\s@]+@[^\s@]+\.[^\s@]+/g, // e-mail
-];
-
-/** Tira CPF, CNPJ, código do CAR e e-mail de um texto (ex.: descrição de embargo do Ibama). */
-export function semDadosPessoais(texto: string): string {
-  return PADROES_PESSOAIS.reduce((t, p) => t.replace(p, '[omitido]'), texto).slice(0, 400);
-}
-
 /** Fatos da consulta para a IA. Itens sem problema vão só com o nome, para gastar menos. */
 export function fatosDaConsulta(r: ResultadoConsulta) {
   const itens = [...r.itens].sort((a, b) => PESO[a.status] - PESO[b.status]);
@@ -74,7 +74,7 @@ export function fatosDaConsulta(r: ResultadoConsulta) {
             item: i.titulo,
             resultado: ROTULO_STATUS[i.status],
             o_que_foi_encontrado: semDadosPessoais(i.resumo),
-            detalhes: i.detalhes.slice(0, 6).map(semDadosPessoais),
+            detalhes: i.detalhes.slice(0, 6).map((d) => semDadosPessoais(d)),
             saidas_que_a_norma_admite: i.caminhos.map((c) => c.titulo),
           },
     ),
@@ -108,13 +108,6 @@ const ESQUEMA = {
 // 2. Conferência do texto que a IA devolveu.
 // ---------------------------------------------------------------------------
 
-const normalizar = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-
-const PROIBIDAS_SEMPRE = ['garantid', 'aprovad', 'com certeza', 'pode ficar tranquilo', 'sem nenhum risco', 'nao se preocupe'];
 const PROIBIDAS_COM_PROBLEMA = ['tudo certo', 'esta liberad', 'pode pegar o credito', 'sem problemas'];
 /**
  * "Nenhum impedimento" é verdade na situação "atenção" (nada impede, mas há pontos a
@@ -123,43 +116,22 @@ const PROIBIDAS_COM_PROBLEMA = ['tudo certo', 'esta liberad', 'pode pegar o cred
  */
 const PROIBIDAS_SE_IMPEDE_OU_INCOMPLETO = ['nenhum impedimento'];
 
-/** Números do texto (só os dígitos: "4,43" e "4.43" viram "443"). */
-const numeros = (s: string) => [...s.matchAll(/\d+(?:[.,/]\d+)*/g)].map((m) => m[0].replace(/\D/g, ''));
-
-/**
- * Números que o texto pode usar: os dos fatos inteiros ("4,43", "18/09/2024") e também as
- * partes deles, sem zero à esquerda ("18", "9", "2024"), porque a IA escreve datas por
- * extenso ("18 de setembro de 2024"). Sem isso, texto correto era barrado.
- */
-function numerosPermitidos(fatos: string): Set<string> {
-  const todos = new Set<string>();
-  for (const m of fatos.matchAll(/\d+(?:[.,/]\d+)*/g)) {
-    todos.add(m[0].replace(/\D/g, ''));
-    for (const parte of m[0].split(/[.,/]/)) todos.add(String(Number(parte)));
-  }
-  return todos;
-}
-
 export function conferirExplicacao(saida: unknown, r: ResultadoConsulta): { ok: true; texto: string } | { ok: false; motivo: string } {
   const o = saida as { situacao?: unknown; texto?: unknown };
   if (typeof o?.texto !== 'string') return { ok: false, motivo: 'sem texto' };
   const texto = o.texto.trim().replace(/\s+/g, ' ');
   if (o.situacao !== r.veredito) return { ok: false, motivo: `situação trocada (${String(o.situacao)} em vez de ${r.veredito})` };
   if (texto.length < 120 || texto.length > 1600) return { ok: false, motivo: `tamanho fora do esperado (${texto.length})` };
-  if (/[*#_`]|^\s*[-•]/m.test(o.texto)) return { ok: false, motivo: 'formatação (lista ou negrito)' };
-  const t = normalizar(texto);
-  const proibida = [
+  if (temFormatacao(o.texto)) return { ok: false, motivo: 'formatação (lista ou negrito)' };
+  const proibida = expressaoProibida(texto, [
     ...PROIBIDAS_SEMPRE,
     ...(r.veredito === 'sem_impedimento' ? [] : PROIBIDAS_COM_PROBLEMA),
     ...(r.veredito === 'impedimento' || r.veredito === 'incompleto' ? PROIBIDAS_SE_IMPEDE_OU_INCOMPLETO : []),
-  ].find((p) => t.includes(p));
+  ]);
   if (proibida) return { ok: false, motivo: `expressão proibida ("${proibida}")` };
   if (PADROES_PESSOAIS.some((p) => new RegExp(p.source, p.flags.replace('g', '')).test(texto))) return { ok: false, motivo: 'dado pessoal no texto' };
   // Todo número do texto precisa estar nos fatos (ou ser uma contagem pequena de itens).
-  const permitidos = numerosPermitidos(JSON.stringify(fatosDaConsulta(r)));
-  const inventado = numeros(texto).find(
-    (n) => !permitidos.has(n) && !permitidos.has(String(Number(n))) && !(Number(n) >= 1 && Number(n) <= r.itens.length),
-  );
+  const inventado = numeroInventado(texto, numerosPermitidos(JSON.stringify(fatosDaConsulta(r))), r.itens.length);
   if (inventado) return { ok: false, motivo: `número que não está no resultado (${inventado})` };
   return { ok: true, texto };
 }
@@ -233,49 +205,29 @@ const deModelo = (r: ResultadoConsulta, motivo: MotivoSemIA): RespostaExplicacao
   motivo,
 });
 
-export interface DependenciasIA {
-  config: Configuracoes;
-  segredos: Segredos;
-  uso: UsoIA;
-  /** Cria o cliente com a chave do painel (nos testes e no ensaio, um falso). */
-  provedor: (chave: string) => ProvedorIA;
-}
+export type DependenciasIA = DependenciasExecutor;
 
 export class ServicoExplicacao {
-  constructor(private d: DependenciasIA) {}
+  private executor: ExecutorIA;
+
+  constructor(private d: DependenciasIA) {
+    this.executor = new ExecutorIA(d);
+  }
 
   async explicar(r: ResultadoConsulta): Promise<RespostaExplicacao> {
-    const ia = (await this.d.config.obter()).ia;
-    if (!ia.ativo) return deModelo(r, 'desligada');
-    const chave = await this.d.segredos.obter('openai_api_key');
-    if (!chave) return deModelo(r, 'sem_chave');
-    if ((await this.d.uso.hoje()) >= ia.limiteDiario) return deModelo(r, 'limite_diario');
-
-    try {
-      const resposta = await this.d.provedor(chave).gerar({
-        modelo: ia.modelo,
-        instrucoes: INSTRUCOES,
-        entrada: JSON.stringify(fatosDaConsulta(r)),
-        esquema: ESQUEMA,
-        maxTokens: 3000,
-      });
-      const conferida = conferirExplicacao(resposta.json, r);
-      await this.d.uso.registrar({
-        modelo: ia.modelo,
-        tokensEntrada: resposta.tokensEntrada,
-        tokensSaida: resposta.tokensSaida,
-        resultado: conferida.ok ? 'ok' : 'rejeitado',
-      });
-      if (!conferida.ok) {
-        console.warn(`Explicação da IA barrada: ${conferida.motivo}`);
-        return deModelo(r, 'barrada');
-      }
-      return { explicacao: { texto: conferida.texto, origem: 'ia', modelo: ia.modelo, geradaEm: agora() }, guardar: true };
-    } catch (e) {
-      await this.d.uso.registrar({ modelo: ia.modelo, tokensEntrada: 0, tokensSaida: 0, resultado: 'erro' });
-      console.warn(`Explicação da IA falhou: ${e instanceof ErroIA ? e.message : 'erro inesperado'}`);
-      return deModelo(r, 'falha');
-    }
+    const resposta = await this.executor.rodar({
+      tarefa: 'explicacao',
+      instrucoes: INSTRUCOES,
+      entrada: JSON.stringify(fatosDaConsulta(r)),
+      esquema: ESQUEMA,
+      maxTokens: 3000,
+      conferir: (json) => {
+        const c = conferirExplicacao(json, r);
+        return c.ok ? { ok: true, valor: c.texto } : c;
+      },
+    });
+    if (!resposta.ok) return deModelo(r, resposta.motivo);
+    return { explicacao: { texto: resposta.valor, origem: 'ia', modelo: resposta.modelo, geradaEm: agora() }, guardar: true };
   }
 
   /** Botão "Testar a chave" do painel: uma chamada pequena com um resultado fictício. */
@@ -294,6 +246,7 @@ export class ServicoExplicacao {
       });
       const conferida = conferirExplicacao(resposta.json, RESULTADO_DE_TESTE);
       await this.d.uso.registrar({
+        tarefa: 'teste',
         modelo: ia.modelo,
         tokensEntrada: resposta.tokensEntrada,
         tokensSaida: resposta.tokensSaida,
@@ -304,7 +257,7 @@ export class ServicoExplicacao {
         ? { ok: true, mensagem: `A chave funciona com o modelo ${ia.modelo}. Exemplo: "${conferida.texto.slice(0, 220)}…"`, ms }
         : { ok: false, mensagem: `A chave funciona, mas o texto de teste foi barrado pela conferência (${conferida.motivo}). Tente outro modelo.`, ms };
     } catch (e) {
-      await this.d.uso.registrar({ modelo: ia.modelo, tokensEntrada: 0, tokensSaida: 0, resultado: 'erro' });
+      await this.d.uso.registrar({ tarefa: 'teste', modelo: ia.modelo, tokensEntrada: 0, tokensSaida: 0, resultado: 'erro' });
       return { ok: false, mensagem: e instanceof ErroIA ? e.message : 'Erro inesperado ao chamar a OpenAI.' };
     }
   }
