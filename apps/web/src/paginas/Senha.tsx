@@ -120,7 +120,13 @@ export function RedefinirSenha() {
     setErro(null);
     setEnviando(true);
     try {
-      definir(await api.redefinirSenha(token, senha));
+      const r = await api.redefinirSenha(token, senha);
+      // Com a verificação em duas etapas, a pessoa entra com a senha nova e o código do aplicativo.
+      if ('entrar' in r) {
+        navegar('/entrar?senha=nova', { replace: true });
+        return;
+      }
+      definir(r);
       navegar('/', { replace: true });
     } catch (e) {
       setErro({ mensagem: (e as ErroApi).message, campo: (e as ErroApi).campo });

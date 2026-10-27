@@ -19,6 +19,7 @@ import { RepositorioContasPostgres } from './contas/postgres.js';
 import { RepositorioCuponsMemoria } from './cupons/memoria.js';
 import { RepositorioCuponsPostgres } from './cupons/postgres.js';
 import { rotasCupons } from './rotas/cupons.js';
+import { rotasDoisFatores } from './rotas/doisFatores.js';
 import { COOKIE_SESSAO, usuarioDaRequisicao, type Contexto } from './contexto.js';
 import { EnviadorConsole, EnviadorSmtp } from './email/enviador.js';
 import { RepositorioEquipe } from './equipe/repositorio.js';
@@ -97,6 +98,12 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
   // testes de navegador). Login, cadastro e e-mails têm freios próprios, bem mais apertados.
   app.register(rateLimit, { max: 300, timeWindow: '1 minute', allowList: (req) => !req.url.startsWith('/v1/') });
 
+  // Respostas da API têm dados da conta: nem o navegador nem um proxy guardam cópia
+  // (num computador compartilhado, o "voltar" não mostra a tela de outra pessoa).
+  app.addHook('onSend', async (req, reply) => {
+    if (req.url.startsWith('/v1/') && !reply.hasHeader('Cache-Control')) reply.header('Cache-Control', 'no-store');
+  });
+
   // "Entrar como" é só leitura: fora sair e voltar, nada que altere dados ou gaste crédito.
   const LIBERADAS_NA_PERSONIFICACAO = new Set(['DELETE /v1/sessao', 'POST /v1/admin/voltar', 'POST /v1/erros']);
   app.addHook('preHandler', async (req, reply) => {
@@ -119,6 +126,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasAssinaturas(app, ctx);
     rotasEquipe(app, ctx);
     rotasCupons(app, ctx);
+    rotasDoisFatores(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.

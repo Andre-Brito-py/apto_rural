@@ -7,7 +7,8 @@ import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas,
  */
 export class RepositorioContasMemoria implements RepositorioContas {
   private usuarios = new Map<string, Usuario & { senhaHash: string }>();
-  private sessoes = new Map<string, { usuarioId: string; expiraEm: Date; personificadoPor?: string }>();
+  private sessoes = new Map<string, { usuarioId: string; expiraEm: Date; criadaEm: Date; personificadoPor?: string }>();
+  private doisFatores = new Map<string, { segredoCifrado?: string; ultimoPasso: number | null; recuperacao: { hash: string; usado: boolean }[] }>();
   private lancamentos: (Lancamento & { criadoEm: Date })[] = [];
   private pedidos = new Map<string, Pedido>();
   private eventos = new Set<string>();
@@ -71,7 +72,7 @@ export class RepositorioContasMemoria implements RepositorioContas {
   }
 
   async criarSessao(usuarioId: string, tokenHash: string, expiraEm: Date, personificadoPor?: string) {
-    this.sessoes.set(tokenHash, { usuarioId, expiraEm, personificadoPor });
+    this.sessoes.set(tokenHash, { usuarioId, expiraEm, criadaEm: new Date(), personificadoPor });
   }
 
   async usuarioDaSessao(tokenHash: string) {
@@ -80,7 +81,65 @@ export class RepositorioContasMemoria implements RepositorioContas {
     const u = this.usuarios.get(s.usuarioId);
     if (!u || (u.bloqueado && !s.personificadoPor)) return null;
     const { senhaHash: _, ...publico } = u;
-    return { ...publico, personificadoPor: s.personificadoPor };
+    return { ...publico, personificadoPor: s.personificadoPor, sessaoCriadaEm: s.criadaEm.toISOString() };
+  }
+
+  /** Só nos testes: envelhece as sessões da pessoa (o painel exige login recente). */
+  envelhecerSessoes(usuarioId: string, horas: number) {
+    for (const s of this.sessoes.values()) if (s.usuarioId === usuarioId) s.criadaEm = new Date(s.criadaEm.getTime() - horas * 3600 * 1000);
+  }
+
+  private dois(usuarioId: string) {
+    let d = this.doisFatores.get(usuarioId);
+    if (!d) this.doisFatores.set(usuarioId, (d = { ultimoPasso: null, recuperacao: [] }));
+    return d;
+  }
+
+  async dadosDoisFatores(usuarioId: string) {
+    const d = this.dois(usuarioId);
+    return { segredoCifrado: d.segredoCifrado, ativo: this.usuarios.get(usuarioId)?.doisFatores === true, ultimoPasso: d.ultimoPasso };
+  }
+
+  async guardarSegredoPendente(usuarioId: string, segredoCifrado: string) {
+    if (this.usuarios.get(usuarioId)?.doisFatores) return false;
+    Object.assign(this.dois(usuarioId), { segredoCifrado, ultimoPasso: null });
+    return true;
+  }
+
+  async ativarDoisFatores(usuarioId: string, hashesRecuperacao: string[]) {
+    const u = this.usuarios.get(usuarioId);
+    const d = this.dois(usuarioId);
+    if (!u || !d.segredoCifrado) return;
+    u.doisFatores = true;
+    d.recuperacao = hashesRecuperacao.map((hash) => ({ hash, usado: false }));
+  }
+
+  async registrarPassoTotp(usuarioId: string, passo: number) {
+    const d = this.dois(usuarioId);
+    if (d.ultimoPasso != null && d.ultimoPasso >= passo) return false;
+    d.ultimoPasso = passo;
+    return true;
+  }
+
+  async usarCodigoRecuperacao(usuarioId: string, hash: string) {
+    const c = this.dois(usuarioId).recuperacao.find((x) => x.hash === hash && !x.usado);
+    if (!c) return false;
+    c.usado = true;
+    return true;
+  }
+
+  async codigosRecuperacaoRestantes(usuarioId: string) {
+    return this.dois(usuarioId).recuperacao.filter((x) => !x.usado).length;
+  }
+
+  async desativarDoisFatores(usuarioId: string) {
+    const u = this.usuarios.get(usuarioId);
+    if (u) u.doisFatores = false;
+    this.doisFatores.delete(usuarioId);
+  }
+
+  async apagarOutrasSessoes(usuarioId: string, tokenHashAtual: string) {
+    for (const [hash, s] of this.sessoes) if (s.usuarioId === usuarioId && hash !== tokenHashAtual) this.sessoes.delete(hash);
   }
 
   async apagarSessao(tokenHash: string) {

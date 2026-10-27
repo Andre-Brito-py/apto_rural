@@ -52,6 +52,8 @@ export interface Usuario {
   emailConfirmado: boolean;
   /** Já viu (ou pulou) o tour de boas-vindas. */
   tourVisto?: boolean;
+  /** Verificação em duas etapas (aplicativo autenticador) ligada. */
+  doisFatores?: boolean;
 }
 
 export interface Saldo {
@@ -64,6 +66,10 @@ export interface Sessao {
   saldo: Saldo;
   /** Acesso ao painel: admin altera; suporte só vê e entra como. */
   nivelAdmin?: 'admin' | 'suporte' | null;
+  /** Tem papel no painel, mas precisa entrar de novo (login com mais de 12 h) ou ligar a verificação em duas etapas. */
+  bloqueioPainel?: 'reentrar' | 'dois_fatores' | null;
+  /** Em produção, o painel exige a verificação em duas etapas desta conta. */
+  doisFatoresObrigatorio?: boolean;
   /** Preenchido no modo "entrar como" (só leitura). */
   personificadoPor?: { nome: string; email: string };
   /** Quem está numa equipe usa o saldo e a carteira do responsável. */
@@ -84,6 +90,7 @@ export interface FichaUsuario {
     confirmadoEm: string | null;
     bloqueadoEm: string | null;
     bloqueioMotivo?: string;
+    doisFatores?: boolean;
   };
   saldo: Saldo;
   lancamentos: { tipo: string; quantidade: number; motivo: string; criadoEm: string }[];
@@ -448,7 +455,8 @@ export const api = {
   eu: () => pedir<Sessao>('/v1/eu'),
   criarConta: (dados: { nome: string; email: string; whatsapp?: string; profissao?: string; senha: string; aceiteTermos: boolean }) =>
     pedir<Sessao>('/v1/conta', post(dados)),
-  entrar: (email: string, senha: string) => pedir<Sessao>('/v1/sessao', post({ email, senha })),
+  /** Com a verificação em duas etapas, a 1ª tentativa sem código volta erro com campo "codigo". */
+  entrar: (email: string, senha: string, codigo?: string) => pedir<Sessao>('/v1/sessao', post({ email, senha, codigo })),
   sair: () => pedir<{ ok: boolean }>('/v1/sessao', { method: 'DELETE' }),
   confirmarEmail: (token: string) => pedir<{ ok: boolean; saldo: Saldo }>('/v1/conta/confirmar', post({ token })),
   reenviarConfirmacao: () => pedir<{ ok: boolean; jaConfirmado?: boolean }>('/v1/conta/confirmacao', post()),
@@ -457,7 +465,14 @@ export const api = {
   enderecoMeusDados: '/v1/conta/dados',
   excluirConta: (senha: string) => pedir<{ ok: boolean }>('/v1/conta/excluir', post({ senha, confirmo: true })),
   esqueciSenha: (email: string) => pedir<{ ok: boolean; mensagem: string }>('/v1/senha/esqueci', post({ email })),
-  redefinirSenha: (token: string, senha: string) => pedir<Sessao>('/v1/senha/redefinir', post({ token, senha })),
+  /** Com a verificação em duas etapas, não entra direto: volta { entrar: true } e a pessoa entra com o código. */
+  redefinirSenha: (token: string, senha: string) => pedir<Sessao | { ok: true; entrar: true }>('/v1/senha/redefinir', post({ token, senha })),
+  doisFatores: {
+    ver: () => pedir<{ ativo: boolean; codigosRestantes: number }>('/v1/conta/dois-fatores'),
+    iniciar: (senha: string) => pedir<{ segredo: string; endereco: string }>('/v1/conta/dois-fatores/iniciar', post({ senha })),
+    ativar: (codigo: string) => pedir<{ ok: boolean; codigosRecuperacao: string[] }>('/v1/conta/dois-fatores/ativar', post({ codigo })),
+    desativar: (senha: string, codigo: string) => pedir<{ ok: boolean }>('/v1/conta/dois-fatores/desativar', post({ senha, codigo })),
+  },
 
   produtos: () => pedir<Catalogo>('/v1/produtos'),
   /** Cupom de 100%: sem cobrança, volta gratis e o saldo novo em vez do link. */
@@ -523,6 +538,8 @@ export const api = {
     desbloquear: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/desbloquear`, post()),
     definirPapel: (id: string, papel: Papel) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/papel`, post({ papel })),
     reenviarConfirmacao: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/reenviar-confirmacao`, post()),
+    desativarDoisFatores: (id: string, motivo: string) =>
+      pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/desativar-dois-fatores`, post({ motivo })),
     ia: () => pedir<PainelIA>('/v1/admin/ia'),
     salvarChaveIA: (chave: string) =>
       pedir<{ chave: PainelIA['chave'] }>('/v1/admin/ia/chave', { method: 'PUT', body: JSON.stringify({ chave }) }),

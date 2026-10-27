@@ -1238,3 +1238,11 @@ ul.l-planos { list-style: none; padding: 0; }
 @media (min-width: 640px) { .lista-alvos { grid-template-columns: 1fr 1fr; } }
 .entrada-numero { max-width: 180px; }
 .formulario-cupom .botoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Verificação em duas etapas (Minha conta e login). */
+.botoes-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.entrada-codigo { max-width: 220px; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 1.2rem; letter-spacing: 0.18em; }
+.passos-2fa { padding-left: 20px; display: grid; gap: 4px; }
+.chave-2fa { display: inline-block; padding: 2px 6px; border-radius: 6px; background: var(--papel); word-spacing: 0.2em; }
+.codigos-recuperacao { list-style: none; padding: 12px; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px 16px; background: var(--papel); border: 1px solid var(--linha); border-radius: 10px; font-size: 1rem; }
+.painel-bloqueado { max-width: 640px; }

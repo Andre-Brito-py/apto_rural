@@ -182,6 +182,23 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
     return { ok: true };
   });
 
+  /** Celular perdido e sem os códigos de recuperação: o admin desliga a verificação (a pessoa liga de novo depois). */
+  app.post<{ Params: { id: string } }>('/v1/admin/usuarios/:id/desativar-dois-fatores', async (req, reply) => {
+    const admin = await exigir(req, reply, 'admin');
+    if (!admin) return reply;
+    const corpo = comMotivo.safeParse(req.body);
+    if (!corpo.success) return erro(reply, 400, corpo.error.issues[0]!.message);
+    if (req.params.id === admin.id) return erro(reply, 400, 'Para a sua própria conta, use Minha conta (com um código de recuperação).');
+    const alvo = idValido(req.params.id) ? await ctx.contas.buscarPorId(req.params.id) : null;
+    if (!alvo) return erro(reply, 404, 'Usuário não encontrado.');
+    if (!alvo.doisFatores) return erro(reply, 409, 'A verificação em duas etapas desta conta já está desligada.');
+    await ctx.contas.desativarDoisFatores(alvo.id);
+    // Quem estiver com a sessão aberta (talvez quem roubou o celular) sai na hora.
+    await ctx.contas.apagarSessoesDoUsuario(alvo.id);
+    await ctx.admin!.auditar(admin.id, 'desativou_dois_fatores', alvo.id, corpo.data);
+    return { ok: true };
+  });
+
   app.post<{ Params: { id: string } }>('/v1/admin/usuarios/:id/papel', async (req, reply) => {
     const admin = await exigir(req, reply, 'admin');
     if (!admin) return reply;

@@ -172,6 +172,20 @@ export function AdminUsuario() {
                 <button type="button" className="botao botao-secundario" onClick={() => setAjustando(true)}>
                   Ajustar créditos
                 </button>
+                {u.doisFatores && (
+                  <button
+                    type="button"
+                    className="botao botao-secundario"
+                    onClick={() => {
+                      const motivo = window.prompt(
+                        `Desligar a verificação em duas etapas de ${u.nome}? Faça isso só depois de confirmar que é a própria pessoa (por telefone, por exemplo). Ela sai de todos os aparelhos e entra só com a senha.\n\nMotivo:`,
+                      );
+                      if (motivo) acao(() => api.admin.desativarDoisFatores(u.id, motivo), 'Verificação em duas etapas desligada.');
+                    }}
+                  >
+                    Desligar verificação em duas etapas
+                  </button>
+                )}
                 {u.bloqueadoEm ? (
                   <button
                     type="button"

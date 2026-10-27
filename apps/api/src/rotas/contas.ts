@@ -7,10 +7,11 @@ import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
 import { enviarLinkEmail } from '../contas/links.js';
 import { cupomAoCancelarAssinatura } from '../cupons/aplicar.js';
 import { TentativasLogin } from '../contas/tentativas.js';
-import { COOKIE_SESSAO, erro, hojeBrasilia, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
+import { conferirSegundaEtapa } from '../contas/doisFatores.js';
+import { COOKIE_SESSAO, bloqueioDoPainel, erro, hojeBrasilia, nivelAdmin, opcoesCookie, papelNoPainel, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { hashEmail } from '../documento.js';
 import { contaEmUso } from '../equipe/conta.js';
-import { mensagemContaExcluida } from '../email/mensagens.js';
+import { mensagemAcessoPainel, mensagemContaExcluida } from '../email/mensagens.js';
 
 /**
  * Senha nova: sem espaço no começo nem no fim. Assim o login pode ignorar os
@@ -42,9 +43,14 @@ const cadastro = z.object({
 const entrada = z.object({
   email: z.string().trim().email('E-mail inválido.'),
   senha: senhaDigitada('Informe a senha.'),
+  /** Segunda etapa: os 6 dígitos do aplicativo autenticador ou um código de recuperação. */
+  codigo: z.string().trim().max(20).optional(),
 });
 
-const LIMITE_LOGIN = { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } };
+// 20 por endereço de internet: com a verificação em duas etapas, cada login são dois pedidos
+// (senha, depois o código), e um escritório com vários técnicos sai pelo mesmo endereço. Quem
+// tenta adivinhar a senha ou o código de uma conta para no freio por e-mail (8 erros).
+const LIMITE_LOGIN = { config: { rateLimit: { max: 20, timeWindow: '15 minutes' } } };
 const LIMITE_EMAIL = { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } };
 // Confirmar o e-mail: o link traz um código aleatório de 256 bits (impossível de adivinhar), então o
 // freio só evita abuso. Com 5, o 6º técnico de um escritório atrás do mesmo endereço de internet
@@ -117,7 +123,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
   app.post('/v1/sessao', LIMITE_LOGIN, async (req, reply) => {
     const corpo = entrada.safeParse(req.body);
     if (!corpo.success) return erro(reply, 400, corpo.error.issues[0]!.message);
-    const { email, senha } = corpo.data;
+    const { email, senha, codigo } = corpo.data;
     if (tentativas.bloqueado(email)) {
       return erro(reply, 429, 'Muitas tentativas com este e-mail. Aguarde 15 minutos ou crie uma nova senha.');
     }
@@ -128,12 +134,29 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
       tentativas.falhou(email);
       return erro(reply, 401, 'E-mail ou senha incorretos.');
     }
-    tentativas.acertou(email);
     // Só depois da senha certa, para não revelar quais contas estão bloqueadas.
     if (u.bloqueado) return erro(reply, 403, 'Esta conta está bloqueada. Fale com o suporte do Apto Rural.');
+    // Segunda etapa. O freio por e-mail só zera com tudo certo: quem sabe a senha não fica
+    // testando códigos à vontade.
+    if (u.doisFatores) {
+      if (!codigo) return erro(reply, 401, 'Digite o código de 6 dígitos do aplicativo autenticador.', 'codigo');
+      if (!(await conferirSegundaEtapa(ctx, u.id, codigo))) {
+        tentativas.falhou(email);
+        return erro(reply, 401, 'Código incorreto ou já usado. Confira o código mais recente no aplicativo.', 'codigo');
+      }
+    }
+    tentativas.acertou(email);
     await abrirSessao(u.id, reply);
     const { senhaHash: _, ...usuario } = u;
-    return { usuario, ...(await saldoEEquipe(usuario)), nivelAdmin: nivelAdmin(usuario) };
+    // Login de quem tem papel no painel: aviso por e-mail (se não foi a pessoa, ela troca a senha).
+    if (papelNoPainel(usuario)) {
+      ctx.email
+        .enviar(
+          mensagemAcessoPainel(usuario.nome, usuario.email, new Date(), req.ip, String(req.headers['user-agent'] ?? ''), `${config.webOrigin}/esqueci-senha`),
+        )
+        .catch((e) => req.log.error(e, 'falha ao enviar o aviso de acesso ao painel'));
+    }
+    return { usuario, ...(await saldoEEquipe(usuario)), nivelAdmin: nivelAdmin(usuario), bloqueioPainel: bloqueioDoPainel(usuario) };
   });
 
   app.delete('/v1/sessao', async (req, reply) => {
@@ -152,6 +175,10 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
       usuario: u,
       ...(await saldoEEquipe(u)),
       nivelAdmin: nivelAdmin(u),
+      // Tem papel no painel, mas precisa entrar de novo ou ligar a verificação em duas etapas.
+      bloqueioPainel: bloqueioDoPainel(u),
+      // Em produção, administrador e suporte não podem ficar sem a verificação em duas etapas.
+      doisFatoresObrigatorio: config.producao && papelNoPainel(u) != null && !u.personificadoPor,
       personificadoPor: quemOlha ? { nome: quemOlha.nome, email: quemOlha.email } : undefined,
     };
   });
@@ -278,8 +305,11 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     await ctx.contas.apagarSessoesDoUsuario(usuarioId);
     // Quem recebeu o link no e-mail provou que ele é seu.
     await confirmar(usuarioId);
-    await abrirSessao(usuarioId, reply);
     const usuario = (await ctx.contas.buscarPorId(usuarioId))!;
+    // Com a verificação em duas etapas, o link do e-mail não basta para entrar: a pessoa entra
+    // com a senha nova e o código do aplicativo.
+    if (usuario.doisFatores) return { ok: true, entrar: true };
+    await abrirSessao(usuarioId, reply);
     return { usuario, ...(await saldoEEquipe(usuario)) };
   });
 }

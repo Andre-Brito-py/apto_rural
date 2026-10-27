@@ -265,6 +265,19 @@ describe('painel administrativo e erros', () => {
     expect(caixa.enviadas[0]!.texto).toContain('https://aptorural.com.br/admin');
   });
 
+  it('erro mandado por visitante não vira golpe no e-mail: assunto fixo e links quebrados', async () => {
+    const caixa = new EnviadorMemoria();
+    const reg = new RegistroErros(null, caixa, ['admin@exemplo.com'], 'https://aptorural.com.br');
+    await reg.registrar({ origem: 'site', mensagem: 'Sua conta Asaas foi suspensa, acesse https://asaas-seguro.com/login ou www.golpe.com.br' });
+    await reg.enviarAgora();
+    const m = caixa.enviadas[0]!;
+    expect(m.assunto).toBe('[Apto Rural] 1 erro: erro em uma tela do site');
+    expect(m.texto).not.toMatch(/https:\/\/asaas|www\.golpe|golpe\.com/);
+    expect(m.texto).toContain('enviado pelo navegador de um visitante');
+    // O link do próprio painel continua clicável.
+    expect(m.texto).toContain('https://aptorural.com.br/admin');
+  });
+
   it('enviarAgora espera o envio que o temporizador já começou (o processo não sai antes)', async () => {
     // Achado no ensaio de produção: na reconferência rodada uma vez, o temporizador disparava o
     // envio, o processo saía no meio e o e-mail de alerta se perdia.

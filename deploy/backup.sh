@@ -46,8 +46,12 @@ configurar_rclone() {
   # "cofre": cifra conteúdo e nomes dos arquivos antes de enviar. Sem a senha, a cópia é ilegível.
   export RCLONE_CONFIG_COFRE_TYPE=crypt
   export RCLONE_CONFIG_COFRE_REMOTE="externo:${BACKUP_S3_BUCKET}/apto-rural"
-  RCLONE_CONFIG_COFRE_PASSWORD="$(rclone obscure "$BACKUP_EXTERNO_SENHA")"
-  export RCLONE_CONFIG_COFRE_PASSWORD
+  # A senha vai pela entrada padrão (não aparece na lista de processos). A segunda senha do
+  # crypt é o "sal": sem ela, o rclone usa um sal fixo, igual em todas as instalações. Ela é
+  # derivada da própria senha, então a restauração continua precisando só da BACKUP_EXTERNO_SENHA.
+  RCLONE_CONFIG_COFRE_PASSWORD="$(printf '%s' "$BACKUP_EXTERNO_SENHA" | rclone obscure -)"
+  RCLONE_CONFIG_COFRE_PASSWORD2="$(printf '%s' "apto-rural-sal:$BACKUP_EXTERNO_SENHA" | sha256sum | cut -c1-64 | rclone obscure -)"
+  export RCLONE_CONFIG_COFRE_PASSWORD RCLONE_CONFIG_COFRE_PASSWORD2
 }
 
 fazer_backup() {

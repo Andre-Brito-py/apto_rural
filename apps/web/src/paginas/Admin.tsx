@@ -47,6 +47,7 @@ export function Admin() {
   }, [nivel]);
 
   if (carregando) return <div className="pagina">Carregando…</div>;
+  if (!nivel && sessao?.bloqueioPainel) return <PainelBloqueado motivo={sessao.bloqueioPainel} />;
   if (!nivel) return <Navigate to="/" replace />;
 
   const r = painel?.resumo;
@@ -296,6 +297,46 @@ export function Admin() {
   }
 }
 
+/** Quem tem papel no painel mas não pode usá-lo nesta sessão: diz o que fazer. */
+function PainelBloqueado({ motivo }: { motivo: 'reentrar' | 'dois_fatores' }) {
+  const { sair } = useSessao();
+  return (
+    <div className="pagina pilha painel-bloqueado">
+      <div className="topo-pagina">
+        <p className="sobretitulo">Painel administrativo</p>
+        <h1 className="titulo-pagina">{motivo === 'reentrar' ? 'Entre de novo para usar o painel' : 'Ligue a verificação em duas etapas'}</h1>
+      </div>
+      <section className="cartao pilha-p">
+        {motivo === 'reentrar' ? (
+          <>
+            <p>
+              Por segurança, o painel vale por 12 horas depois do login. O resto do site continua funcionando; para voltar ao painel,
+              saia e entre de novo.
+            </p>
+            <div className="botoes-linha">
+              <button type="button" className="botao botao-primario botao-auto" onClick={() => void sair().then(() => window.location.assign('/entrar?voltar=/admin'))}>
+                Sair e entrar de novo
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p>
+              O painel mexe em pagamentos, créditos e cupons. Por isso, administração e suporte precisam da verificação em duas etapas:
+              além da senha, um código do aplicativo autenticador do celular.
+            </p>
+            <div className="botoes-linha">
+              <Link to="/conta#dois-fatores" className="botao botao-primario botao-auto">
+                Ligar em Minha conta
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
 const SITUACAO_PEDIDO: Record<string, string> = {
   pendente: 'Aguardando pagamento',
   pago: 'Pago',
@@ -334,6 +375,7 @@ export const NOME_ACAO: Record<string, string> = {
   mudou_papel: 'Mudou o papel',
   reenviou_confirmacao: 'Reenviou a confirmação de e-mail',
   estornou_pedido: 'Estornou um pedido',
+  desativou_dois_fatores: 'Desligou a verificação em duas etapas',
   cancelou_pedido: 'Cancelou um pedido',
   mudou_configuracao: 'Mudou uma configuração',
   definiu_chave_ia: 'Cadastrou a chave da OpenAI',

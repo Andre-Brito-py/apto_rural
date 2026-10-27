@@ -42,15 +42,39 @@ export interface Contexto {
 
 export type NivelAdmin = 'admin' | 'suporte';
 
-/**
- * Nível de acesso ao painel. Exige e-mail confirmado e conta não bloqueada.
- * E-mails de ADMIN_EMAILS são sempre admin (primeiro acesso, antes de existir
- * qualquer papel no banco). Sessão de "entrar como" nunca tem poder de admin.
- */
-export function nivelAdmin(u: Usuario | null): NivelAdmin | null {
-  if (!u || !u.emailConfirmado || u.bloqueado || u.personificadoPor) return null;
+/** Os poderes do painel valem por estas horas depois do login; depois, é preciso entrar de novo. */
+export const HORAS_SESSAO_PAINEL = 12;
+
+/** O papel da pessoa no painel, sem olhar a sessão (ADMIN_EMAILS conta como admin). */
+export function papelNoPainel(u: Usuario | null): NivelAdmin | null {
+  if (!u || !u.emailConfirmado || u.bloqueado) return null;
   if (config.adminEmails.includes(u.email.toLowerCase()) || u.papel === 'admin') return 'admin';
   return u.papel === 'suporte' ? 'suporte' : null;
+}
+
+/**
+ * Por que quem tem papel no painel não pode usá-lo nesta sessão:
+ * - 'reentrar': o login foi há mais de HORAS_SESSAO_PAINEL horas (sessão roubada ou
+ *   esquecida aberta não dá poder de admin por 30 dias);
+ * - 'dois_fatores': em produção, administrador e suporte precisam da verificação em
+ *   duas etapas ligada (ligar é em Minha conta, que não depende do painel).
+ */
+export function bloqueioDoPainel(u: Usuario | null): 'reentrar' | 'dois_fatores' | null {
+  if (!papelNoPainel(u) || u!.personificadoPor) return null;
+  if (config.producao && !u!.doisFatores) return 'dois_fatores';
+  if (u!.sessaoCriadaEm && Date.now() - Date.parse(u!.sessaoCriadaEm) > HORAS_SESSAO_PAINEL * 3600 * 1000) return 'reentrar';
+  return null;
+}
+
+/**
+ * Nível de acesso ao painel. Exige e-mail confirmado, conta não bloqueada, login recente e,
+ * em produção, a verificação em duas etapas. E-mails de ADMIN_EMAILS são sempre admin
+ * (primeiro acesso, antes de existir qualquer papel no banco). Sessão de "entrar como"
+ * nunca tem poder de admin.
+ */
+export function nivelAdmin(u: Usuario | null): NivelAdmin | null {
+  if (!u || u.personificadoPor || bloqueioDoPainel(u)) return null;
+  return papelNoPainel(u);
 }
 
 export function ehAdmin(u: Usuario | null): boolean {

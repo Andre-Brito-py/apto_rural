@@ -31,6 +31,9 @@ export function Entrar() {
   const [profissao, setProfissao] = useState('');
   const [senha, setSenha] = useState('');
   const [aceite, setAceite] = useState(false);
+  // Segunda etapa: aparece quando a conta tem a verificação em duas etapas ligada.
+  const [pedirCodigo, setPedirCodigo] = useState(false);
+  const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState<{ mensagem: string; campo?: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const { definir } = useSessao();
@@ -46,7 +49,7 @@ export function Entrar() {
     try {
       const sessao =
         modo === 'entrar'
-          ? await api.entrar(email, senha)
+          ? await api.entrar(email, senha, pedirCodigo ? codigo : undefined)
           : await api.criarConta({
               nome,
               email,
@@ -59,7 +62,11 @@ export function Entrar() {
       navegar(destino, { replace: true });
     } catch (e) {
       const err = e as ErroApi;
-      setErro({ mensagem: err.message, campo: err.campo });
+      // Senha certa, falta o código: mostra o campo sem tratar como erro.
+      if (err.campo === 'codigo' && !pedirCodigo) {
+        setPedirCodigo(true);
+        setErro(null);
+      } else setErro({ mensagem: err.message, campo: err.campo });
       setEnviando(false);
     }
   }
@@ -92,6 +99,12 @@ export function Entrar() {
               {criar ? 'Confirme o e-mail e ganhe a primeira consulta de um imóvel real.' : 'Use o e-mail e a senha da sua conta.'}
             </p>
           </div>
+
+          {busca.get('senha') === 'nova' && (
+            <p className="alerta alerta-ok" role="status">
+              Senha nova criada. Entre com ela e com o código do aplicativo autenticador.
+            </p>
+          )}
 
           <div className="abas" role="tablist">
             <button type="button" role="tab" aria-selected={!criar} className={!criar ? 'ativa' : ''} onClick={() => setModo('entrar')}>
@@ -147,6 +160,25 @@ export function Entrar() {
               </>
             )}
             <EntradaSenha rotulo="Senha" value={senha} onChange={setSenha} autoComplete={criar ? 'new-password' : 'current-password'} />
+            {!criar && pedirCodigo && (
+              <label className="campo">
+                <span className="rotulo">Código de verificação</span>
+                <input
+                  className="entrada entrada-codigo"
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={9}
+                  placeholder="000000"
+                  autoFocus
+                  aria-invalid={erro?.campo === 'codigo' ? true : undefined}
+                />
+                <span className="ajuda">
+                  Abra o aplicativo autenticador e digite os 6 dígitos do Apto Rural. Sem o celular? Use um dos códigos de recuperação.
+                </span>
+              </label>
+            )}
             {criar ? (
               <span className="ajuda">Pelo menos 10 caracteres.</span>
             ) : (

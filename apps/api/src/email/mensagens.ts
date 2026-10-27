@@ -112,3 +112,24 @@ export function mensagemRedefinirSenha(nome: string, para: string, link: string)
     html: html('Criar nova senha', paragrafos, { texto: 'Criar nova senha', link }, rodape),
   };
 }
+
+/**
+ * Aviso de login no painel (administrador e suporte): se não foi a pessoa, ela troca a senha
+ * na hora. Data em Brasília; endereço e navegador como chegaram ao servidor.
+ */
+export function mensagemAcessoPainel(nome: string, para: string, quando: Date, endereco: string, navegador: string, link: string): Mensagem {
+  const primeiro = nome.split(' ')[0];
+  const data = quando.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' });
+  const paragrafos = [
+    `Olá, ${primeiro}! Sua conta, que tem acesso ao painel administrativo do Apto Rural, entrou agora.`,
+    `Quando: ${data} (Brasília). Endereço de internet: ${endereco}. Navegador: ${navegador.slice(0, 160) || 'não informado'}.`,
+    'Se foi você, não precisa fazer nada. Se não foi, crie uma senha nova agora: isso desconecta todos os aparelhos.',
+  ];
+  const rodape = 'Este aviso sai a cada login de administrador ou suporte, para proteger o painel.';
+  return {
+    para,
+    assunto: 'Novo acesso ao painel do Apto Rural',
+    texto: `${paragrafos.join('\n\n')}\n\nCriar nova senha: ${link}\n\n${rodape}`,
+    html: html('Novo acesso ao painel', paragrafos, { texto: 'Não fui eu: criar nova senha', link }, rodape),
+  };
+}

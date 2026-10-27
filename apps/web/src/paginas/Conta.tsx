@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, type Pedido } from '../api';
 import { EntradaSenha } from '../componentes/EntradaSenha';
+import { DoisFatores } from '../componentes/DoisFatores';
 import { Icone } from '../componentes/Icones';
 import { NOME_PAPEL } from './Equipe';
 import { useSessao } from '../sessao';
@@ -138,12 +139,18 @@ export function Conta() {
         <Link to="/planos" className="botao botao-secundario">
           Planos e créditos
         </Link>
-        {sessao.nivelAdmin && (
+        {(sessao.nivelAdmin || sessao.bloqueioPainel) && (
           <Link to="/admin" className="botao botao-secundario">
             Painel administrativo
           </Link>
         )}
       </div>
+
+      {sessao.bloqueioPainel === 'dois_fatores' && (
+        <p className="alerta" role="note">
+          Para usar o painel administrativo, ligue a verificação em duas etapas aqui embaixo.
+        </p>
+      )}
 
       <section className="cartao pilha-p">
         <h2 className="secao-titulo">Dados da conta</h2>
@@ -159,6 +166,8 @@ export function Conta() {
           </dd>
         </dl>
       </section>
+
+      {!sessao.personificadoPor && <DoisFatores obrigatoria={sessao.doisFatoresObrigatorio === true} />}
 
       {pedidos.length > 0 && (
         <section className="cartao pilha-p">
