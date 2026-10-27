@@ -9,4 +9,5 @@ http://:8081 {
 	encode zstd gzip
 	reverse_proxy api:3333
 	import cabecalhos
+	import fora_do_ar
 }

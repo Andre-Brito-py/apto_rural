@@ -6,4 +6,5 @@ import /etc/caddy/cabecalhos.caddy
 	reverse_proxy api:3333
 	import cabecalhos
 	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	import fora_do_ar
 }

@@ -11,3 +11,37 @@
 		-Server
 	}
 }
+
+# Quando a API não responde (atualização, reinício, queda), o próprio Caddy mostra a página de
+# manutenção em vez da tela em branco do 502 (docs/pagina-manutencao.md). Responde 503 com
+# Retry-After: para o Google, é fora do ar temporário (não pune o site). As chamadas da API
+# (/v1/...) recebem JSON, que as telas já sabem mostrar.
+#
+# As condições vão nos próprios matchers: com "handle_errors 502 503 504", o Caddy 2.8 troca os
+# matchers de dentro pelo dele, e o filtro de /v1/ sumia (achado no ensaio de produção).
+(fora_do_ar) {
+	handle_errors {
+		@fora_api {
+			expression `{http.error.status_code} in [502, 503, 504]`
+			path /v1/*
+		}
+		@fora expression `{http.error.status_code} in [502, 503, 504]`
+		handle @fora_api {
+			import cabecalhos
+			header Retry-After "30"
+			header Cache-Control "no-store"
+			header Content-Type "application/json; charset=utf-8"
+			respond `{"erro":{"mensagem":"O Apto Rural está em manutenção por alguns minutos. Tente de novo em instantes."}}` 503
+		}
+		handle @fora {
+			import cabecalhos
+			header Retry-After "30"
+			header Cache-Control "no-store"
+			root * /etc/caddy/manutencao
+			rewrite * /manutencao.html
+			file_server {
+				status 503
+			}
+		}
+	}
+}

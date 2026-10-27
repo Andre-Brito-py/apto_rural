@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Página servida pelo próprio Caddy quando a API não responde (docs/pagina-manutencao.md).
+     Tudo num arquivo só: sem fonte, imagem ou script de fora (a API está fora do ar e a
+     política de segurança do site não deixa rodar script embutido). Tenta de novo sozinha. -->
+<meta http-equiv="refresh" content="30">
+<meta name="robots" content="noindex">
+<title>Apto Rural · voltamos em instantes</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%2314532d'/%3E%3Cpath d='M14 48 32 14.5 50 48' fill='none' stroke='%23fff' stroke-width='6.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='m22.5 36.5 6.5 6.5 13.5-13.5' fill='none' stroke='%234ade80' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root { --mata: #14532d; --broto: #4ade80; --papel: #f6f7f4; --tinta: #111a14; --suave: #566158; --linha: #e3e7e1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex; flex-direction: column; min-height: 100vh;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--tinta); line-height: 1.55;
+    /* Trama de pontos bem leve, como na landing. */
+    background: radial-gradient(circle at 1px 1px, #dde3d8 1px, transparent 0) 0 0 / 22px 22px, var(--papel);
+  }
+  header { display: flex; align-items: center; gap: 10px; padding: 18px 24px; background: #fff; border-bottom: 1px solid var(--linha); }
+  header strong { font-size: 1.05rem; letter-spacing: -0.01em; }
+  header strong span { font-weight: 500; }
+  main { flex: 1; display: grid; place-items: center; padding: 40px 20px 64px; }
+  .cartao {
+    width: 100%; max-width: 520px; padding: 40px 36px; text-align: center; background: #fff;
+    border: 1px solid var(--linha); border-radius: 18px; box-shadow: 0 12px 32px -12px rgb(16 32 20 / 0.18);
+  }
+  .ilustracao { width: 104px; height: 104px; margin: 0 auto 22px; }
+  .sobretitulo { margin: 0 0 6px; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mata); }
+  h1 { margin: 0 0 12px; font-size: clamp(1.6rem, 5vw, 2rem); line-height: 1.15; letter-spacing: -0.02em; }
+  p { margin: 0 0 14px; color: var(--suave); }
+  .guardado {
+    display: flex; gap: 10px; align-items: flex-start; margin: 22px 0 26px; padding: 14px 16px; text-align: left;
+    background: #e8f1ea; border-radius: 12px; color: #0f3f22; font-size: 0.93rem;
+  }
+  .guardado svg { flex: none; margin-top: 2px; }
+  .botao {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px;
+    border-radius: 12px; background: var(--mata); color: #fff; font-weight: 650; text-decoration: none;
+  }
+  .botao:hover { background: #0f3f22; }
+  .botao:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+  .nota { margin: 16px 0 0; font-size: 0.82rem; }
+  /* Ponto que pulsa: mostra que a página está esperando, não travada. */
+  .pulso { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--broto); vertical-align: 1px; animation: pulso 1.6s ease-in-out infinite; }
+  @keyframes pulso { 50% { opacity: 0.25; transform: scale(0.8); } }
+  @media (prefers-reduced-motion: reduce) { .pulso, .engrenagem { animation: none !important; } }
+  .engrenagem { transform-origin: 70px 34px; animation: girar 6s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  footer { padding: 18px 24px; text-align: center; font-size: 0.82rem; color: var(--suave); }
+  @media (max-width: 480px) { .cartao { padding: 32px 22px; } }
+</style>
+</head>
+<body>
+  <header>
+    <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#14532d"/><path d="M14 48 32 14.5 50 48" fill="none" stroke="#fff" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round"/><path d="m22.5 36.5 6.5 6.5 13.5-13.5" fill="none" stroke="#4ade80" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <strong>Apto <span>Rural</span></strong>
+  </header>
+
+  <main>
+    <div class="cartao" role="status">
+      <!-- Ilustração: a marca com uma engrenagem girando ao lado. -->
+      <svg class="ilustracao" viewBox="0 0 104 104" aria-hidden="true">
+        <circle cx="52" cy="52" r="50" fill="#e8f1ea"/>
+        <g transform="translate(16 26)">
+          <rect width="52" height="52" rx="13" fill="#14532d"/>
+          <path d="M11.4 39 26 11.8 40.6 39" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="m18.3 29.7 5.3 5.3 11-11" fill="none" stroke="#4ade80" stroke-width="4.9" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <g class="engrenagem" fill="#e9b949">
+          <circle cx="70" cy="34" r="11"/>
+          <g>
+            <rect x="67.5" y="17" width="5" height="8" rx="1.5"/><rect x="67.5" y="43" width="5" height="8" rx="1.5"/>
+            <rect x="53" y="31.5" width="8" height="5" rx="1.5"/><rect x="79" y="31.5" width="8" height="5" rx="1.5"/>
+            <rect x="67.5" y="17" width="5" height="8" rx="1.5" transform="rotate(45 70 34)"/><rect x="67.5" y="43" width="5" height="8" rx="1.5" transform="rotate(45 70 34)"/>
+            <rect x="53" y="31.5" width="8" height="5" rx="1.5" transform="rotate(45 70 34)"/><rect x="79" y="31.5" width="8" height="5" rx="1.5" transform="rotate(45 70 34)"/>
+          </g>
+          <circle cx="70" cy="34" r="4.5" fill="#fff"/>
+        </g>
+      </svg>
+
+      <p class="sobretitulo">Manutenção rápida</p>
+      <h1>Voltamos em instantes</h1>
+      <p>Estamos atualizando o Apto Rural. Em geral, leva só alguns minutos.</p>
+
+      <div class="guardado">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14532d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.3 7.5 9.5 4.4-1.2 7.5-4.9 7.5-9.5V6L12 3Z"/><path d="m8.8 12 2.2 2.2 4.3-4.4"/></svg>
+        <span>Suas consultas, dossiês, créditos e a carteira de imóveis estão guardados. Nada se perde.</span>
+      </div>
+
+      <a class="botao" href="/">Tentar de novo</a>
+      <p class="nota"><span class="pulso" aria-hidden="true"></span>A página tenta de novo sozinha a cada 30 segundos.</p>
+    </div>
+  </main>
+
+  <footer>Do vermelho ao verde.</footer>
+</body>
+</html>

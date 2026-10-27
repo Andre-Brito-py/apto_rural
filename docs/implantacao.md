@@ -10,7 +10,7 @@ Guia passo a passo, sem pressupor experiência com servidores.
 | **api** | O site e a API, no mesmo endereço. Ao subir, atualiza a estrutura do banco sozinha. |
 | **coletores** | Todo dia às 4h (Brasília) confere as bases oficiais e só recarrega o que mudou. CNUC e CNFP, que são pesados, aos domingos. |
 | **monitor** | Todo dia às 6h reconfere as fazendas das carteiras e manda os avisos por e-mail (mesma imagem da API). |
-| **caddy** | Recebe as visitas e cuida do **HTTPS** (o cadeado), renovando o certificado sozinho. |
+| **caddy** | Recebe as visitas e cuida do **HTTPS** (o cadeado), renovando o certificado sozinho. Se a API não responder (por exemplo, durante uma atualização), mostra a página "Voltamos em instantes" ([pagina-manutencao.md](pagina-manutencao.md)). |
 | **backup** | Todo dia às 3h salva uma cópia do banco, guarda os últimos 14 dias e manda uma cópia **cifrada** para fora do servidor (se configurado). |
 
 Tudo isso é descrito em `docker-compose.prod.yml` e sobe com um comando.

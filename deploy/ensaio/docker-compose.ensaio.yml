@@ -49,6 +49,7 @@ services:
       - ./deploy/ensaio/Caddyfile.ensaio:/etc/caddy/Caddyfile:ro
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile.producao:ro
       - ./deploy/cabecalhos.caddy:/etc/caddy/cabecalhos.caddy:ro
+      - ./deploy/manutencao:/etc/caddy/manutencao:ro
       - caddy_data:/data
 
   mailpit:

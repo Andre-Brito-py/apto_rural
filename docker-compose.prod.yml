@@ -71,6 +71,7 @@ services:
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./deploy/cabecalhos.caddy:/etc/caddy/cabecalhos.caddy:ro
+      - ./deploy/manutencao:/etc/caddy/manutencao:ro # página de "voltamos em instantes"
       - caddy_data:/data
     depends_on:
       - api
