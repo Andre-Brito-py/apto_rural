@@ -524,6 +524,19 @@ export const PERGUNTAS: Pergunta[] = [
     telas: ['/planos', '/conta'],
   },
 
+  {
+    id: 'cupom',
+    categoria: 'creditos',
+    pergunta: 'Como uso um cupom de desconto?',
+    resposta: [
+      'Na tela de Planos, digite o código em "Tem um cupom de desconto?" e toque em Aplicar. Os preços com desconto aparecem em cada plano e produto em que o cupom vale. Se você recebeu um link com o cupom, ele já abre aplicado.',
+      'Na assinatura, o cupom pode valer só nas primeiras mensalidades: a tela de Planos mostra quantas. Depois, a mensalidade volta sozinha ao valor normal. Cada cupom tem prazo e número de usos; se ele não valer mais, a tela explica o motivo.',
+    ],
+    links: [{ rotulo: 'Ir para Planos', para: '/planos' }],
+    palavras: ['cupom', 'desconto', 'codigo promocional', 'promocao', 'voucher', 'cupom nao funciona'],
+    telas: ['/planos'],
+  },
+
   // ---------------------------------------------------------------- Equipe
   {
     id: 'equipe',

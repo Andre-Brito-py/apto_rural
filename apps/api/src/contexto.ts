@@ -6,6 +6,7 @@ import type { RepositorioCarteira } from './carteira/repositorio.js';
 import type { Configuracoes } from './configuracoes.js';
 import type { RegistroErros } from './monitoramento/erros.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
+import type { RepositorioCupons } from './cupons/tipos.js';
 import type { Enviador } from './email/enviador.js';
 import type { RepositorioEquipe } from './equipe/repositorio.js';
 import type { ServicoExplicacao } from './ia/explicacao.js';
@@ -21,6 +22,8 @@ export interface Contexto {
   demo: Repositorio | null;
   contas: RepositorioContas;
   pagamento: ProvedorPagamento | null;
+  /** Cupons de desconto (docs/cupons.md): no banco, ou na memória no modo demonstração. */
+  cupons: RepositorioCupons;
   email: Enviador;
   /** Carteira de imóveis acompanhados; null sem banco. */
   carteira: RepositorioCarteira | null;

@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { api, type Assinatura, type Catalogo, type Plano, type Produto } from '../api';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { api, type Assinatura, type Catalogo, type Plano, type PrecoCupom, type Produto, type Saldo } from '../api';
 import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 import { contagem, dataBr } from '../textos';
 
 const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+/** "Nas 3 primeiras mensalidades; depois, R$ 199,00/mês." */
+function precoDepois(p: Extract<PrecoCupom, { valido: true }>, cheio: number) {
+  if (p.meses == null) return `${p.texto}.`;
+  return `${p.texto}; depois, ${reais(cheio)}/mês.`;
+}
 
 const SITUACAO: Record<Assinatura['status'], string> = {
   pendente: 'Aguardando o primeiro pagamento',
@@ -25,13 +31,60 @@ export function Planos() {
   const [enviando, setEnviando] = useState(false);
   // Na equipe, só o responsável compra e assina; os outros só veem.
   const [podePagar, setPodePagar] = useState(true);
-  const { sessao } = useSessao();
+  const { sessao, atualizarSaldo } = useSessao();
   const navegar = useNavigate();
+  // Cupom: digitado aqui ou vindo no link de divulgação (/planos?cupom=BEMVINDO).
+  const [parametros, setParametros] = useSearchParams();
+  const [codigo, setCodigo] = useState(parametros.get('cupom') ?? '');
+  const [cupom, setCupom] = useState<{ codigo: string; precos: Record<string, PrecoCupom> } | null>(null);
+  const [erroCupom, setErroCupom] = useState('');
+  const [aplicando, setAplicando] = useState(false);
+  const [sucesso, setSucesso] = useState('');
+  // O que já foi conferido (código + conta): evita conferir de novo só porque o endereço mudou.
+  const conferido = useRef('');
 
   useEffect(() => {
     api.planos().then((r) => setPlanos(r.planos)).catch(() => undefined);
     api.produtos().then(setCatalogo).catch((e: Error) => setErro(e.message));
   }, []);
+
+  async function aplicarCupom(texto: string) {
+    setErroCupom('');
+    setCupom(null);
+    if (!texto.trim()) return;
+    setAplicando(true);
+    try {
+      const r = await api.validarCupom(texto);
+      conferido.current = `${r.codigo}|${sessao?.usuario.id ?? ''}`;
+      setCupom({ codigo: r.codigo, precos: Object.fromEntries(r.itens.map((i) => [i.id, i])) });
+      setCodigo(r.codigo);
+      setParametros({ cupom: r.codigo }, { replace: true });
+    } catch (e) {
+      setErroCupom((e as Error).message);
+    } finally {
+      setAplicando(false);
+    }
+  }
+
+  // O link já traz o cupom: confere assim que a página abre (e de novo depois de entrar na conta).
+  const doLink = parametros.get('cupom');
+  useEffect(() => {
+    if (doLink && conferido.current !== `${doLink.toUpperCase()}|${sessao?.usuario.id ?? ''}`) void aplicarCupom(doLink);
+  }, [doLink, sessao?.usuario.id]);
+
+  function tirarCupom() {
+    setCupom(null);
+    setCodigo('');
+    setErroCupom('');
+    setParametros({}, { replace: true });
+  }
+
+  /** Preço com o cupom, se ele vale neste plano ou produto. */
+  const comCupom = (id: string) => {
+    const p = cupom?.precos[id];
+    return p?.valido ? p : null;
+  };
+  const cupomDe = (id: string) => (comCupom(id) ? cupom!.codigo : undefined);
 
   useEffect(() => {
     if (sessao)
@@ -47,19 +100,31 @@ export function Planos() {
   const exigeDocumento = catalogo?.exigeDocumento ?? false;
 
   /** Primeiro toque escolhe (e pede CPF/CNPJ, se preciso); o segundo vai ao pagamento. */
-  async function seguir(chave: string, acao: () => Promise<{ link: string }>) {
+  async function seguir(chave: string, acao: () => Promise<{ link?: string; gratis?: boolean; saldo?: Saldo }>, gratis = false) {
     if (!sessao) {
-      navegar('/entrar?modo=criar&voltar=/planos');
+      // Volta para os planos com o cupom já aplicado.
+      navegar(`/entrar?modo=criar&voltar=${encodeURIComponent(cupom ? `/planos?cupom=${cupom.codigo}` : '/planos')}`);
       return;
     }
-    if (exigeDocumento && escolhido !== chave) {
+    // Compra que o cupom deixa de graça não tem cobrança: não precisa de CPF/CNPJ.
+    if (exigeDocumento && !gratis && escolhido !== chave) {
       setEscolhido(chave);
       return;
     }
     setErro('');
+    setSucesso('');
     setEnviando(true);
     try {
-      window.location.assign((await acao()).link);
+      const r = await acao();
+      if (r.gratis) {
+        if (r.saldo) await atualizarSaldo(r.saldo);
+        setSucesso(`Pronto! Com o cupom ${cupom?.codigo ?? ''}, a compra saiu de graça e os créditos já estão na sua conta.`);
+        setEnviando(false);
+        // Confere o cupom de novo: se era de um uso só, a página já mostra que foi usado.
+        if (cupom) void aplicarCupom(cupom.codigo);
+        return;
+      }
+      window.location.assign(r.link!);
     } catch (e) {
       setErro((e as Error).message);
       setEnviando(false);
@@ -103,6 +168,47 @@ export function Planos() {
           {erro}
         </p>
       )}
+      {sucesso && (
+        <p className="alerta alerta-ok" role="status">
+          {sucesso}
+        </p>
+      )}
+
+      <form className="cartao cupom-caixa" onSubmit={(ev: FormEvent) => (ev.preventDefault(), void aplicarCupom(codigo))}>
+        {cupom ? (
+          <p className="cupom-aplicado">
+            <Icone nome="check" className="l-icone-p" /> Cupom <strong className="mono">{cupom.codigo}</strong> aplicado: os preços abaixo já
+            estão com o desconto.{' '}
+            <button type="button" className="link-botao" onClick={tirarCupom}>
+              Tirar o cupom
+            </button>
+          </p>
+        ) : (
+          <label className="campo">
+            <span className="rotulo">Tem um cupom de desconto?</span>
+            <span className="linha-acompanhar">
+              <input
+                className="entrada entrada-cupom"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                placeholder="Ex.: BEMVINDO"
+                autoCapitalize="characters"
+                autoComplete="off"
+                maxLength={30}
+                aria-invalid={erroCupom ? true : undefined}
+              />
+              <button type="submit" className="botao botao-secundario botao-auto" disabled={aplicando || !codigo.trim()}>
+                {aplicando ? 'Conferindo…' : 'Aplicar'}
+              </button>
+            </span>
+            {erroCupom && (
+              <span className="ajuda cupom-erro" role="alert">
+                {erroCupom}
+              </span>
+            )}
+          </label>
+        )}
+      </form>
 
       {!podePagar && sessao?.equipe && (
         <p className="alerta" role="note">
@@ -120,7 +226,20 @@ export function Planos() {
           {assinatura && (
             <div className="assinatura-atual pilha-p">
               <p>
-                Plano <strong>{assinatura.nomePlano}</strong> — {reais(assinatura.valorMensal)}/mês ·{' '}
+                Plano <strong>{assinatura.nomePlano}</strong> — {reais(assinatura.valorMensal)}/mês
+                {assinatura.desconto && (
+                  <span className="fonte-suave">
+                    {' '}
+                    (cupom {assinatura.desconto.cupom}
+                    {assinatura.desconto.mesesRestantes == null
+                      ? ''
+                      : assinatura.desconto.mesesRestantes === 0
+                        ? `; a próxima já vem com o valor cheio, ${reais(assinatura.desconto.valorCheio)}/mês`
+                        : `; ainda ${assinatura.desconto.mesesRestantes === 1 ? 'mais 1 mensalidade' : `mais ${assinatura.desconto.mesesRestantes} mensalidades`} com desconto, depois ${reais(assinatura.desconto.valorCheio)}/mês`}
+                    )
+                  </span>
+                )}{' '}
+                ·{' '}
                 <span className={assinatura.status === 'ativa' ? 'verificacao sim' : 'verificacao nao'}>{SITUACAO[assinatura.status]}</span>
                 {assinatura.ativadaEm && <span className="fonte-suave"> · desde {dataBr(assinatura.ativadaEm)}</span>}
               </p>
@@ -148,10 +267,21 @@ export function Planos() {
             <li key={p.id} className={`l-plano${p.destaque ? ' l-plano-destaque' : ''}`}>
               {p.destaque && <span className="l-plano-selo">Recomendado</span>}
               <h3>{p.nome}</h3>
-              <p className="l-plano-preco">
-                {reais(p.valorMensal)}
-                <span>/mês</span>
-              </p>
+              {comCupom(p.id) ? (
+                <>
+                  <p className="l-plano-preco">
+                    <s className="preco-antigo">{reais(p.valorMensal)}</s> {reais(comCupom(p.id)!.por)}
+                    <span>/mês</span>
+                  </p>
+                  <p className="cupom-texto">{precoDepois(comCupom(p.id)!, p.valorMensal)}</p>
+                </>
+              ) : (
+                <p className="l-plano-preco">
+                  {reais(p.valorMensal)}
+                  <span>/mês</span>
+                </p>
+              )}
+              {cupom && !comCupom(p.id) && <p className="cupom-nao-vale">{(cupom.precos[p.id] as { mensagem?: string })?.mensagem ?? 'O cupom não vale neste plano.'}</p>}
               <ul>
                 {[
                   `${contagem(p.creditosMensais.consulta, 'consulta', 'consultas')} por mês`,
@@ -171,7 +301,7 @@ export function Planos() {
                 className={`l-botao ${p.destaque ? 'l-botao-marca' : 'l-botao-claro'}`}
                 style={{ marginTop: 'auto' }}
                 disabled={enviando || !podePagar || !catalogo?.pagamentoDisponivel || (assinatura != null && assinatura.planoId !== p.id)}
-                onClick={() => seguir(`plano:${p.id}`, () => api.assinar(p.id, documento || undefined))}
+                onClick={() => seguir(`plano:${p.id}`, () => api.assinar(p.id, documento || undefined, cupomDe(p.id)))}
               >
                 {assinatura?.planoId === p.id
                   ? podePagar
@@ -198,18 +328,33 @@ export function Planos() {
             <li key={p.id} className="cartao avulso">
               <div className="avulso-topo">
                 <h3 className="secao-titulo">{p.nome}</h3>
-                <p className="avulso-preco">{reais(p.valor)}</p>
+                <p className="avulso-preco">
+                  {comCupom(p.id) ? (
+                    <>
+                      <s className="preco-antigo">{reais(p.valor)}</s> {comCupom(p.id)!.por === 0 ? 'Grátis' : reais(comCupom(p.id)!.por)}
+                    </>
+                  ) : (
+                    reais(p.valor)
+                  )}
+                </p>
               </div>
               <p className="fonte-suave">{p.descricao}</p>
+              {cupom && !comCupom(p.id) && <p className="cupom-nao-vale">{(cupom.precos[p.id] as { mensagem?: string })?.mensagem ?? 'O cupom não vale neste produto.'}</p>}
               {campoDocumento(`produto:${p.id}`)}
               <button
                 type="button"
                 className="l-botao l-botao-claro"
                 style={{ marginTop: 'auto' }}
                 disabled={enviando || !podePagar || !catalogo.pagamentoDisponivel}
-                onClick={() => seguir(`produto:${p.id}`, () => api.comprar(p.id, documento || undefined))}
+                onClick={() =>
+                  seguir(`produto:${p.id}`, () => api.comprar(p.id, documento || undefined, cupomDe(p.id)), comCupom(p.id)?.por === 0)
+                }
               >
-                {escolhido === `produto:${p.id}` || !exigeDocumento ? 'Ir para o pagamento' : 'Comprar'}
+                {comCupom(p.id)?.por === 0
+                  ? 'Resgatar grátis'
+                  : escolhido === `produto:${p.id}` || !exigeDocumento
+                    ? 'Ir para o pagamento'
+                    : 'Comprar'}
               </button>
             </li>
           ))}

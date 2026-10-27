@@ -27,11 +27,22 @@ export async function registrarMensalidade(
   });
 }
 
-/** Aplica um evento de cobrança de assinatura (vindo do webhook ou da simulação). */
-export async function aplicarEventoAssinatura(contas: RepositorioContas, a: Assinatura, evento: EventoPagamento): Promise<void> {
+/**
+ * Aplica um evento de cobrança de assinatura (vindo do webhook ou da simulação).
+ * aoPagar roda uma vez por mensalidade, quando ela é paga pela primeira vez (o Asaas
+ * manda CONFIRMED e RECEIVED da mesma cobrança): conta os meses de desconto do cupom.
+ */
+export async function aplicarEventoAssinatura(
+  contas: RepositorioContas,
+  a: Assinatura,
+  evento: EventoPagamento,
+  aoPagar?: (a: Assinatura) => Promise<void>,
+): Promise<void> {
   if (evento.tipo === 'pago') {
     const pedido = await registrarMensalidade(contas, a, evento.provedorId, evento.valor);
+    const primeiraVez = pedido.status !== 'pago' && pedido.status !== 'estornado';
     await aplicarEvento(contas, pedido, 'pago');
+    if (primeiraVez && aoPagar) await aoPagar(a);
     // Pagou: volta a valer (inclusive depois de atraso). Cancelada continua cancelada.
     if (a.status !== 'cancelada') await contas.atualizarAssinatura(a.id, { status: 'ativa' });
   } else if (evento.tipo === 'atrasado') {

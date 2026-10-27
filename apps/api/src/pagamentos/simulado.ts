@@ -34,6 +34,13 @@ export class ProvedorSimulado implements ProvedorPagamento {
 
   async cancelarAssinatura() {}
 
+  /** Guarda as mudanças de valor, para os testes conferirem. */
+  valoresAtualizados: { provedorId: string; valorMensal: number }[] = [];
+
+  async atualizarValorAssinatura(provedorId: string, valorMensal: number) {
+    this.valoresAtualizados.push({ provedorId, valorMensal });
+  }
+
   lerWebhook(): EventoPagamento | null {
     return null;
   }

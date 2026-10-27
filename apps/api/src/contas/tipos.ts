@@ -39,6 +39,9 @@ export interface Pedido {
   nomeProduto?: string;
   /** Mensalidade de uma assinatura. */
   assinaturaId?: string;
+  /** Cupom usado nesta compra e quanto saiu de desconto (docs/cupons.md). */
+  cupom?: string;
+  desconto?: number;
 }
 
 export type StatusAssinatura = 'pendente' | 'ativa' | 'inadimplente' | 'cancelada';
@@ -54,6 +57,9 @@ export interface Assinatura {
   limiteCarteira: number;
   /** Pessoas na equipe, contando o responsável (1 = sem equipe). */
   limiteMembros: number;
+  /** Com cupom: valorMensal é o que está sendo cobrado agora e valorCheio, o preço do plano. */
+  cupom?: string;
+  valorCheio?: number;
   status: StatusAssinatura;
   provedor: string;
   provedorId?: string;
@@ -113,7 +119,7 @@ export interface RepositorioContas {
 
   /** Cria a assinatura pendente. 'ja_existe' se a conta já tem uma em andamento. */
   criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>): Promise<Assinatura | 'ja_existe'>;
-  atualizarAssinatura(id: string, dados: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link'>>): Promise<void>;
+  atualizarAssinatura(id: string, dados: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal'>>): Promise<void>;
   buscarAssinatura(id: string): Promise<Assinatura | null>;
   buscarAssinaturaPorProvedor(provedorId: string): Promise<Assinatura | null>;
   /** A assinatura em andamento (pendente, ativa ou inadimplente), se houver. */

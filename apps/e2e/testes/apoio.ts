@@ -29,11 +29,11 @@ export async function linkDoEmail(para: string, caminho: string): Promise<string
  * o tour de boas-vindas como visto, para ele não cobrir a tela nos outros testes
  * (o próprio tour é testado em ajuda.spec.ts).
  */
-export async function criarContaConfirmada(page: Page, email: string, nome = 'Técnica de Teste', { pularTour = true } = {}) {
+export async function criarContaConfirmada(page: Page, email: string, nome = 'Técnica de Teste', { pularTour = true, senha = SENHA } = {}) {
   await page.goto('/entrar?modo=criar');
   await page.getByLabel('Nome').fill(nome);
   await page.getByLabel('E-mail').fill(email);
-  await page.getByLabel('Senha', { exact: true }).fill(SENHA);
+  await page.getByLabel('Senha', { exact: true }).fill(senha);
   await page.getByRole('checkbox').check();
   await page.getByRole('button', { name: 'Criar conta' }).click();
   // O aviso aparece na faixa do topo (e às vezes também na página): basta um.
@@ -42,6 +42,23 @@ export async function criarContaConfirmada(page: Page, email: string, nome = 'T�
   // O goto recarrega a página: a sessão vem de novo da API, já com o tour visto.
   await page.goto(await linkDoEmail(email, '/confirmar-email'));
   await expect(page.getByText('E-mail confirmado')).toBeVisible();
+}
+
+/**
+ * Senha fixa da administradora: a SENHA acima muda quando o Playwright reinicia o processo
+ * (depois de um teste que falhou), e a conta da administradora é uma só na rodada.
+ */
+const SENHA_ADMIN = 'Admin-dos-Testes-Navegador';
+
+/**
+ * Entra como a administradora dos testes (admin@e2e.local, em ADMIN_EMAILS de servidor.mjs).
+ * O banco é compartilhado na rodada: se outro teste já criou a conta, só entra.
+ */
+export async function entrarComoAdmin(page: Page) {
+  await page.goto('/');
+  const login = await page.request.post('/v1/sessao', { data: { email: 'admin@e2e.local', senha: SENHA_ADMIN } });
+  if (login.ok()) return;
+  await criarContaConfirmada(page, 'admin@e2e.local', 'Administradora de Teste', { senha: SENHA_ADMIN });
 }
 
 /** Nenhuma rolagem lateral (erro clássico de layout no celular). */

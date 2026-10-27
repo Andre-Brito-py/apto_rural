@@ -16,6 +16,9 @@ import { rotasAssinaturas } from './rotas/assinaturas.js';
 import { rotasCarteira } from './rotas/carteira.js';
 import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
+import { RepositorioCuponsMemoria } from './cupons/memoria.js';
+import { RepositorioCuponsPostgres } from './cupons/postgres.js';
+import { rotasCupons } from './rotas/cupons.js';
 import { COOKIE_SESSAO, usuarioDaRequisicao, type Contexto } from './contexto.js';
 import { EnviadorConsole, EnviadorSmtp } from './email/enviador.js';
 import { RepositorioEquipe } from './equipe/repositorio.js';
@@ -39,10 +42,12 @@ export function criarContexto(): Contexto {
   const configuracoes = new Configuracoes(pool);
   const segredos = new Segredos(pool, chaveMestra(config.chaveSegredos, config.segredoDocumento || 'desenvolvimento'));
   const uso = new UsoIA(pool);
+  const contas = pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria();
   return {
     banco: pool ? new RepositorioPostgis(pool) : null,
     demo: config.demo ? new RepositorioDemo() : null,
-    contas: pool ? new RepositorioContasPostgres(pool) : new RepositorioContasMemoria(),
+    contas,
+    cupons: pool ? new RepositorioCuponsPostgres(pool) : new RepositorioCuponsMemoria(contas),
     carteira: pool ? new RepositorioCarteira(pool) : null,
     admin: pool ? new RepositorioAdmin(pool) : null,
     equipe: pool ? new RepositorioEquipe(pool) : null,
@@ -113,6 +118,7 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
     rotasAdmin(app, ctx);
     rotasAssinaturas(app, ctx);
     rotasEquipe(app, ctx);
+    rotasCupons(app, ctx);
   });
 
   // Site no mesmo endereço da API: sem CORS e com o cookie de sessão no mesmo domínio.
