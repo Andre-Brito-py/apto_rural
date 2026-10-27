@@ -517,3 +517,4 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 | [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
 | [docs/marca.md](docs/marca.md) | A marca: logotipo e arquivos, cores, fonte, tom de voz, slogan e as checagens do nome (domínio, INPI). |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |
+| [docs/proposta-futura-eudr.md](docs/proposta-futura-eudr.md) | Proposta de uma futura startup, depois que o Apto Rural der lucro: comprovar a origem sem desmatamento para a exportação (EUDR), com fases e metas. |
