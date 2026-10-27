@@ -115,10 +115,30 @@ const normalizar = (s: string) =>
     .toLowerCase();
 
 const PROIBIDAS_SEMPRE = ['garantid', 'aprovad', 'com certeza', 'pode ficar tranquilo', 'sem nenhum risco', 'nao se preocupe'];
-const PROIBIDAS_COM_PROBLEMA = ['nenhum impedimento', 'tudo certo', 'esta liberad', 'pode pegar o credito', 'sem problemas'];
+const PROIBIDAS_COM_PROBLEMA = ['tudo certo', 'esta liberad', 'pode pegar o credito', 'sem problemas'];
+/**
+ * "Nenhum impedimento" é verdade na situação "atenção" (nada impede, mas há pontos a
+ * resolver: a explicação de modelo diz o mesmo). Só é falso com impedimento ou checagem
+ * incompleta.
+ */
+const PROIBIDAS_SE_IMPEDE_OU_INCOMPLETO = ['nenhum impedimento'];
 
 /** Números do texto (só os dígitos: "4,43" e "4.43" viram "443"). */
 const numeros = (s: string) => [...s.matchAll(/\d+(?:[.,/]\d+)*/g)].map((m) => m[0].replace(/\D/g, ''));
+
+/**
+ * Números que o texto pode usar: os dos fatos inteiros ("4,43", "18/09/2024") e também as
+ * partes deles, sem zero à esquerda ("18", "9", "2024"), porque a IA escreve datas por
+ * extenso ("18 de setembro de 2024"). Sem isso, texto correto era barrado.
+ */
+function numerosPermitidos(fatos: string): Set<string> {
+  const todos = new Set<string>();
+  for (const m of fatos.matchAll(/\d+(?:[.,/]\d+)*/g)) {
+    todos.add(m[0].replace(/\D/g, ''));
+    for (const parte of m[0].split(/[.,/]/)) todos.add(String(Number(parte)));
+  }
+  return todos;
+}
 
 export function conferirExplicacao(saida: unknown, r: ResultadoConsulta): { ok: true; texto: string } | { ok: false; motivo: string } {
   const o = saida as { situacao?: unknown; texto?: unknown };
@@ -128,12 +148,18 @@ export function conferirExplicacao(saida: unknown, r: ResultadoConsulta): { ok: 
   if (texto.length < 120 || texto.length > 1600) return { ok: false, motivo: `tamanho fora do esperado (${texto.length})` };
   if (/[*#_`]|^\s*[-•]/m.test(o.texto)) return { ok: false, motivo: 'formatação (lista ou negrito)' };
   const t = normalizar(texto);
-  const proibida = [...PROIBIDAS_SEMPRE, ...(r.veredito === 'sem_impedimento' ? [] : PROIBIDAS_COM_PROBLEMA)].find((p) => t.includes(p));
+  const proibida = [
+    ...PROIBIDAS_SEMPRE,
+    ...(r.veredito === 'sem_impedimento' ? [] : PROIBIDAS_COM_PROBLEMA),
+    ...(r.veredito === 'impedimento' || r.veredito === 'incompleto' ? PROIBIDAS_SE_IMPEDE_OU_INCOMPLETO : []),
+  ].find((p) => t.includes(p));
   if (proibida) return { ok: false, motivo: `expressão proibida ("${proibida}")` };
   if (PADROES_PESSOAIS.some((p) => new RegExp(p.source, p.flags.replace('g', '')).test(texto))) return { ok: false, motivo: 'dado pessoal no texto' };
   // Todo número do texto precisa estar nos fatos (ou ser uma contagem pequena de itens).
-  const permitidos = new Set(numeros(JSON.stringify(fatosDaConsulta(r))));
-  const inventado = numeros(texto).find((n) => !permitidos.has(n) && !(Number(n) >= 1 && Number(n) <= r.itens.length));
+  const permitidos = numerosPermitidos(JSON.stringify(fatosDaConsulta(r)));
+  const inventado = numeros(texto).find(
+    (n) => !permitidos.has(n) && !permitidos.has(String(Number(n))) && !(Number(n) >= 1 && Number(n) <= r.itens.length),
+  );
   if (inventado) return { ok: false, motivo: `número que não está no resultado (${inventado})` };
   return { ok: true, texto };
 }
@@ -231,7 +257,7 @@ export class ServicoExplicacao {
         instrucoes: INSTRUCOES,
         entrada: JSON.stringify(fatosDaConsulta(r)),
         esquema: ESQUEMA,
-        maxTokens: 1200,
+        maxTokens: 3000,
       });
       const conferida = conferirExplicacao(resposta.json, r);
       await this.d.uso.registrar({
@@ -264,7 +290,7 @@ export class ServicoExplicacao {
         instrucoes: INSTRUCOES,
         entrada: JSON.stringify(fatosDaConsulta(RESULTADO_DE_TESTE)),
         esquema: ESQUEMA,
-        maxTokens: 1200,
+        maxTokens: 3000,
       });
       const conferida = conferirExplicacao(resposta.json, RESULTADO_DE_TESTE);
       await this.d.uso.registrar({

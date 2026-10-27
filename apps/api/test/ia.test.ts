@@ -233,6 +233,18 @@ describe('conferência do texto da IA', () => {
   it('aceita texto fiel aos fatos', () => {
     expect(conferirExplicacao({ situacao: 'impedimento', texto: texto('Há um embargo de 4,43 ha, de 18/09/2024, que impede o crédito hoje.') }, resultado('impedimento')).ok).toBe(true);
   });
+  it('aceita data escrita por extenso (partes dos números dos fatos)', () => {
+    const r = conferirExplicacao(
+      { situacao: 'impedimento', texto: texto('Há um embargo de 18 de setembro de 2024, com 4,43 hectares, que impede o crédito hoje.') },
+      resultado('impedimento'),
+    );
+    expect(r.ok).toBe(true);
+  });
+  it('"nenhum impedimento" vale na situação atenção, mas não quando há impedimento', () => {
+    const atencao = { ...resultado('atencao'), itens: resultado('atencao').itens.map((i) => ({ ...i, status: 'atencao' as const })) };
+    expect(conferirExplicacao({ situacao: 'atencao', texto: texto('Hoje não há nenhum impedimento, mas há um ponto de atenção: um embargo encosta na divisa.') }, atencao).ok).toBe(true);
+    expect(conferirExplicacao({ situacao: 'impedimento', texto: texto('Não há nenhum impedimento, só um embargo.') }, resultado('impedimento')).ok).toBe(false);
+  });
   it('barra número que não está no resultado', () => {
     const r = conferirExplicacao({ situacao: 'impedimento', texto: texto('Há um embargo de 12 ha que impede o crédito hoje.') }, resultado('impedimento'));
     expect(r).toMatchObject({ ok: false, motivo: expect.stringContaining('número') });
@@ -255,6 +267,40 @@ describe('conferência do texto da IA', () => {
       const t = explicacaoDeModelo(resultado(v));
       expect(t).toContain('a decisão final é sempre do banco');
       expect(t.toLowerCase()).not.toMatch(/aprovad|garantid/);
+    }
+  });
+});
+
+describe('chamada à OpenAI', () => {
+  it('modelos que pensam antes (gpt-5, gpt-6) vão com raciocínio baixo; os outros, sem o parâmetro', async () => {
+    const { ProvedorOpenAI } = await import('../src/ia/provedor.js');
+    const corpos: Record<string, unknown>[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      corpos.push(JSON.parse(String(init.body)));
+      return new Response(JSON.stringify({ status: 'completed', output_text: '{"situacao":"atencao","texto":"x"}', usage: {} }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      const pedido = { instrucoes: 'i', entrada: '{}', esquema: { nome: 'e', schema: {} }, maxTokens: 3000 };
+      await new ProvedorOpenAI('sk-teste').gerar({ ...pedido, modelo: 'gpt-6-luna' });
+      await new ProvedorOpenAI('sk-teste').gerar({ ...pedido, modelo: 'gpt-4o-mini' });
+    } finally {
+      globalThis.fetch = original;
+    }
+    expect(corpos[0]).toMatchObject({ model: 'gpt-6-luna', reasoning: { effort: 'low' }, max_output_tokens: 3000, store: false });
+    expect(corpos[1]).not.toHaveProperty('reasoning');
+  });
+
+  it('resposta cortada (incomplete) vira erro tratado, e o site usa a explicação de modelo', async () => {
+    const { ProvedorOpenAI } = await import('../src/ia/provedor.js');
+    const original = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify({ status: 'incomplete' }), { status: 200 })) as typeof fetch;
+    try {
+      await expect(
+        new ProvedorOpenAI('sk-teste').gerar({ modelo: 'gpt-6-luna', instrucoes: 'i', entrada: '{}', esquema: { nome: 'e', schema: {} }, maxTokens: 10 }),
+      ).rejects.toThrow(/incompleta/);
+    } finally {
+      globalThis.fetch = original;
     }
   });
 });

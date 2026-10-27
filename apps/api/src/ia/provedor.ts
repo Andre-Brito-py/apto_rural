@@ -33,6 +33,15 @@ export class ErroIA extends Error {
 
 const TEMPO_MAXIMO_MS = 25_000;
 
+/**
+ * Modelos que "pensam" antes de responder (linhas gpt-5 e gpt-6 e a série o): o raciocínio
+ * sai do mesmo limite de tokens da resposta. No esforço padrão (médio), a resposta podia
+ * ser cortada no meio (status "incomplete") e o site caía sempre na explicação de modelo.
+ * Reescrever um resultado pronto é tarefa simples: esforço baixo basta e custa menos.
+ * Conferido em developers.openai.com/api/docs/models/gpt-6-luna em 27/10/2026.
+ */
+export const pensaAntes = (modelo: string) => /^(gpt-5|gpt-6|o\d)/.test(modelo);
+
 interface CorpoResposta {
   status?: string;
   error?: { message?: string } | null;
@@ -59,6 +68,7 @@ export class ProvedorOpenAI implements ProvedorIA {
           instructions: p.instrucoes,
           input: p.entrada,
           max_output_tokens: p.maxTokens,
+          ...(pensaAntes(p.modelo) ? { reasoning: { effort: 'low' } } : {}),
           // Nada do que mandamos fica guardado na OpenAI para consulta posterior.
           store: false,
           text: { format: { type: 'json_schema', name: p.esquema.nome, schema: p.esquema.schema, strict: true } },

@@ -17,11 +17,11 @@ Quem decide o resultado continua sendo o **motor de regras** (MCR 2-9), com as b
    - não prometer aprovação;
    - escrever de 4 a 8 frases simples.
 
-   O pedido vai marcado para a OpenAI **não guardar** a conversa (`store: false`).
+   O pedido vai marcado para a OpenAI **não guardar** a conversa (`store: false`). Nos modelos que "pensam" antes de responder (linhas `gpt-5` e `gpt-6`, como o `gpt-6-luna`), o pedido vai com **raciocínio baixo** (`reasoning.effort: low`) e espaço para até 3.000 tokens de resposta. No padrão (raciocínio médio), o raciocínio gastava o espaço da resposta, que podia vir cortada, e o site caía sempre na explicação de modelo (achado na revisão de 27/10/2026).
 5. **Confere o texto que voltou.** Ele é **jogado fora** se:
    - a situação vier trocada (por exemplo, "sem impedimento" quando o resultado é impedimento);
-   - tiver "aprovado", "garantido", "com certeza", "não se preocupe" ou, com problema no imóvel, "tudo certo" e "nenhum impedimento";
-   - tiver um número que não está no resultado (área, data, prazo inventados);
+   - tiver "aprovado", "garantido", "com certeza", "não se preocupe"; com problema no imóvel, "tudo certo"; com impedimento ou checagem incompleta, "nenhum impedimento" (na situação "atenção" essa frase é verdadeira: nada impede, mas há pontos a resolver);
+   - tiver um número que não está no resultado (área, data, prazo inventados). Vale o número inteiro ("4,43", "18/09/2024") e também as partes dele, porque a IA escreve datas por extenso ("18 de setembro de 2024");
    - tiver lista, negrito ou dado pessoal;
    - for curto ou longo demais.
 6. **Guarda o texto aprovado** junto com a consulta. Quem abrir a consulta depois, inclusive o gerente do banco pelo QR, vê o mesmo texto, sem nova chamada e sem custo.
@@ -55,7 +55,7 @@ Vale em até 30 segundos, sem reiniciar nada. Para desligar, desmarque a opção
 
 ## Quanto custa
 
-- **O modelo padrão é o `gpt-6-luna`,** o mais econômico da linha atual da OpenAI (US$ 0,10 por milhão de tokens enviados e US$ 0,50 por milhão recebidos, pela [tabela oficial](https://developers.openai.com/api/docs/pricing) de 26/10/2026). Uma explicação usa por volta de mil tokens, ou seja, **frações de centavo**.
+- **O modelo padrão é o `gpt-6-luna`,** o mais econômico da linha atual da OpenAI (US$ 0,10 por milhão de tokens enviados e US$ 0,50 por milhão recebidos, pela [tabela oficial](https://developers.openai.com/api/docs/pricing) de 26/10/2026). Uma explicação usa por volta de mil tokens (um pouco mais com o raciocínio baixo), ou seja, **frações de centavo**.
 - **Só gasta quando alguém clica** no botão, e uma vez por consulta.
 - **O limite por dia** (padrão: 300 chamadas) segura o gasto. Passou dele, vale a explicação de modelo até o dia seguinte.
 - **O painel mostra o uso do mês** e um **custo estimado**. O valor cobrado de verdade é o do painel da OpenAI.
