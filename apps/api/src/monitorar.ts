@@ -13,6 +13,7 @@ import { avaliar, compararResultados } from '@apto/regras';
 import { config } from './config.js';
 import { hojeBrasilia, type Contexto } from './contexto.js';
 import { mensagemAvisosCarteira } from './email/mensagens.js';
+import { fraseDoImovel } from './ia/carteira.js';
 import { criarContexto } from './servidor.js';
 import { iniciarVigia } from './vigia.js';
 
@@ -64,10 +65,13 @@ export async function monitorarCarteira(ctx: Contexto, hoje = hojeBrasilia()): P
 
   for (const grupo of await ctx.carteira.avisosParaEmail()) {
     try {
+      // "O que isso significa e o que fazer", por imóvel: pela IA se ligada, senão a frase fixa.
+      const avisos = [];
+      for (const a of grupo.avisos) avisos.push({ ...a, frase: (await fraseDoImovel(ctx.ia.executor, a.alteracoes)).frase });
       // Carteira de equipe: o responsável e os administradores recebem o mesmo resumo.
       const destinatarios = [{ nome: grupo.nome, email: grupo.email }, ...((await ctx.equipe?.administradores(grupo.usuarioId)) ?? [])];
       for (const d of destinatarios) {
-        await ctx.email.enviar(mensagemAvisosCarteira(d.nome, d.email, grupo.avisos, `${config.webOrigin}/carteira`));
+        await ctx.email.enviar(mensagemAvisosCarteira(d.nome, d.email, avisos, `${config.webOrigin}/carteira`));
       }
       await ctx.carteira.marcarEmailados(grupo.avisos.map((a) => a.id));
       resumo.emails++;

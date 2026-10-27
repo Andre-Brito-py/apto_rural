@@ -12,6 +12,10 @@ export interface Usuario {
   bloqueado: boolean;
   /** Já viu (ou pulou) o tour de boas-vindas. */
   tourVisto?: boolean;
+  /** Verificação em duas etapas (código do aplicativo autenticador) ligada. */
+  doisFatores?: boolean;
+  /** Quando a sessão atual foi aberta (só nas buscas pela sessão): o painel exige login recente. */
+  sessaoCriadaEm?: string;
   /** Preenchido quando a sessão é de um administrador "entrando como" este usuário. */
   personificadoPor?: string;
 }
@@ -124,6 +128,23 @@ export interface RepositorioContas {
   buscarAssinaturaPorProvedor(provedorId: string): Promise<Assinatura | null>;
   /** A assinatura em andamento (pendente, ativa ou inadimplente), se houver. */
   assinaturaAtual(usuarioId: string): Promise<Assinatura | null>;
+
+  // ---- Verificação em duas etapas (TOTP): ver contas/totp.ts ----
+  /** O segredo cifrado (ativo ou esperando o primeiro código) e o último intervalo aceito. */
+  dadosDoisFatores(usuarioId: string): Promise<{ segredoCifrado?: string; ativo: boolean; ultimoPasso: number | null }>;
+  /** Guarda o segredo novo, ainda não ativo (só se a verificação não estiver ligada). */
+  guardarSegredoPendente(usuarioId: string, segredoCifrado: string): Promise<boolean>;
+  /** Liga a verificação e troca os códigos de recuperação (só os hashes). */
+  ativarDoisFatores(usuarioId: string, hashesRecuperacao: string[]): Promise<void>;
+  /** Marca o intervalo de 30 s usado. false se ele (ou um mais novo) já foi usado: o mesmo código não vale duas vezes. */
+  registrarPassoTotp(usuarioId: string, passo: number): Promise<boolean>;
+  /** Usa um código de recuperação (uma vez só). */
+  usarCodigoRecuperacao(usuarioId: string, hash: string): Promise<boolean>;
+  codigosRecuperacaoRestantes(usuarioId: string): Promise<number>;
+  /** Desliga a verificação, apaga o segredo e os códigos de recuperação. */
+  desativarDoisFatores(usuarioId: string): Promise<void>;
+  /** Apaga as sessões da pessoa, menos a atual (ao ligar a verificação em duas etapas). */
+  apagarOutrasSessoes(usuarioId: string, tokenHashAtual: string): Promise<void>;
 
   /** Guarda o evento do webhook. Retorna false se já tinha sido recebido. */
   registrarEvento(id: string, provedor: string, payload: unknown): Promise<boolean>;

@@ -54,9 +54,12 @@ O que **fica guardado** e por quê:
 - A conta e os dados continuam sendo de cada pessoa: cada membro baixa os próprios dados e exclui a própria conta. Ao sair da equipe, volta a usar só a própria conta.
 - As consultas feitas por um membro ficam ligadas a ele (não ao responsável); o crédito gasto fica no extrato do responsável com a indicação de quem usou.
 
-## Explicação por inteligência artificial (docs/ia.md)
+## Apoio por inteligência artificial (docs/ia.md)
 
 - **A IA não decide nada:** o resultado é do motor de regras. A explicação só reescreve, sempre com o aviso de que foi gerada por IA e de que vale o resultado oficial. Texto que mude a situação ou prometa aprovação é barrado antes de aparecer.
+- **Recibo do CAR e documentos do dossiê:** o texto sai do PDF no navegador do técnico; o arquivo nunca vai para o servidor nem fica guardado. O texto vai para a OpenAI sem CPF, CNPJ, código do CAR e e-mail. **Escaneado ou foto vai como imagem, do jeito que está** (pode ter nomes e números de documento): a tela avisa e só envia depois de o técnico confirmar. Do documento, guardamos só os campos lidos e os pontos da conferência, junto com a consulta, visíveis só para quem a fez e a equipe. **A CONFIRMAR** com advogado: se a confirmação na tela basta ou se é preciso registrar a autorização do produtor, como no CPF/CNPJ.
+- **Rascunhos (carta ao banco, retificação do CAR, requerimento ao órgão):** levam o aviso de que são rascunhos para o técnico revisar e completar; não prometem resultado.
+- **Análise de norma nova:** só para o administrador; o texto da norma é público.
 - **O que vai para a OpenAI** são fatos sobre o imóvel tirados das bases públicas. Antes do envio, o site tira CPF, CNPJ, código do CAR e e-mail. Nome, contato e o desenho do imóvel nunca são enviados, e o pedido vai com `store: false`.
 - **A política de privacidade deve dizer** que a explicação, quando pedida, é gerada por um fornecedor de IA (OpenAI), com servidores fora do Brasil (LGPD, arts. 33 a 36, transferência internacional). **A CONFIRMAR** com advogado: a redação e se os termos de uso da OpenAI para a API bastam como garantia.
 - **A chave da OpenAI fica cifrada no banco** e não aparece no painel nem na auditoria.

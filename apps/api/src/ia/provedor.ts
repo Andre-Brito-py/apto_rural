@@ -7,6 +7,11 @@ export interface PedidoIA {
   modelo: string;
   instrucoes: string;
   entrada: string;
+  /**
+   * Páginas de documento escaneado ou fotos, como data URL (image/jpeg ou image/png). Só nas
+   * funções que leem documento; a explicação do resultado manda só texto.
+   */
+  imagens?: string[];
   esquema: { nome: string; schema: Record<string, unknown> };
   maxTokens: number;
 }
@@ -33,6 +38,15 @@ export class ErroIA extends Error {
 
 const TEMPO_MAXIMO_MS = 25_000;
 
+/**
+ * Modelos que "pensam" antes de responder (linhas gpt-5 e gpt-6 e a série o): o raciocínio
+ * sai do mesmo limite de tokens da resposta. No esforço padrão (médio), a resposta podia
+ * ser cortada no meio (status "incomplete") e o site caía sempre na explicação de modelo.
+ * Reescrever um resultado pronto é tarefa simples: esforço baixo basta e custa menos.
+ * Conferido em developers.openai.com/api/docs/models/gpt-6-luna em 27/10/2026.
+ */
+export const pensaAntes = (modelo: string) => /^(gpt-5|gpt-6|o\d)/.test(modelo);
+
 interface CorpoResposta {
   status?: string;
   error?: { message?: string } | null;
@@ -57,8 +71,16 @@ export class ProvedorOpenAI implements ProvedorIA {
         body: JSON.stringify({
           model: p.modelo,
           instructions: p.instrucoes,
-          input: p.entrada,
+          input: p.imagens?.length
+            ? [
+                {
+                  role: 'user',
+                  content: [{ type: 'input_text', text: p.entrada }, ...p.imagens.map((u) => ({ type: 'input_image', image_url: u, detail: 'high' }))],
+                },
+              ]
+            : p.entrada,
           max_output_tokens: p.maxTokens,
+          ...(pensaAntes(p.modelo) ? { reasoning: { effort: 'low' } } : {}),
           // Nada do que mandamos fica guardado na OpenAI para consulta posterior.
           store: false,
           text: { format: { type: 'json_schema', name: p.esquema.nome, schema: p.esquema.schema, strict: true } },

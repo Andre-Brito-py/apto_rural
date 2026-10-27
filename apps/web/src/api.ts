@@ -52,6 +52,8 @@ export interface Usuario {
   emailConfirmado: boolean;
   /** Já viu (ou pulou) o tour de boas-vindas. */
   tourVisto?: boolean;
+  /** Verificação em duas etapas (aplicativo autenticador) ligada. */
+  doisFatores?: boolean;
 }
 
 export interface Saldo {
@@ -64,6 +66,10 @@ export interface Sessao {
   saldo: Saldo;
   /** Acesso ao painel: admin altera; suporte só vê e entra como. */
   nivelAdmin?: 'admin' | 'suporte' | null;
+  /** Tem papel no painel, mas precisa entrar de novo (login com mais de 12 h) ou ligar a verificação em duas etapas. */
+  bloqueioPainel?: 'reentrar' | 'dois_fatores' | null;
+  /** Em produção, o painel exige a verificação em duas etapas desta conta. */
+  doisFatoresObrigatorio?: boolean;
   /** Preenchido no modo "entrar como" (só leitura). */
   personificadoPor?: { nome: string; email: string };
   /** Quem está numa equipe usa o saldo e a carteira do responsável. */
@@ -84,6 +90,7 @@ export interface FichaUsuario {
     confirmadoEm: string | null;
     bloqueadoEm: string | null;
     bloqueioMotivo?: string;
+    doisFatores?: boolean;
   };
   saldo: Saldo;
   lancamentos: { tipo: string; quantidade: number; motivo: string; criadoEm: string }[];
@@ -370,10 +377,82 @@ export interface Configs {
   ia: ConfigIA;
 }
 
+export interface FuncoesIA {
+  explicacao: boolean;
+  recibo: boolean;
+  documentos: boolean;
+  rascunhos: boolean;
+  carteira: boolean;
+  normas: boolean;
+}
+
 export interface ConfigIA {
   ativo: boolean;
   modelo: string;
   limiteDiario: number;
+  funcoes: FuncoesIA;
+}
+
+export type TarefaIA = 'explicacao' | 'recibo' | 'documento' | 'rascunho' | 'carteira' | 'norma' | 'teste';
+
+/** O que a leitura do recibo do CAR achou (o técnico confere antes de consultar). */
+export interface LeituraRecibo {
+  car?: string;
+  situacao?: SituacaoCar;
+  areaHa?: number;
+  modulosFiscais?: number;
+  municipio?: string;
+  uf?: string;
+  dataInscricao?: string;
+  origem: 'texto' | 'ia';
+  avisoSemIA?: string;
+}
+
+export interface DocumentoConferido {
+  id: string;
+  regraId: string;
+  nomeArquivo: string;
+  tipoDocumento: string;
+  orgao: string | null;
+  numero: string | null;
+  dataEmissao: string | null;
+  validade: string | null;
+  areaHa: number | null;
+  requisito: string | null;
+  car: 'este' | 'outro' | 'nao_encontrado';
+  pontos: { texto: string; situacao: 'confere' | 'diverge' | 'conferir' }[];
+  lidoDe: 'texto' | 'imagem';
+  geradoEm: string;
+}
+
+export type TipoRascunho = 'carta_banco' | 'retificacao_car' | 'requerimento_orgao';
+
+export interface Rascunho {
+  id: string;
+  regraId: string;
+  tipo: TipoRascunho;
+  titulo: string;
+  texto: string;
+  origem: 'ia' | 'modelo';
+  geradoEm: string;
+}
+
+export interface ApoioDossie {
+  documentos: DocumentoConferido[];
+  rascunhos: Rascunho[];
+  rascunhosPorItem: Record<string, { tipo: TipoRascunho; nome: string }[]>;
+  /** Por que a IA não está disponível (null = disponível). */
+  ia: { documentos: string | null; rascunhos: string | null };
+}
+
+export interface AnaliseNorma {
+  id: string;
+  titulo: string;
+  resumo: string;
+  vigencia: string | null;
+  semRelacao: boolean;
+  mudancas: { oQueMudou: string; regras: string[]; oQueConferir: string }[];
+  geradaEm: string;
 }
 
 /** Explicação em linguagem simples para o produtor (docs/ia.md). */
@@ -390,7 +469,16 @@ export interface PainelIA {
   chave: { definida: boolean; final?: string; atualizadaEm?: string };
   uso: {
     hoje: number;
-    mes: { chamadas: number; ok: number; rejeitadas: number; erros: number; tokensEntrada: number; tokensSaida: number; custoEstimadoUsd: number | null };
+    mes: {
+      chamadas: number;
+      ok: number;
+      rejeitadas: number;
+      erros: number;
+      tokensEntrada: number;
+      tokensSaida: number;
+      custoEstimadoUsd: number | null;
+      porTarefa: Partial<Record<TarefaIA, number>>;
+    };
   };
 }
 
@@ -438,6 +526,14 @@ export const api = {
   /** Vazio (null) quando o município não está na tabela do Incra. */
   moduloFiscal: (car: string) =>
     pedir<{ municipio: string | null; moduloFiscalHa: number | null }>(`/v1/modulo-fiscal/${encodeURIComponent(car)}`),
+  lerReciboCar: (texto: string) => pedir<LeituraRecibo>('/v1/ia/recibo-car', post({ texto })),
+  apoio: (id: string) => pedir<ApoioDossie>(`/v1/consultas/${encodeURIComponent(id)}/apoio`),
+  conferirDocumento: (id: string, dados: { regraId: string; nomeArquivo: string; texto?: string; imagens?: string[] }) =>
+    pedir<DocumentoConferido>(`/v1/consultas/${encodeURIComponent(id)}/documentos`, post(dados)),
+  gerarRascunho: (id: string, regraId: string, tipo: TipoRascunho) =>
+    pedir<Rascunho & { motivoSemIA?: string }>(`/v1/consultas/${encodeURIComponent(id)}/rascunhos`, post({ regraId, tipo })),
+  apagarApoio: (id: string, item: string) =>
+    pedir<{ ok: boolean }>(`/v1/consultas/${encodeURIComponent(id)}/apoio/${encodeURIComponent(item)}`, { method: 'DELETE' }),
   liberarDossie: (id: string) => pedir<{ ok: boolean; saldo?: Saldo }>(`/v1/consultas/${encodeURIComponent(id)}/dossie`, post()),
   explicar: (id: string) =>
     pedir<{ explicacao: Explicacao; motivo?: 'desligada' | 'sem_chave' | 'limite_diario' | 'falha' | 'barrada' }>(
@@ -448,7 +544,8 @@ export const api = {
   eu: () => pedir<Sessao>('/v1/eu'),
   criarConta: (dados: { nome: string; email: string; whatsapp?: string; profissao?: string; senha: string; aceiteTermos: boolean }) =>
     pedir<Sessao>('/v1/conta', post(dados)),
-  entrar: (email: string, senha: string) => pedir<Sessao>('/v1/sessao', post({ email, senha })),
+  /** Com a verificação em duas etapas, a 1ª tentativa sem código volta erro com campo "codigo". */
+  entrar: (email: string, senha: string, codigo?: string) => pedir<Sessao>('/v1/sessao', post({ email, senha, codigo })),
   sair: () => pedir<{ ok: boolean }>('/v1/sessao', { method: 'DELETE' }),
   confirmarEmail: (token: string) => pedir<{ ok: boolean; saldo: Saldo }>('/v1/conta/confirmar', post({ token })),
   reenviarConfirmacao: () => pedir<{ ok: boolean; jaConfirmado?: boolean }>('/v1/conta/confirmacao', post()),
@@ -457,7 +554,14 @@ export const api = {
   enderecoMeusDados: '/v1/conta/dados',
   excluirConta: (senha: string) => pedir<{ ok: boolean }>('/v1/conta/excluir', post({ senha, confirmo: true })),
   esqueciSenha: (email: string) => pedir<{ ok: boolean; mensagem: string }>('/v1/senha/esqueci', post({ email })),
-  redefinirSenha: (token: string, senha: string) => pedir<Sessao>('/v1/senha/redefinir', post({ token, senha })),
+  /** Com a verificação em duas etapas, não entra direto: volta { entrar: true } e a pessoa entra com o código. */
+  redefinirSenha: (token: string, senha: string) => pedir<Sessao | { ok: true; entrar: true }>('/v1/senha/redefinir', post({ token, senha })),
+  doisFatores: {
+    ver: () => pedir<{ ativo: boolean; codigosRestantes: number }>('/v1/conta/dois-fatores'),
+    iniciar: (senha: string) => pedir<{ segredo: string; endereco: string }>('/v1/conta/dois-fatores/iniciar', post({ senha })),
+    ativar: (codigo: string) => pedir<{ ok: boolean; codigosRecuperacao: string[] }>('/v1/conta/dois-fatores/ativar', post({ codigo })),
+    desativar: (senha: string, codigo: string) => pedir<{ ok: boolean }>('/v1/conta/dois-fatores/desativar', post({ senha, codigo })),
+  },
 
   produtos: () => pedir<Catalogo>('/v1/produtos'),
   /** Cupom de 100%: sem cobrança, volta gratis e o saldo novo em vez do link. */
@@ -523,10 +627,14 @@ export const api = {
     desbloquear: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/desbloquear`, post()),
     definirPapel: (id: string, papel: Papel) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/papel`, post({ papel })),
     reenviarConfirmacao: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/reenviar-confirmacao`, post()),
+    desativarDoisFatores: (id: string, motivo: string) =>
+      pedir<{ ok: boolean }>(`/v1/admin/usuarios/${encodeURIComponent(id)}/desativar-dois-fatores`, post({ motivo })),
     ia: () => pedir<PainelIA>('/v1/admin/ia'),
     salvarChaveIA: (chave: string) =>
       pedir<{ chave: PainelIA['chave'] }>('/v1/admin/ia/chave', { method: 'PUT', body: JSON.stringify({ chave }) }),
     apagarChaveIA: () => pedir<{ chave: PainelIA['chave'] }>('/v1/admin/ia/chave', { method: 'DELETE' }),
+    normas: () => pedir<{ analises: AnaliseNorma[] }>('/v1/admin/ia/normas'),
+    analisarNorma: (titulo: string, texto: string) => pedir<{ analise: AnaliseNorma }>('/v1/admin/ia/normas', post({ titulo, texto })),
     testarIA: () => pedir<{ ok: boolean; mensagem: string; ms?: number }>('/v1/admin/ia/testar', post()),
   },
 

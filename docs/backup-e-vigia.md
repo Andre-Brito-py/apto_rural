@@ -56,7 +56,7 @@ Exemplos: AWS S3, Backblaze B2, Cloudflare R2, Wasabi e Magalu Cloud. O backup t
    openssl rand -hex 32
    ```
 
-   **Guarde essa senha num gerenciador de senhas, fora do servidor.** Sem ela, as cópias de fora não abrem. É ela que você vai precisar se o servidor sumir.
+   **Guarde essa senha num gerenciador de senhas, fora do servidor.** Sem ela, as cópias de fora não abrem. É ela que você vai precisar se o servidor sumir. Desde 27/10/2026 o script também usa a segunda senha do rclone (o "sal"), derivada dessa mesma senha: continua bastando a `BACKUP_EXTERNO_SENHA` para restaurar. Cópias externas feitas antes disso (só no ensaio) não abrem com o script novo.
 
 ### 3. Preencher o `.env.producao` e subir de novo
 

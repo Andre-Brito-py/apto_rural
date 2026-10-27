@@ -16,13 +16,32 @@ export interface AvisoSite {
   tipo: 'info' | 'alerta';
 }
 
-/** Explicação por IA (a chave fica à parte, cifrada: ia/segredos.ts). */
+/** Funções de IA que o administrador liga e desliga uma a uma (docs/ia.md). */
+export interface FuncoesIA {
+  /** Explicação do resultado para o produtor. */
+  explicacao: boolean;
+  /** Leitura do recibo ou demonstrativo do CAR, para preencher a consulta. */
+  recibo: boolean;
+  /** Conferência dos documentos do dossiê (ASV, PRAD, TAC, termo de embargo…). */
+  documentos: boolean;
+  /** Rascunhos de requerimento e de carta ao banco, no dossiê. */
+  rascunhos: boolean;
+  /** Frase "o que isso significa" no e-mail diário da carteira. */
+  carteira: boolean;
+  /** Análise de norma nova, no painel. */
+  normas: boolean;
+}
+
+/** IA (a chave fica à parte, cifrada: ia/segredos.ts). */
 export interface ConfigIA {
   ativo: boolean;
   modelo: string;
-  /** Máximo de chamadas à IA por dia (Brasília), para o custo não disparar. */
+  /** Máximo de chamadas à IA por dia (Brasília), somando todas as funções, para o custo não disparar. */
   limiteDiario: number;
+  funcoes: FuncoesIA;
 }
+
+export const FUNCOES_IA_PADRAO: FuncoesIA = { explicacao: true, recibo: true, documentos: true, rascunhos: true, carteira: true, normas: true };
 
 export interface Configs {
   produtos: Produto[];
@@ -42,7 +61,7 @@ const PADRAO: Configs = {
   creditos_boas_vindas: CREDITOS_BOAS_VINDAS_PADRAO,
   aviso_site: { ativo: false, texto: '', tipo: 'info' },
   // gpt-6-luna: o mais econômico da linha atual da OpenAI (developers.openai.com/api/docs/pricing, 26/10/2026).
-  ia: { ativo: false, modelo: 'gpt-6-luna', limiteDiario: 300 },
+  ia: { ativo: false, modelo: 'gpt-6-luna', limiteDiario: 300, funcoes: FUNCOES_IA_PADRAO },
 };
 
 const creditos = z.object({
@@ -106,6 +125,16 @@ export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], unknown> } = 
       .trim()
       .regex(/^[a-z0-9][a-z0-9.\-]{1,60}$/i, 'Use o nome do modelo como a OpenAI escreve (ex.: gpt-6-luna).'),
     limiteDiario: z.number().int().min(0, 'O limite não pode ser negativo.').max(100000),
+    funcoes: z
+      .object({
+        explicacao: z.boolean(),
+        recibo: z.boolean(),
+        documentos: z.boolean(),
+        rascunhos: z.boolean(),
+        carteira: z.boolean(),
+        normas: z.boolean(),
+      })
+      .default(FUNCOES_IA_PADRAO),
   }),
 };
 
@@ -130,6 +159,8 @@ export class Configuracoes {
       salvas = Object.fromEntries(rows.map((r) => [r.chave, r.valor]));
     }
     const valor = { ...PADRAO, ...salvas };
+    // Configuração da IA salva antes das funções separadas: todas ligadas, como era.
+    valor.ia = { ...PADRAO.ia, ...valor.ia, funcoes: { ...FUNCOES_IA_PADRAO, ...valor.ia?.funcoes } };
     // Planos salvos antes das equipes: completa o limite de pessoas com o padrão do plano.
     valor.planos = valor.planos.map((p) => ({ ...p, limiteMembros: limiteMembrosDoPlano(p) }));
     this.cache = { valor, quando: Date.now() };

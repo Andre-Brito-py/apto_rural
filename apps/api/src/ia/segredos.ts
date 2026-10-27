@@ -71,6 +71,24 @@ export class Segredos {
     return this.info(nome);
   }
 
+  /**
+   * Cifra um valor que não fica na tabela de segredos (ex.: o segredo do autenticador de
+   * cada pessoa, em usuario.totp_segredo). O contexto entra como dado autenticado: o valor
+   * de uma pessoa não abre como se fosse de outra.
+   */
+  cifrarValor(contexto: string, valor: string): string {
+    return cifrar(this.chave, contexto, valor);
+  }
+
+  /** Null se não decifra (CHAVE_SEGREDOS trocada ou valor de outro contexto). */
+  decifrarValor(contexto: string, guardado: string): string | null {
+    try {
+      return decifrar(this.chave, contexto, guardado);
+    } catch {
+      return null;
+    }
+  }
+
   async apagar(nome: NomeSegredo): Promise<void> {
     if (this.pool) await this.pool.query('DELETE FROM segredo WHERE nome = $1', [nome]);
     else this.memoria.delete(nome);

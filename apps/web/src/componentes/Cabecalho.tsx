@@ -68,7 +68,7 @@ export function Cabecalho() {
         ? [
             { para: '/conta', rotulo: 'Minha conta', icone: 'chave', resumo: contagem(sessao.saldo.consulta, 'consulta disponível', 'consultas disponíveis') },
             { para: '/planos', rotulo: 'Planos e créditos', icone: 'banco' },
-            ...(sessao.nivelAdmin ? [{ para: '/admin', rotulo: 'Painel administrativo', icone: 'escudo' as NomeIcone }] : []),
+            ...(sessao.nivelAdmin || sessao.bloqueioPainel ? [{ para: '/admin', rotulo: 'Painel administrativo', icone: 'escudo' as NomeIcone }] : []),
             { rotulo: 'Sair', icone: 'sair' as NomeIcone, acao: () => void sair().then(() => navegar('/')) },
           ]
         : [
@@ -117,7 +117,7 @@ export function Cabecalho() {
             Ajuda
           </NavLink>
           {/* Só para administração e suporte. */}
-          {sessao?.nivelAdmin && (
+          {(sessao?.nivelAdmin || sessao?.bloqueioPainel) && (
             <NavLink to="/admin" className="so-largo nav-painel">
               Painel
             </NavLink>

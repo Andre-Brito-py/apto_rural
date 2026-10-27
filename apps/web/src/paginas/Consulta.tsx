@@ -3,6 +3,7 @@ import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ErroApi, type GeometriaImovel, type Saude } from '../api';
 import { lerArquivoImovel, type ImovelLido } from '../arquivoImovel';
+import { lerDocumento } from '../lerDocumento';
 import { MapaImovel } from '../componentes/MapaImovel';
 import { numeroBr } from '../textos';
 import { Icone } from '../componentes/Icones';
@@ -45,6 +46,8 @@ export function Consulta({ saude }: { saude: Saude | null }) {
   const [consentimento, setConsentimento] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<Erro | null>(null);
+  const [lendoRecibo, setLendoRecibo] = useState(false);
+  const [recibo, setRecibo] = useState<{ nome: string; preenchidos: string[]; aviso?: string } | null>(null);
   const [mfMunicipio, setMfMunicipio] = useState<{ chave: string; municipio: string; ha: number } | null>(null);
 
   // Módulo fiscal do município (tabela do Incra), pelo código do município que está no CAR.
@@ -80,6 +83,39 @@ export function Consulta({ saude }: { saude: Saude | null }) {
       setErro({ mensagem: (e as Error).message, campo: 'geometria' });
     } finally {
       setLendo(false);
+    }
+  }
+
+  // Recibo ou demonstrativo do CAR: o texto sai do PDF aqui no navegador; o arquivo não é enviado.
+  async function lerRecibo(arquivo: File | undefined) {
+    if (!arquivo) return;
+    setErro(null);
+    setRecibo(null);
+    setLendoRecibo(true);
+    try {
+      const doc = await lerDocumento(arquivo, { comImagens: false });
+      if (!doc.texto || doc.texto.length < 30) {
+        throw new Error('Este PDF não tem texto (parece escaneado). Use o PDF baixado do Sicar ou preencha à mão.');
+      }
+      const l = await api.lerReciboCar(doc.texto);
+      const preenchidos: string[] = [];
+      if (l.car) {
+        setCar(l.car);
+        preenchidos.push('código do CAR');
+      }
+      if (l.situacao) {
+        setSituacao(l.situacao);
+        preenchidos.push('situação');
+      }
+      if (l.modulosFiscais) {
+        setModulos(numeroBr(l.modulosFiscais, 2));
+        preenchidos.push('módulos fiscais');
+      }
+      setRecibo({ nome: arquivo.name, preenchidos, aviso: l.avisoSemIA });
+    } catch (e) {
+      setErro({ mensagem: (e as Error).message, campo: 'recibo' });
+    } finally {
+      setLendoRecibo(false);
     }
   }
 
@@ -157,6 +193,23 @@ export function Consulta({ saude }: { saude: Saude | null }) {
         <h2 className="form-secao">
           <span>1</span> Dados do imóvel
         </h2>
+        <div className="campo recibo-car">
+          <label className="botao botao-secundario botao-pequeno">
+            <input type="file" accept=".pdf,application/pdf" onChange={(e) => lerRecibo(e.target.files?.[0])} disabled={lendoRecibo} />
+            <Icone nome="documento" className="l-icone-p" /> {lendoRecibo ? 'Lendo o recibo…' : 'Preencher com o recibo do CAR (PDF)'}
+          </label>
+          {recibo ? (
+            <span className="ajuda" role="status">
+              {recibo.preenchidos.length
+                ? `Do arquivo ${recibo.nome}, preenchemos: ${recibo.preenchidos.join(', ')}. Confira antes de consultar.`
+                : `Lemos ${recibo.nome}, mas não achamos o código, a situação nem os módulos fiscais. Preencha à mão.`}
+              {recibo.aviso && ` (${recibo.aviso})`}
+            </span>
+          ) : (
+            <span className="ajuda">O recibo de inscrição ou o demonstrativo baixado do Sicar. O arquivo não sai do seu aparelho: só o texto é lido.</span>
+          )}
+          {erroDe('recibo')}
+        </div>
         <label className="campo" data-tour="car">
           <span className="rotulo">Código do CAR</span>
           <input
@@ -326,7 +379,7 @@ export function Consulta({ saude }: { saude: Saude | null }) {
           {erroDe('consentimentoDocumento')}
         </details>
 
-        {erro && !['car', 'modulosFiscais', 'geometria', 'documento', 'consentimentoDocumento'].includes(erro.campo ?? '') && (
+        {erro && !['car', 'recibo', 'modulosFiscais', 'geometria', 'documento', 'consentimentoDocumento'].includes(erro.campo ?? '') && (
           <p className="alerta alerta-erro" role="alert" style={{ marginTop: 20 }}>
             {erro.mensagem}{' '}
             {erro.status === 401 && <Link to="/entrar?modo=criar">Criar conta grátis</Link>}

@@ -9,6 +9,8 @@ import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { RepositorioCupons } from './cupons/tipos.js';
 import type { Enviador } from './email/enviador.js';
 import type { RepositorioEquipe } from './equipe/repositorio.js';
+import type { RepositorioApoio } from './ia/apoio.js';
+import type { ExecutorIA } from './ia/executor.js';
 import type { ServicoExplicacao } from './ia/explicacao.js';
 import type { Segredos } from './ia/segredos.js';
 import type { UsoIA } from './ia/uso.js';
@@ -37,20 +39,48 @@ export interface Contexto {
   /** O banco responde agora? true/false; null quando não há banco (modo demonstração). */
   bancoResponde: () => Promise<boolean | null>;
   /** Explicação por IA para o produtor, a chave cifrada e o uso (docs/ia.md). */
-  ia: { explicacao: ServicoExplicacao; segredos: Segredos; uso: UsoIA };
+  /**
+   * IA (docs/ia.md): a explicação do resultado e o executor das outras funções (recibo do
+   * CAR, documentos e rascunhos do dossiê, frase da carteira, análise de norma).
+   */
+  ia: { explicacao: ServicoExplicacao; executor: ExecutorIA; apoio: RepositorioApoio; segredos: Segredos; uso: UsoIA };
 }
 
 export type NivelAdmin = 'admin' | 'suporte';
 
-/**
- * Nível de acesso ao painel. Exige e-mail confirmado e conta não bloqueada.
- * E-mails de ADMIN_EMAILS são sempre admin (primeiro acesso, antes de existir
- * qualquer papel no banco). Sessão de "entrar como" nunca tem poder de admin.
- */
-export function nivelAdmin(u: Usuario | null): NivelAdmin | null {
-  if (!u || !u.emailConfirmado || u.bloqueado || u.personificadoPor) return null;
+/** Os poderes do painel valem por estas horas depois do login; depois, é preciso entrar de novo. */
+export const HORAS_SESSAO_PAINEL = 12;
+
+/** O papel da pessoa no painel, sem olhar a sessão (ADMIN_EMAILS conta como admin). */
+export function papelNoPainel(u: Usuario | null): NivelAdmin | null {
+  if (!u || !u.emailConfirmado || u.bloqueado) return null;
   if (config.adminEmails.includes(u.email.toLowerCase()) || u.papel === 'admin') return 'admin';
   return u.papel === 'suporte' ? 'suporte' : null;
+}
+
+/**
+ * Por que quem tem papel no painel não pode usá-lo nesta sessão:
+ * - 'reentrar': o login foi há mais de HORAS_SESSAO_PAINEL horas (sessão roubada ou
+ *   esquecida aberta não dá poder de admin por 30 dias);
+ * - 'dois_fatores': em produção, administrador e suporte precisam da verificação em
+ *   duas etapas ligada (ligar é em Minha conta, que não depende do painel).
+ */
+export function bloqueioDoPainel(u: Usuario | null): 'reentrar' | 'dois_fatores' | null {
+  if (!papelNoPainel(u) || u!.personificadoPor) return null;
+  if (config.producao && !u!.doisFatores) return 'dois_fatores';
+  if (u!.sessaoCriadaEm && Date.now() - Date.parse(u!.sessaoCriadaEm) > HORAS_SESSAO_PAINEL * 3600 * 1000) return 'reentrar';
+  return null;
+}
+
+/**
+ * Nível de acesso ao painel. Exige e-mail confirmado, conta não bloqueada, login recente e,
+ * em produção, a verificação em duas etapas. E-mails de ADMIN_EMAILS são sempre admin
+ * (primeiro acesso, antes de existir qualquer papel no banco). Sessão de "entrar como"
+ * nunca tem poder de admin.
+ */
+export function nivelAdmin(u: Usuario | null): NivelAdmin | null {
+  if (!u || u.personificadoPor || bloqueioDoPainel(u)) return null;
+  return papelNoPainel(u);
 }
 
 export function ehAdmin(u: Usuario | null): boolean {

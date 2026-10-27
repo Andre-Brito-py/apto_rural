@@ -537,6 +537,31 @@ export const PERGUNTAS: Pergunta[] = [
     telas: ['/planos'],
   },
 
+  {
+    id: 'dois-fatores',
+    categoria: 'conta',
+    pergunta: 'Como ligo a verificação em duas etapas?',
+    resposta: [
+      'Em Minha conta, toque em "Ligar a verificação em duas etapas", confirme a senha e leia o código QR com um aplicativo autenticador (Google Authenticator, Microsoft Authenticator ou outro). Digite o código de 6 dígitos que aparecer e guarde os 10 códigos de recuperação.',
+      'Depois, o login pede a senha e o código do aplicativo. Quem descobrir a sua senha não entra sem o seu celular.',
+    ],
+    links: [{ rotulo: 'Minha conta', para: '/conta' }],
+    palavras: ['duas etapas', '2fa', 'autenticador', 'codigo de verificacao', 'seguranca da conta', 'google authenticator'],
+    telas: ['/conta', '/entrar'],
+  },
+  {
+    id: 'perdi-celular',
+    categoria: 'conta',
+    pergunta: 'Perdi o celular com o aplicativo autenticador.',
+    resposta: [
+      'Entre com a senha e um dos códigos de recuperação que você guardou quando ligou a verificação: cada um vale uma vez. Depois, em Minha conta, desligue e ligue de novo a verificação com o celular novo.',
+      'Sem os códigos de recuperação, fale com o suporte do Apto Rural. Depois de confirmar que é você, o suporte desliga a verificação da sua conta.',
+    ],
+    links: [{ rotulo: 'Entrar', para: '/entrar' }],
+    palavras: ['perdi o celular', 'troquei de celular', 'codigo de recuperacao', 'sem o autenticador', 'nao recebo o codigo'],
+    telas: ['/entrar', '/conta'],
+  },
+
   // ---------------------------------------------------------------- Equipe
   {
     id: 'equipe',

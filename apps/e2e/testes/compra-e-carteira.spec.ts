@@ -28,7 +28,7 @@ test('comprar uma consulta (pagamento simulado), consultar um imóvel real, expl
   await page.goto('/consultar');
   await page.locator('.entrada-car').fill(carDeTeste());
   await page.getByLabel('Ativo').check();
-  await page.locator('input[type=file]').setInputFiles({ name: 'imovel.geojson', mimeType: 'application/geo+json', buffer: Buffer.from(CONTORNO) });
+  await page.locator('input[type=file][accept*=".geojson"]').setInputFiles({ name: 'imovel.geojson', mimeType: 'application/geo+json', buffer: Buffer.from(CONTORNO) });
   await expect(page.getByText('Contorno lido')).toBeVisible();
   await page.getByRole('button', { name: 'Consultar imóvel' }).click();
   await expect(page).toHaveURL(/\/consulta\/[0-9a-f-]{36}$/);

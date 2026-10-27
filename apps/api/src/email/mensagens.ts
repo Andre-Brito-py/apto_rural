@@ -32,7 +32,7 @@ const NOME_STATUS: Record<string, string> = {
 export function mensagemAvisosCarteira(
   nome: string,
   para: string,
-  avisos: { codCar: string; apelido?: string; alteracoes: { titulo: string; de: string; para: string; piorou: boolean }[] }[],
+  avisos: { codCar: string; apelido?: string; alteracoes: { titulo: string; de: string; para: string; piorou: boolean }[]; frase?: string }[],
   link: string,
 ): Mensagem {
   const primeiro = nome.split(' ')[0];
@@ -40,6 +40,8 @@ export function mensagemAvisosCarteira(
   const linhas = avisos.flatMap((a) => [
     `${a.apelido ?? 'Imóvel'} (CAR ${a.codCar}):`,
     ...a.alteracoes.map((x) => `• ${x.titulo}: ${NOME_STATUS[x.de]} → ${NOME_STATUS[x.para]}${x.piorou ? ' ⚠' : ''}`),
+    // O que isso significa e o que fazer (docs/ia.md).
+    ...(a.frase ? [a.frase] : []),
   ]);
   const abertura = `Olá, ${primeiro}! A reconferência de hoje encontrou mudanças em ${avisos.length === 1 ? '1 imóvel' : `${avisos.length} imóveis`} da sua carteira.`;
   const rodape = 'Você recebe este e-mail porque acompanha estes imóveis no Apto Rural. Pré-checagem com bases públicas; não substitui a análise do banco.';
@@ -110,5 +112,26 @@ export function mensagemRedefinirSenha(nome: string, para: string, link: string)
     assunto: 'Nova senha no Apto Rural',
     texto: `${paragrafos[0]}\n\nCriar nova senha: ${link}\n\n${rodape}`,
     html: html('Criar nova senha', paragrafos, { texto: 'Criar nova senha', link }, rodape),
+  };
+}
+
+/**
+ * Aviso de login no painel (administrador e suporte): se não foi a pessoa, ela troca a senha
+ * na hora. Data em Brasília; endereço e navegador como chegaram ao servidor.
+ */
+export function mensagemAcessoPainel(nome: string, para: string, quando: Date, endereco: string, navegador: string, link: string): Mensagem {
+  const primeiro = nome.split(' ')[0];
+  const data = quando.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' });
+  const paragrafos = [
+    `Olá, ${primeiro}! Sua conta, que tem acesso ao painel administrativo do Apto Rural, entrou agora.`,
+    `Quando: ${data} (Brasília). Endereço de internet: ${endereco}. Navegador: ${navegador.slice(0, 160) || 'não informado'}.`,
+    'Se foi você, não precisa fazer nada. Se não foi, crie uma senha nova agora: isso desconecta todos os aparelhos.',
+  ];
+  const rodape = 'Este aviso sai a cada login de administrador ou suporte, para proteger o painel.';
+  return {
+    para,
+    assunto: 'Novo acesso ao painel do Apto Rural',
+    texto: `${paragrafos.join('\n\n')}\n\nCriar nova senha: ${link}\n\n${rodape}`,
+    html: html('Novo acesso ao painel', paragrafos, { texto: 'Não fui eu: criar nova senha', link }, rodape),
   };
 }

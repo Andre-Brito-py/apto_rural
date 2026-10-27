@@ -2,6 +2,9 @@ import type pg from 'pg';
 
 export type ResultadoChamada = 'ok' | 'rejeitado' | 'erro';
 
+/** Para que a IA foi usada (docs/ia.md). */
+export type TarefaIA = 'explicacao' | 'recibo' | 'documento' | 'rascunho' | 'carteira' | 'norma' | 'teste';
+
 /**
  * Preço por 1 milhão de tokens (US$, entrada e saída), da tabela oficial
  * developers.openai.com/api/docs/pricing em 26/10/2026. Serve só para a estimativa
@@ -27,10 +30,13 @@ export interface UsoDoMes {
   tokensSaida: number;
   /** Estimativa em US$, só com os modelos da tabela acima; null se algum não estiver nela. */
   custoEstimadoUsd: number | null;
+  /** Chamadas do mês por função. */
+  porTarefa: Partial<Record<TarefaIA, number>>;
 }
 
 interface Registro {
   quando: Date;
+  tarefa?: TarefaIA;
   modelo: string;
   tokensEntrada: number;
   tokensSaida: number;
@@ -52,11 +58,12 @@ export class UsoIA {
       this.memoria.push({ ...r, quando: new Date() });
       return;
     }
-    await this.pool.query('INSERT INTO ia_uso (modelo, tokens_entrada, tokens_saida, resultado) VALUES ($1, $2, $3, $4)', [
+    await this.pool.query('INSERT INTO ia_uso (modelo, tokens_entrada, tokens_saida, resultado, tarefa) VALUES ($1, $2, $3, $4, $5)', [
       r.modelo,
       r.tokensEntrada,
       r.tokensSaida,
       r.resultado,
+      r.tarefa ?? 'explicacao',
     ]);
   }
 
@@ -71,16 +78,16 @@ export class UsoIA {
   }
 
   async doMes(): Promise<UsoDoMes> {
-    let linhas: { modelo: string; resultado: ResultadoChamada; n: number; ent: number; sai: number }[];
+    let linhas: { modelo: string; tarefa: TarefaIA; resultado: ResultadoChamada; n: number; ent: number; sai: number }[];
     if (!this.pool) {
       const mes = new Date().toISOString().slice(0, 7);
       linhas = this.memoria
         .filter((r) => r.quando.toISOString().slice(0, 7) === mes)
-        .map((r) => ({ modelo: r.modelo, resultado: r.resultado, n: 1, ent: r.tokensEntrada, sai: r.tokensSaida }));
+        .map((r) => ({ modelo: r.modelo, tarefa: r.tarefa ?? 'explicacao', resultado: r.resultado, n: 1, ent: r.tokensEntrada, sai: r.tokensSaida }));
     } else {
       const { rows } = await this.pool.query(
-        `SELECT modelo, resultado, count(*)::int AS n, sum(tokens_entrada)::int AS ent, sum(tokens_saida)::int AS sai
-           FROM ia_uso WHERE quando >= ${INICIO_MES} GROUP BY modelo, resultado`,
+        `SELECT modelo, tarefa, resultado, count(*)::int AS n, sum(tokens_entrada)::int AS ent, sum(tokens_saida)::int AS sai
+           FROM ia_uso WHERE quando >= ${INICIO_MES} GROUP BY modelo, tarefa, resultado`,
       );
       linhas = rows;
     }
@@ -100,6 +107,7 @@ export class UsoIA {
       tokensSaida: soma((l) => l.sai),
       // Seis casas: cada explicação custa frações de centavo de dólar.
       custoEstimadoUsd: custo == null ? null : Math.round(custo * 1_000_000) / 1_000_000,
+      porTarefa: linhas.reduce<Partial<Record<TarefaIA, number>>>((t, l) => ({ ...t, [l.tarefa]: (t[l.tarefa] ?? 0) + l.n }), {}),
     };
   }
 }

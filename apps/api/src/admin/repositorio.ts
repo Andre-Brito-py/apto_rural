@@ -79,7 +79,8 @@ export class RepositorioAdmin {
 
   /**
    * Faxina diária: sessões vencidas, links de e-mail usados ou vencidos há mais
-   * de 7 dias e erros com mais de 90 dias. Guardar menos é parte da LGPD (art. 15).
+   * de 7 dias, erros com mais de 90 dias e o conteúdo dos avisos antigos do Asaas.
+   * Guardar menos é parte da LGPD (art. 15).
    */
   async limparVencidos(): Promise<{ sessoes: number; tokens: number; erros: number }> {
     const sessoes = await this.pool.query('DELETE FROM sessao WHERE expira_em < now()');
@@ -89,6 +90,11 @@ export class RepositorioAdmin {
     const erros = await this.pool.query(`DELETE FROM erro_registro WHERE quando < now() - interval '90 days'`);
     // O vigia grava uma linha a cada 5 minutos: 30 dias bastam para o painel.
     await this.pool.query(`DELETE FROM vigia_verificacao WHERE quando < now() - interval '30 days'`);
+    // Avisos do Asaas: o conteúdo (valor, ids de cliente e de cobrança) só serve para conferir
+    // um problema recente; depois de 90 dias fica só o id, que impede aplicar o mesmo aviso
+    // duas vezes, e com 1 ano sai tudo. O que vale para a contabilidade fica no pedido.
+    await this.pool.query(`UPDATE webhook_evento SET payload = '{}'::jsonb WHERE recebido_em < now() - interval '90 days' AND payload <> '{}'::jsonb`);
+    await this.pool.query(`DELETE FROM webhook_evento WHERE recebido_em < now() - interval '1 year'`);
     return { sessoes: sessoes.rowCount ?? 0, tokens: tokens.rowCount ?? 0, erros: erros.rowCount ?? 0 };
   }
 
@@ -234,7 +240,7 @@ export class RepositorioAdmin {
   async fichaUsuario(id: string) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const { rows: u } = await this.pool.query(
-      `SELECT id, nome, email, whatsapp, profissao, papel, criado_em, email_confirmado_em, bloqueado_em, bloqueio_motivo
+      `SELECT id, nome, email, whatsapp, profissao, papel, criado_em, email_confirmado_em, bloqueado_em, bloqueio_motivo, totp_ativado_em
          FROM usuario WHERE id = $1`,
       [id],
     );
@@ -280,6 +286,7 @@ export class RepositorioAdmin {
         confirmadoEm: dia(r.email_confirmado_em),
         bloqueadoEm: dia(r.bloqueado_em),
         bloqueioMotivo: r.bloqueio_motivo ?? undefined,
+        doisFatores: r.totp_ativado_em != null,
       },
       lancamentos: lancamentos.rows.map((l) => ({ tipo: l.tipo, quantidade: l.quantidade, motivo: l.motivo, criadoEm: dia(l.criado_em) })),
       consultas: consultas.rows.map((c) => ({ id: c.id, codCar: c.cod_car, criadaEm: dia(c.criada_em), veredito: c.veredito })),

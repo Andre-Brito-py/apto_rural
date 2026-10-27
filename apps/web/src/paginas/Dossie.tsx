@@ -1,7 +1,8 @@
 import { FONTES, formatarCar, type ResultadoItem } from '@apto/regras';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { api, ErroApi, type ConsultaSalva } from '../api';
+import { api, ErroApi, type ApoioDossie, type ConsultaSalva } from '../api';
+import { ApoioItem } from '../componentes/ApoioDossie';
 import { useSessao } from '../sessao';
 import { CodigoQr } from '../componentes/CodigoQr';
 import { Icone } from '../componentes/Icones';
@@ -27,6 +28,22 @@ export function Dossie() {
   const inicial = (local.state as ConsultaSalva | null)?.id === id ? (local.state as ConsultaSalva) : null;
   const [consulta, setConsulta] = useState<ConsultaSalva | null>(inicial);
   const [erro, setErro] = useState('');
+  const [apoio, setApoio] = useState<ApoioDossie | null>(null);
+  const { sessao } = useSessao();
+  // Apoio por IA: só para quem fez a consulta (ou a equipe); para os outros (o gerente pelo QR), o dossiê fica como está.
+  const comApoio = !!sessao && !!consulta?.dossieLiberado && (consulta.minha || consulta.demo);
+
+  useEffect(() => {
+    if (!comApoio) return;
+    let vivo = true;
+    api
+      .apoio(id)
+      .then((a) => vivo && setApoio(a))
+      .catch(() => vivo && setApoio(null));
+    return () => {
+      vivo = false;
+    };
+  }, [id, comApoio]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -145,7 +162,9 @@ export function Dossie() {
           )}
 
           {itens.map((item, n) => (
-            <SecaoDossie key={item.regraId} numero={n + 1} item={item} atualizacoes={r.atualizacoes} />
+            <SecaoDossie key={item.regraId} numero={n + 1} item={item} atualizacoes={r.atualizacoes}>
+              {apoio && <ApoioItem consultaId={consulta.id} item={item} apoio={apoio} aoMudar={setApoio} />}
+            </SecaoDossie>
           ))}
 
           <section className="dossie-secao dossie-assinatura-secao">
@@ -257,10 +276,12 @@ function SecaoDossie({
   numero,
   item,
   atualizacoes,
+  children,
 }: {
   numero: number;
   item: ResultadoItem;
   atualizacoes: ConsultaSalva['resultado']['atualizacoes'];
+  children?: ReactNode;
 }) {
   return (
     <section className="dossie-secao">
@@ -328,6 +349,7 @@ function SecaoDossie({
           </ol>
         </>
       )}
+      {children}
     </section>
   );
 }

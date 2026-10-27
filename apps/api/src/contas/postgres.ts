@@ -3,7 +3,7 @@ import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas,
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em, tour_visto_em`;
+const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em, tour_visto_em, totp_ativado_em`;
 
 function usuario(r: Record<string, unknown>): Usuario {
   return {
@@ -17,6 +17,8 @@ function usuario(r: Record<string, unknown>): Usuario {
     papel: (r.papel as Usuario['papel']) ?? 'usuario',
     bloqueado: r.bloqueado_em != null,
     tourVisto: r.tour_visto_em != null,
+    doisFatores: r.totp_ativado_em != null,
+    sessaoCriadaEm: r.sessao_criada_em ? (r.sessao_criada_em as Date).toISOString() : undefined,
     personificadoPor: (r.personificado_por as string) ?? undefined,
   };
 }
@@ -142,7 +144,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
 
   async usuarioDaSessao(tokenHash: string) {
     const { rows } = await this.pool.query(
-      `SELECT ${USUARIO.split(', ').map((c) => `u.${c}`).join(', ')}, s.personificado_por
+      `SELECT ${USUARIO.split(', ').map((c) => `u.${c}`).join(', ')}, s.personificado_por, s.criada_em AS sessao_criada_em
          FROM sessao s JOIN usuario u ON u.id = s.usuario_id
         WHERE s.token_hash = $1 AND s.expira_em > now()
           AND (u.bloqueado_em IS NULL OR s.personificado_por IS NOT NULL)`,
@@ -308,6 +310,72 @@ export class RepositorioContasPostgres implements RepositorioContas {
     return rows.map(pedido);
   }
 
+  async dadosDoisFatores(usuarioId: string) {
+    const { rows } = await this.pool.query('SELECT totp_segredo, totp_ativado_em, totp_ultimo_passo FROM usuario WHERE id = $1', [usuarioId]);
+    const r = rows[0];
+    return {
+      segredoCifrado: (r?.totp_segredo as string) ?? undefined,
+      ativo: r?.totp_ativado_em != null,
+      ultimoPasso: r?.totp_ultimo_passo == null ? null : Number(r.totp_ultimo_passo),
+    };
+  }
+
+  async guardarSegredoPendente(usuarioId: string, segredoCifrado: string) {
+    const { rowCount } = await this.pool.query(
+      'UPDATE usuario SET totp_segredo = $2, totp_ultimo_passo = NULL WHERE id = $1 AND totp_ativado_em IS NULL',
+      [usuarioId, segredoCifrado],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async ativarDoisFatores(usuarioId: string, hashesRecuperacao: string[]) {
+    const cliente = await this.pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      await cliente.query('UPDATE usuario SET totp_ativado_em = now() WHERE id = $1 AND totp_segredo IS NOT NULL', [usuarioId]);
+      await cliente.query('DELETE FROM totp_recuperacao WHERE usuario_id = $1', [usuarioId]);
+      await cliente.query('INSERT INTO totp_recuperacao (usuario_id, codigo_hash) SELECT $1, unnest($2::text[])', [usuarioId, hashesRecuperacao]);
+      await cliente.query('COMMIT');
+    } catch (e) {
+      await cliente.query('ROLLBACK');
+      throw e;
+    } finally {
+      cliente.release();
+    }
+  }
+
+  async registrarPassoTotp(usuarioId: string, passo: number) {
+    // Atômico: dois logins com o mesmo código ao mesmo tempo, só um passa.
+    const { rowCount } = await this.pool.query(
+      'UPDATE usuario SET totp_ultimo_passo = $2 WHERE id = $1 AND (totp_ultimo_passo IS NULL OR totp_ultimo_passo < $2)',
+      [usuarioId, passo],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async usarCodigoRecuperacao(usuarioId: string, hash: string) {
+    const { rowCount } = await this.pool.query(
+      `UPDATE totp_recuperacao SET usado_em = now()
+        WHERE id = (SELECT id FROM totp_recuperacao WHERE usuario_id = $1 AND codigo_hash = $2 AND usado_em IS NULL LIMIT 1)`,
+      [usuarioId, hash],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  async codigosRecuperacaoRestantes(usuarioId: string) {
+    const { rows } = await this.pool.query('SELECT count(*)::int AS n FROM totp_recuperacao WHERE usuario_id = $1 AND usado_em IS NULL', [usuarioId]);
+    return rows[0].n as number;
+  }
+
+  async desativarDoisFatores(usuarioId: string) {
+    await this.pool.query('UPDATE usuario SET totp_segredo = NULL, totp_ativado_em = NULL, totp_ultimo_passo = NULL WHERE id = $1', [usuarioId]);
+    await this.pool.query('DELETE FROM totp_recuperacao WHERE usuario_id = $1', [usuarioId]);
+  }
+
+  async apagarOutrasSessoes(usuarioId: string, tokenHashAtual: string) {
+    await this.pool.query('DELETE FROM sessao WHERE usuario_id = $1 AND token_hash <> $2', [usuarioId, tokenHashAtual]);
+  }
+
   async registrarEvento(id: string, provedor: string, payload: unknown) {
     const { rowCount } = await this.pool.query(
       'INSERT INTO webhook_evento (id, provedor, payload) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING',
@@ -356,6 +424,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
       // Só da pessoa: apaga (aviso e imóvel em cascata).
       await cliente.query('DELETE FROM imovel_monitorado WHERE usuario_id = $1', [usuarioId]);
       await cliente.query('DELETE FROM token_email WHERE usuario_id = $1', [usuarioId]);
+      await cliente.query('DELETE FROM totp_recuperacao WHERE usuario_id = $1', [usuarioId]);
       await cliente.query('DELETE FROM sessao WHERE usuario_id = $1 OR personificado_por = $1', [usuarioId]);
       // Consultas: o QR do relatório que foi ao banco continua abrindo, mas sem dono e sem o código do CPF/CNPJ.
       await cliente.query('UPDATE consulta SET usuario_id = NULL, documento_hash = NULL WHERE usuario_id = $1', [usuarioId]);
@@ -363,7 +432,8 @@ export class RepositorioContasPostgres implements RepositorioContas {
       await cliente.query(
         `UPDATE usuario
             SET nome = 'Conta excluída', email = 'excluida-' || id || '@excluida.invalid', whatsapp = NULL, profissao = NULL,
-                senha_hash = 'excluida', papel = 'usuario', excluida_em = now(), bloqueado_em = coalesce(bloqueado_em, now())
+                senha_hash = 'excluida', papel = 'usuario', excluida_em = now(), bloqueado_em = coalesce(bloqueado_em, now()),
+                totp_segredo = NULL, totp_ativado_em = NULL, totp_ultimo_passo = NULL
           WHERE id = $1`,
         [usuarioId],
       );

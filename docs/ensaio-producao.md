@@ -39,6 +39,8 @@ Assim, quando o servidor for contratado, a implantação vira a repetição de a
 
 4. **Abrir https://localhost.** O navegador avisa que o certificado não é confiável: é esperado, porque o certificado foi gerado pelo Caddy e não por uma autoridade. No servidor real, o Caddy pega um certificado de verdade (Let's Encrypt).
 
+   O ensaio roda em modo de produção: para usar o painel com `admin@ensaio.local`, ligue antes a **verificação em duas etapas** em Minha conta (qualquer aplicativo autenticador serve). Desde 27/10/2026, vale repetir também a **cópia externa do backup e a restauração**, porque o script passou a usar o "sal" do rclone ([backup-e-vigia.md](backup-e-vigia.md)).
+
 5. **Desligar e apagar tudo do ensaio** (volumes inclusive):
 
    ```bash

@@ -2,7 +2,7 @@ import qrcode from 'qrcode-generator';
 import { useMemo } from 'react';
 
 /** QR em SVG gerado no próprio navegador: funciona sem internet e imprime nítido. */
-export function CodigoQr({ texto, tamanho = 112 }: { texto: string; tamanho?: number }) {
+export function CodigoQr({ texto, tamanho = 112, rotulo = 'Código QR para conferir esta consulta' }: { texto: string; tamanho?: number; rotulo?: string }) {
   const svg = useMemo(() => {
     const qr = qrcode(0, 'M');
     qr.addData(texto);
@@ -13,7 +13,7 @@ export function CodigoQr({ texto, tamanho = 112 }: { texto: string; tamanho?: nu
   return (
     <div
       role="img"
-      aria-label="Código QR para conferir esta consulta"
+      aria-label={rotulo}
       style={{ width: tamanho, height: tamanho, flex: 'none' }}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
