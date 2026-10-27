@@ -56,6 +56,12 @@ export function App() {
               </NavLink>
             )}
             <NavLink to="/planos">Planos</NavLink>
+            {/* Só para administração e suporte. No celular, o atalho fica em Minha conta. */}
+            {sessao?.nivelAdmin && (
+              <NavLink to="/admin" className="so-largo nav-painel">
+                Painel
+              </NavLink>
+            )}
             {!carregando &&
               (sessao ? (
                 <NavLink to="/conta" className="saldo" title="Sua conta e seus créditos">

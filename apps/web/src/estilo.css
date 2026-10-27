@@ -99,6 +99,8 @@ a { color: var(--marca); text-underline-offset: 2px; }
 .nav a.saldo::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #22a35a; }
 .nav a.nav-cta { margin-left: 6px; background: var(--marca); color: #fff; font-weight: 650; box-shadow: 0 1px 2px rgb(16 32 20 / 0.2); }
 .nav a.nav-cta:hover { background: var(--marca-forte); color: #fff; }
+/* "Painel": só aparece para administração e suporte; um contorno discreto o separa do menu do cliente. */
+.nav a.nav-painel { border: 1px dashed var(--linha-forte); }
 /* No celular, o logo já leva à consulta: o link "Consultar" sai para caber o saldo. */
 @media (max-width: 639px) { .nav a.so-largo { display: none; } }
 @media (max-width: 380px) { .nav a { padding: 0 8px; font-size: 0.88rem; } .marca { font-size: 1rem; } }

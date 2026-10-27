@@ -3,6 +3,7 @@ import { criarContaConfirmada, emailNovo } from './apoio';
 
 test('quem não é administrador não entra no painel', async ({ page }) => {
   await criarContaConfirmada(page, emailNovo('comum'));
+  await expect(page.locator('header.cabecalho').getByRole('link', { name: 'Painel' })).toHaveCount(0);
   await page.goto('/admin');
   await expect(page).not.toHaveURL(/\/admin/);
 });
@@ -10,7 +11,9 @@ test('quem não é administrador não entra no painel', async ({ page }) => {
 test('painel do administrador: visão geral com o servidor, abas e a aba de IA', async ({ page }) => {
   // admin@e2e.local está em ADMIN_EMAILS (servidor.mjs). O banco é recriado a cada rodada.
   await criarContaConfirmada(page, 'admin@e2e.local', 'Administradora de Teste');
-  await page.goto('/admin');
+  // Chega ao painel pelo link do topo, como a pessoa faria (não digitando o endereço).
+  await page.locator('header.cabecalho').getByRole('link', { name: 'Painel' }).click();
+  await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Servidor' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Bases oficiais' })).toBeVisible();

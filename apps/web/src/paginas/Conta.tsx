@@ -138,6 +138,11 @@ export function Conta() {
         <Link to="/planos" className="botao botao-secundario">
           Planos e créditos
         </Link>
+        {sessao.nivelAdmin && (
+          <Link to="/admin" className="botao botao-secundario">
+            Painel administrativo
+          </Link>
+        )}
       </div>
 
       <section className="cartao pilha-p">
@@ -153,11 +158,6 @@ export function Conta() {
             </span>
           </dd>
         </dl>
-        {sessao.nivelAdmin && (
-          <Link to="/admin" className="l-link">
-            Abrir o painel administrativo
-          </Link>
-        )}
       </section>
 
       {pedidos.length > 0 && (
