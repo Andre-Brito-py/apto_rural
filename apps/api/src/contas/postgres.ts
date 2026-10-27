@@ -35,6 +35,8 @@ function pedido(r: Record<string, unknown>): Pedido {
     creditos: r.creditos_consulta == null ? undefined : { consulta: r.creditos_consulta as number, dossie: (r.creditos_dossie as number) ?? 0 },
     nomeProduto: (r.nome_produto as string) ?? undefined,
     assinaturaId: (r.assinatura_id as string) ?? undefined,
+    cupom: (r.cupom_codigo as string) ?? undefined,
+    desconto: r.desconto == null ? undefined : Number(r.desconto),
   };
 }
 
@@ -49,6 +51,8 @@ function assinatura(r: Record<string, unknown>): Assinatura {
     creditos: { consulta: r.creditos_consulta as number, dossie: r.creditos_dossie as number },
     limiteCarteira: r.limite_carteira as number,
     limiteMembros: (r.limite_membros as number) ?? 1,
+    cupom: (r.cupom_codigo as string) ?? undefined,
+    valorCheio: r.valor_cheio == null ? undefined : Number(r.valor_cheio),
     status: r.status as Assinatura['status'],
     provedor: r.provedor as string,
     provedorId: (r.provedor_id as string) ?? undefined,
@@ -200,8 +204,9 @@ export class RepositorioContasPostgres implements RepositorioContas {
 
   async criarPedido(p: Omit<Pedido, 'id' | 'status' | 'criadoEm'>) {
     const { rows } = await this.pool.query(
-      `INSERT INTO pedido (usuario_id, produto, valor, provedor, creditos_consulta, creditos_dossie, nome_produto, assinatura_id, provedor_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      `INSERT INTO pedido (usuario_id, produto, valor, provedor, creditos_consulta, creditos_dossie, nome_produto, assinatura_id, provedor_id,
+                           cupom_codigo, desconto)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
         p.usuarioId,
         p.produto,
@@ -212,6 +217,8 @@ export class RepositorioContasPostgres implements RepositorioContas {
         p.nomeProduto ?? null,
         p.assinaturaId ?? null,
         p.provedorId ?? null,
+        p.cupom ?? null,
+        p.desconto ?? null,
       ],
     );
     return pedido(rows[0]);
@@ -220,9 +227,22 @@ export class RepositorioContasPostgres implements RepositorioContas {
   async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>) {
     try {
       const { rows } = await this.pool.query(
-        `INSERT INTO assinatura (usuario_id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, limite_membros, provedor)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-        [a.usuarioId, a.planoId, a.nomePlano, a.valorMensal, a.creditos.consulta, a.creditos.dossie, a.limiteCarteira, a.limiteMembros, a.provedor],
+        `INSERT INTO assinatura (usuario_id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, limite_membros,
+                                 provedor, cupom_codigo, valor_cheio)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+        [
+          a.usuarioId,
+          a.planoId,
+          a.nomePlano,
+          a.valorMensal,
+          a.creditos.consulta,
+          a.creditos.dossie,
+          a.limiteCarteira,
+          a.limiteMembros,
+          a.provedor,
+          a.cupom ?? null,
+          a.valorCheio ?? null,
+        ],
       );
       return assinatura(rows[0]);
     } catch (e) {
@@ -232,13 +252,14 @@ export class RepositorioContasPostgres implements RepositorioContas {
     }
   }
 
-  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link'>>) {
+  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal'>>) {
     await this.pool.query(
       `UPDATE assinatura SET provedor_id = coalesce($2, provedor_id), link = coalesce($3, link), status = coalesce($4, status),
+              valor_mensal = coalesce($5, valor_mensal),
               ativada_em = CASE WHEN $4 = 'ativa' THEN coalesce(ativada_em, now()) ELSE ativada_em END,
               cancelada_em = CASE WHEN $4 = 'cancelada' THEN now() ELSE cancelada_em END
         WHERE id = $1`,
-      [id, d.provedorId ?? null, d.link ?? null, d.status ?? null],
+      [id, d.provedorId ?? null, d.link ?? null, d.status ?? null, d.valorMensal ?? null],
     );
   }
 
@@ -302,10 +323,10 @@ export class RepositorioContasPostgres implements RepositorioContas {
       q(`SELECT id, nome, email, whatsapp, profissao, papel, criado_em, aceite_termos_em, email_confirmado_em, bloqueado_em
            FROM usuario WHERE id = $1`),
       q('SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id'),
-      q(`SELECT id, produto, nome_produto, valor, status, provedor, criado_em, pago_em, assinatura_id
+      q(`SELECT id, produto, nome_produto, valor, status, provedor, criado_em, pago_em, assinatura_id, cupom_codigo, desconto
            FROM pedido WHERE usuario_id = $1 ORDER BY criado_em`),
       q(`SELECT id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, status,
-                criada_em, ativada_em, cancelada_em
+                criada_em, ativada_em, cancelada_em, cupom_codigo, valor_cheio
            FROM assinatura WHERE usuario_id = $1 ORDER BY criada_em`),
       q(`SELECT id, cod_car, criada_em, data_referencia, resultado->>'veredito' AS veredito, dossie_liberado_em,
                 documento_hash IS NOT NULL AS consultou_cpf_cnpj, resultado

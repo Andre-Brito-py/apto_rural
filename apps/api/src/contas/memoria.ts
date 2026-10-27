@@ -136,7 +136,7 @@ export class RepositorioContasMemoria implements RepositorioContas {
     return nova;
   }
 
-  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link'>>) {
+  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal'>>) {
     const a = this.assinaturas.get(id);
     if (!a) return;
     Object.assign(a, Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)));

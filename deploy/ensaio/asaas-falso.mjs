@@ -126,7 +126,7 @@ createServer(async (req, res) => {
     // Rotas da API v3 (o que o Apto Rural chama). Exige a chave, como o Asaas.
     if (caminho.startsWith('/v3/')) {
       if (!req.headers.access_token) return json(res, 401, { errors: [{ description: 'Sem access_token' }] });
-      const corpo = req.method === 'POST' ? await lerCorpo(req) : {};
+      const corpo = req.method === 'POST' || req.method === 'PUT' ? await lerCorpo(req) : {};
       if (req.method === 'POST' && caminho === '/v3/customers') {
         if (!corpo.name || !corpo.cpfCnpj) return json(res, 400, { errors: [{ description: 'name e cpfCnpj são obrigatórios' }] });
         return json(res, 200, { id: novoId('cus'), name: corpo.name });
@@ -141,7 +141,18 @@ createServer(async (req, res) => {
         assinaturas.set(s.id, s);
         return json(res, 200, { id: s.id });
       }
-      let m = /^\/v3\/subscriptions\/([^/]+)\/payments$/.exec(caminho);
+      // Fim do desconto de um cupom: muda o valor da assinatura e das mensalidades ainda não pagas.
+      let m = /^\/v3\/subscriptions\/([^/]+)$/.exec(caminho);
+      if (req.method === 'PUT' && m && assinaturas.has(m[1])) {
+        const s = assinaturas.get(m[1]);
+        if (corpo.value != null) s.value = corpo.value;
+        if (corpo.updatePendingPayments) {
+          for (const c of cobrancas.values()) if (c.subscription === s.id && !c.eventos.length) c.value = s.value;
+        }
+        console.log(`assinatura ${s.id}: valor ${s.value}`);
+        return json(res, 200, { id: s.id, value: s.value });
+      }
+      m = /^\/v3\/subscriptions\/([^/]+)\/payments$/.exec(caminho);
       if (req.method === 'GET' && m && assinaturas.has(m[1])) {
         const s = assinaturas.get(m[1]);
         let c = [...cobrancas.values()].find((x) => x.subscription === s.id);

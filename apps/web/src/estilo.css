@@ -1213,3 +1213,28 @@ ul.l-planos { list-style: none; padding: 0; }
   .item details > summary { display: none; }
   a { color: inherit; text-decoration: none; }
 }
+
+/* Cupons de desconto: campo na página de planos e aba do painel (docs/cupons.md). */
+.cupom-caixa { padding: 16px 20px; max-width: 880px; margin-left: auto; margin-right: auto; width: 100%; }
+.cupom-caixa .campo { margin: 0; }
+.cupom-aplicado { color: var(--marca-forte); }
+.cupom-aplicado .l-icone-p { vertical-align: -3px; }
+.entrada-cupom { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; letter-spacing: 0.04em; text-transform: uppercase; }
+.cupom-erro { color: var(--impedimento); }
+.preco-antigo { font-size: 0.55em; font-weight: 600; color: var(--tinta-suave); margin-right: 4px; }
+.avulso-preco .preco-antigo { font-size: 0.75em; }
+.cupom-texto { margin-top: 6px; font-size: 0.9rem; font-weight: 650; color: var(--marca-forte); }
+.cupom-nao-vale { margin-top: 6px; font-size: 0.85rem; color: var(--tinta-suave); }
+.tabela-cupons td .ajuda { font-size: 0.8rem; }
+.acoes-cupom { min-width: 140px; }
+.acoes-cupom .link-botao { display: inline-block; margin-right: 10px; min-height: 28px; }
+.entrada-cupom::placeholder { text-transform: none; letter-spacing: 0; }
+.grade-cupom { display: grid; gap: 16px; }
+@media (min-width: 760px) { .grade-cupom { grid-template-columns: 1fr 1fr; } }
+.grupo-cupom { border: 1px solid var(--linha); border-radius: 10px; padding: 12px 16px 16px; margin: 0; min-width: 0; }
+.grupo-cupom legend { padding: 0 6px; margin-bottom: 0; }
+.grupo-cupom + .grupo-cupom, .formulario-cupom .campo + .campo { margin-top: 0; }
+.lista-alvos { display: grid; gap: 0 16px; margin-top: 4px; }
+@media (min-width: 640px) { .lista-alvos { grid-template-columns: 1fr 1fr; } }
+.entrada-numero { max-width: 180px; }
+.formulario-cupom .botoes { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { normalizarDocumento } from '../documento.js';
 import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { aplicarEventoAssinatura } from '../assinaturas/mensalidades.js';
+import { avaliarCupom, cupomAposMensalidade, MENSAGEM_RESERVA } from '../cupons/aplicar.js';
 import { aplicarEvento } from '../pagamentos/aplicar.js';
 import { contaEmUso, podePagar } from '../equipe/conta.js';
 
@@ -11,6 +12,8 @@ const novoPedido = z.object({
   produto: z.string(),
   /** CPF/CNPJ do pagador: vai direto ao provedor de pagamento, não é guardado. */
   documento: z.string().max(20).optional(),
+  /** Código do cupom de desconto (docs/cupons.md). */
+  cupom: z.string().trim().max(40).optional(),
 });
 
 export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
@@ -37,8 +40,15 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
     const p = corpo.success ? produtos.find((x) => x.id === corpo.data.produto && x.ativo) : undefined;
     if (!corpo.success || !p) return erro(reply, 400, 'Produto inválido.');
 
+    // Cupom: o preço com desconto é o que vai para o Asaas.
+    const codigo = corpo.data.cupom || undefined;
+    const cupom = codigo ? await avaliarCupom(ctx, codigo, { id: p.id, nome: p.nome, valor: p.valor, plano: false }, u) : null;
+    if (cupom && !cupom.ok) return erro(reply, 400, cupom.mensagem, 'cupom');
+    const valor = cupom?.ok ? cupom.final : p.valor;
+    const gratis = valor === 0;
+
     let cpfCnpj: string | undefined;
-    if (ctx.pagamento.exigeDocumento && !u.pagamentoClienteId) {
+    if (!gratis && ctx.pagamento.exigeDocumento && !u.pagamentoClienteId) {
       cpfCnpj = normalizarDocumento(corpo.data.documento ?? '') ?? undefined;
       if (!cpfCnpj) return erro(reply, 400, 'Informe um CPF ou CNPJ válido para a cobrança.', 'documento');
     }
@@ -47,16 +57,39 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
     const pedido = await ctx.contas.criarPedido({
       usuarioId: u.id,
       produto: p.id,
-      valor: p.valor,
-      provedor: ctx.pagamento.nome,
+      valor,
+      // Cupom de 100%: não há cobrança no Asaas, o pedido é liberado aqui mesmo.
+      provedor: gratis ? 'cupom' : ctx.pagamento.nome,
       creditos: p.creditos,
       nomeProduto: p.nome,
+      cupom: cupom?.ok ? cupom.cupom.codigo : undefined,
+      desconto: cupom?.ok ? cupom.desconto : undefined,
     });
+    if (cupom?.ok) {
+      // Conferência final do limite, atômica: duas pessoas no último uso, só uma leva.
+      const reserva = await ctx.cupons.reservar(cupom.cupom, {
+        usuarioId: u.id,
+        pedidoId: pedido.id,
+        item: p.id,
+        nomeItem: p.nome,
+        valorOriginal: p.valor,
+        valorFinal: valor,
+        meses: null,
+      });
+      if (typeof reserva === 'string') {
+        await ctx.contas.atualizarPedido(pedido.id, { status: 'cancelado' });
+        return erro(reply, 409, MENSAGEM_RESERVA[reserva], 'cupom');
+      }
+    }
+    if (gratis) {
+      await aplicarEvento(ctx.contas, pedido, 'pago', ctx.cupons);
+      return reply.status(201).send({ id: pedido.id, gratis: true, saldo: await ctx.contas.saldo(u.id) });
+    }
     try {
       const cobranca = await ctx.pagamento.criarCobranca({
         pedidoId: pedido.id,
-        valor: p.valor,
-        descricao: `Apto Rural — ${p.nome}`,
+        valor,
+        descricao: `Apto Rural — ${p.nome}${cupom?.ok ? ` (cupom ${cupom.cupom.codigo})` : ''}`,
         cliente: { id: u.pagamentoClienteId, nome: u.nome, email: u.email, whatsapp: u.whatsapp, cpfCnpj },
       });
       if (!u.pagamentoClienteId) await ctx.contas.definirClientePagamento(u.id, cobranca.clienteId);
@@ -64,7 +97,7 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
       return reply.status(201).send({ id: pedido.id, link: cobranca.link });
     } catch (e) {
       req.log.error(e, 'falha ao criar cobrança');
-      await ctx.contas.atualizarPedido(pedido.id, { status: 'cancelado' });
+      await aplicarEvento(ctx.contas, pedido, 'cancelado', ctx.cupons);
       return erro(reply, 502, 'Não foi possível gerar a cobrança agora. Tente de novo em instantes.');
     }
   });
@@ -97,7 +130,7 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
         req.log.warn({ evento }, 'webhook de assinatura desconhecida');
         return { ok: true };
       }
-      await aplicarEventoAssinatura(ctx.contas, assinatura, evento);
+      await aplicarEventoAssinatura(ctx.contas, assinatura, evento, (a) => cupomAposMensalidade(ctx, a));
       return { ok: true };
     }
 
@@ -108,7 +141,7 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
       req.log.warn({ evento }, 'webhook sem pedido correspondente');
       return { ok: true };
     }
-    await aplicarEvento(ctx.contas, pedido, evento.tipo);
+    await aplicarEvento(ctx.contas, pedido, evento.tipo, ctx.cupons);
     return { ok: true };
   });
 
@@ -119,7 +152,7 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
       const u = await usuarioDaRequisicao(ctx, req);
       const pedido = await ctx.contas.buscarPedido(req.params.id);
       if (!u || !pedido || pedido.usuarioId !== u.id) return erro(reply, 404, 'Pedido não encontrado.');
-      await aplicarEvento(ctx.contas, pedido, 'pago');
+      await aplicarEvento(ctx.contas, pedido, 'pago', ctx.cupons);
       return { ok: true, saldo: await ctx.contas.saldo(u.id) };
     });
   }

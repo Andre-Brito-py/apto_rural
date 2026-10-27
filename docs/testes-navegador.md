@@ -14,6 +14,7 @@ Rodam sozinhos no GitHub a cada envio de código (`verificacao-automatica.md`). 
 | Comprar com o pagamento simulado, consultar um imóvel com contorno, explicação para o produtor, acompanhar na carteira; sem crédito, o site pede para comprar | `compra-e-carteira.spec.ts` |
 | Consulta em lote com planilha do Excel em português (acentos em Windows-1252), resultado baixado em planilha | `lote.spec.ts` |
 | Painel: quem não é administrador fica de fora; visão geral (servidor e bases), abas, aba de IA recusa o que não é chave | `admin.spec.ts` |
+| Cupons: o administrador cria o cupom pela tela (com a simulação do preço), o cliente chega pelo link de divulgação, assina com desconto e o painel mostra o uso; código inexistente; cupom de 100% na consulta avulsa sai de graça | `cupons.spec.ts` |
 | **No celular** (Pixel 7): as páginas principais sem rolagem para o lado, consulta de exemplo com mapa | `celular.spec.ts` |
 
 Todo teste também falha se a página tiver **erro de JavaScript** ou **algum arquivo ou chamada respondendo erro**, mesmo que a tela pareça certa.

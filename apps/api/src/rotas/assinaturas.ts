@@ -7,11 +7,15 @@ import { erro, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { normalizarDocumento } from '../documento.js';
 import { contaEmUso, podePagar } from '../equipe/conta.js';
 import { limiteMembrosDoPlano } from '../produtos.js';
+import { avaliarCupom, cupomAoCancelarAssinatura, cupomAposMensalidade, MENSAGEM_RESERVA } from '../cupons/aplicar.js';
+import { normalizarCodigo } from '../cupons/regras.js';
 
 const novaAssinatura = z.object({
   plano: z.string(),
   /** CPF/CNPJ do pagador: vai direto ao provedor de pagamento, não é guardado. */
   documento: z.string().max(20).optional(),
+  /** Código do cupom de desconto (docs/cupons.md). */
+  cupom: z.string().trim().max(40).optional(),
 });
 
 export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
@@ -26,8 +30,15 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta.');
     const conta = await contaEmUso(ctx, u);
+    const assinatura = await ctx.contas.assinaturaAtual(conta.contaId);
+    // Com cupom: quantas mensalidades com desconto ainda faltam (null = todas).
+    const uso = assinatura?.cupom ? await ctx.cupons.porAssinatura(assinatura.id) : null;
+    const desconto =
+      uso && !uso.descontoEncerradoEm && uso.status !== 'liberado'
+        ? { cupom: assinatura!.cupom!, valorCheio: assinatura!.valorCheio ?? uso.valorOriginal, mesesRestantes: uso.meses == null ? null : Math.max(0, uso.meses - uso.mensalidadesPagas) }
+        : null;
     return {
-      assinatura: await ctx.contas.assinaturaAtual(conta.contaId),
+      assinatura: assinatura ? { ...assinatura, desconto } : null,
       limiteCarteira: await limiteCarteira(ctx, conta.contaId),
       podePagar: podePagar(conta),
     };
@@ -43,12 +54,26 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
     const planos = (await ctx.config.obter()).planos;
     const plano = corpo.success ? planos.find((p) => p.id === corpo.data.plano && p.ativo) : undefined;
     if (!corpo.success || !plano) return erro(reply, 400, 'Plano inválido.');
+    const codigo = corpo.data.cupom ? normalizarCodigo(corpo.data.cupom) : undefined;
 
     const atual = await ctx.contas.assinaturaAtual(u.id);
     if (atual?.status === 'pendente' && atual.planoId === plano.id && atual.link) {
-      return reply.status(200).send({ id: atual.id, link: atual.link }); // reabre a mesma fatura
+      // Reabre a mesma fatura, se o cupom é o mesmo. Outro cupom pede uma assinatura nova.
+      if ((atual.cupom ?? undefined) === codigo || !codigo) return reply.status(200).send({ id: atual.id, link: atual.link });
+      return erro(
+        reply,
+        409,
+        'Você já tem uma assinatura deste plano aguardando o primeiro pagamento. Cancele-a abaixo e assine de novo para usar o cupom.',
+        'cupom',
+      );
     }
     if (atual) return erro(reply, 409, 'Você já tem uma assinatura. Cancele a atual para trocar de plano.');
+
+    // Cupom: a mensalidade com desconto é o que vai para o Asaas; o valor cheio volta sozinho
+    // quando acabam os meses de desconto (cupomAposMensalidade).
+    const cupom = codigo ? await avaliarCupom(ctx, codigo, { id: plano.id, nome: plano.nome, valor: plano.valorMensal, plano: true }, u) : null;
+    if (cupom && !cupom.ok) return erro(reply, 400, cupom.mensagem, 'cupom');
+    const valorMensal = cupom?.ok ? cupom.final : plano.valorMensal;
 
     let cpfCnpj: string | undefined;
     if (ctx.pagamento.exigeDocumento && !u.pagamentoClienteId) {
@@ -60,18 +85,35 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
       usuarioId: u.id,
       planoId: plano.id,
       nomePlano: plano.nome,
-      valorMensal: plano.valorMensal,
+      valorMensal,
       creditos: plano.creditosMensais,
       limiteCarteira: plano.limiteCarteira,
       limiteMembros: limiteMembrosDoPlano(plano),
       provedor: ctx.pagamento.nome,
+      cupom: cupom?.ok ? cupom.cupom.codigo : undefined,
+      valorCheio: cupom?.ok ? plano.valorMensal : undefined,
     });
     if (criada === 'ja_existe') return erro(reply, 409, 'Você já tem uma assinatura. Cancele a atual para trocar de plano.');
+    if (cupom?.ok) {
+      const reserva = await ctx.cupons.reservar(cupom.cupom, {
+        usuarioId: u.id,
+        assinaturaId: criada.id,
+        item: plano.id,
+        nomeItem: plano.nome,
+        valorOriginal: plano.valorMensal,
+        valorFinal: valorMensal,
+        meses: cupom.meses,
+      });
+      if (typeof reserva === 'string') {
+        await ctx.contas.atualizarAssinatura(criada.id, { status: 'cancelada' });
+        return erro(reply, 409, MENSAGEM_RESERVA[reserva], 'cupom');
+      }
+    }
     try {
       const r = await ctx.pagamento.criarAssinatura({
         assinaturaId: criada.id,
-        valorMensal: plano.valorMensal,
-        descricao: `Apto Rural — plano ${plano.nome} (mensal)`,
+        valorMensal,
+        descricao: `Apto Rural — plano ${plano.nome} (mensal)${cupom?.ok ? ` — cupom ${cupom.cupom.codigo}` : ''}`,
         cliente: { id: u.pagamentoClienteId, nome: u.nome, email: u.email, whatsapp: u.whatsapp, cpfCnpj },
       });
       if (!u.pagamentoClienteId) await ctx.contas.definirClientePagamento(u.id, r.clienteId);
@@ -80,6 +122,7 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
     } catch (e) {
       req.log.error(e, 'falha ao criar assinatura');
       await ctx.contas.atualizarAssinatura(criada.id, { status: 'cancelada' });
+      await cupomAoCancelarAssinatura(ctx.cupons, criada.id);
       return erro(reply, 502, 'Não foi possível criar a assinatura agora. Tente de novo em instantes.');
     }
   });
@@ -101,6 +144,7 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
       }
     }
     await ctx.contas.atualizarAssinatura(a.id, { status: 'cancelada' });
+    await cupomAoCancelarAssinatura(ctx.cupons, a.id);
     return { ok: true };
   });
 
@@ -111,7 +155,12 @@ export function rotasAssinaturas(app: FastifyInstance, ctx: Contexto) {
       const u = await usuarioDaRequisicao(ctx, req);
       const a = await ctx.contas.buscarAssinatura(req.params.id);
       if (!u || !a || a.usuarioId !== u.id) return erro(reply, 404, 'Assinatura não encontrada.');
-      await aplicarEventoAssinatura(ctx.contas, a, { id: randomUUID(), tipo: 'pago', provedorId: `sim_pay_${randomUUID()}` });
+      await aplicarEventoAssinatura(
+        ctx.contas,
+        a,
+        { id: randomUUID(), tipo: 'pago', provedorId: `sim_pay_${randomUUID()}`, valor: a.valorMensal },
+        (x) => cupomAposMensalidade(ctx, x),
+      );
       return { ok: true, saldo: await ctx.contas.saldo(u.id) };
     });
   }

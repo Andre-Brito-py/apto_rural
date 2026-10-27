@@ -45,7 +45,7 @@ export class ProvedorAsaas implements ProvedorPagamento {
     this.base = url ?? BASE[ambiente];
   }
 
-  private async chamar<T>(caminho: string, corpo?: unknown, metodo: 'POST' | 'DELETE' | 'GET' = 'POST'): Promise<T> {
+  private async chamar<T>(caminho: string, corpo?: unknown, metodo: 'POST' | 'PUT' | 'DELETE' | 'GET' = 'POST'): Promise<T> {
     const r = await fetch(`${this.base}${caminho}`, {
       method: metodo,
       headers: { 'Content-Type': 'application/json', access_token: this.chave, 'User-Agent': 'AptoRural' },
@@ -107,6 +107,15 @@ export class ProvedorAsaas implements ProvedorPagamento {
   /** DELETE /subscriptions/{id}: encerra a recorrência e remove as mensalidades pendentes. */
   async cancelarAssinatura(provedorId: string) {
     await this.chamar(`/subscriptions/${encodeURIComponent(provedorId)}`, undefined, 'DELETE');
+  }
+
+  /**
+   * PUT /subscriptions/{id} com o valor novo. updatePendingPayments: true muda também as
+   * mensalidades já geradas e ainda não pagas (as pagas, vencidas e canceladas ficam como
+   * estão). Usado quando acabam os meses de desconto de um cupom (docs/cupons.md).
+   */
+  async atualizarValorAssinatura(provedorId: string, valorMensal: number) {
+    await this.chamar(`/subscriptions/${encodeURIComponent(provedorId)}`, { value: valorMensal, updatePendingPayments: true }, 'PUT');
   }
 
   /**

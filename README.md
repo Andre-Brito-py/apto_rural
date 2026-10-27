@@ -202,6 +202,18 @@ Como funciona a assinatura:
 - **Trocar de plano:** cancela o atual e assina o outro.
 - Valor, créditos, carteira e número de pessoas ficam **fixados na contratação**: se o plano mudar no painel, quem já assina continua com as condições de quando assinou.
 
+### Cupons de desconto
+
+Para conquistar os primeiros clientes, o administrador cria **cupons** no painel (aba **Cupons**) e divulga o código ou o link `/planos?cupom=CODIGO`, que já abre com o cupom aplicado.
+
+- **Desconto** em porcentagem ou em reais, em todos os planos e produtos ou só nos escolhidos.
+- **Na assinatura**, vale nas primeiras mensalidades (quantas você quiser) ou em todas. Quando acabam os meses de desconto, **a mensalidade volta sozinha ao valor cheio no Asaas**.
+- **Controle total:** quantas vezes pode ser usado no total e por conta, só para a primeira compra, de que dia a que dia, pausar a qualquer momento e encerrar o desconto de uma assinatura.
+- O painel mostra, para cada cupom, os usos, quem usou, quanto de desconto já foi dado e quanto entrou de receita.
+- O desconto vai direto no valor da cobrança do Asaas (Pix, cartão ou boleto). O Asaas não cobra menos de R$ 5,00: compra avulsa pode sair de graça (100%, sem cobrança, créditos na hora), e mensalidade fica em R$ 5,00 ou mais.
+
+Todas as regras, com exemplos, estão em [docs/cupons.md](docs/cupons.md).
+
 ### Equipe (plano Escritório)
 
 Um escritório tem várias pessoas atendendo produtores. No plano Escritório, **quem assina (o responsável) convida a equipe por e-mail**, e todos passam a usar **os mesmos créditos e a mesma carteira**, cada um com o próprio login.
@@ -345,7 +357,7 @@ O painel fica em `/admin` e tem dois níveis de acesso:
 | Nível | O que pode |
 | --- | --- |
 | **Suporte** | Ver tudo (indicadores, bases, erros, usuários, pedidos), abrir a ficha de qualquer usuário, **entrar como** ele (só leitura) e reenviar a confirmação de e-mail. |
-| **Administrador** | Tudo do suporte, mais: ajustar créditos, bloquear e desbloquear contas, mudar o papel de alguém, estornar e cancelar pedidos, mudar preços e limites e ver a auditoria. |
+| **Administrador** | Tudo do suporte, mais: ajustar créditos, bloquear e desbloquear contas, mudar o papel de alguém, estornar e cancelar pedidos, criar e controlar cupons de desconto, mudar preços e limites e ver a auditoria. |
 
 - **Primeiro acesso:** coloque seu e-mail em `ADMIN_EMAILS` no `.env`. Quem está ali é sempre administrador, desde que tenha confirmado o e-mail. Os demais papéis são dados pela ficha do usuário no próprio painel.
 - **Entrar como:** você vê o site exatamente como o cliente vê, por até 1 hora, com uma faixa marrom no topo. Nada pode ser alterado nesse modo: nenhuma compra, consulta ou mudança. O botão "Voltar ao painel" encerra o modo.
@@ -354,6 +366,7 @@ O painel fica em `/admin` e tem dois níveis de acesso:
 - **Estornar pedido pago:** o dinheiro volta pelo Asaas (Pix ou cartão; no cartão pode levar até 10 dias úteis para aparecer na fatura) e os créditos do pacote saem da conta do cliente na hora. O saldo pode ficar negativo se ele já tiver usado os créditos. Boleto pago, e Pix quando falta saldo na conta Asaas, precisam ser estornados pelo painel do próprio Asaas: o Apto Rural avisa quando for o caso.
 - **Cancelar pedido pendente:** remove a cobrança no Asaas, antes de o cliente pagar.
 - **Assinaturas:** o painel mostra a receita recorrente, os assinantes e quem está em atraso; a ficha de cada usuário mostra as assinaturas dele, quantos meses pagou e permite cancelar.
+- **Cupons de desconto:** na aba **Cupons**, o administrador cria, edita, pausa e acompanha os cupons, e copia o link de divulgação. Veja [docs/cupons.md](docs/cupons.md).
 - **Configurações sem mexer no código:** na seção "Configurações" do painel, o administrador muda os planos mensais (preço, créditos por mês, tamanho da carteira), as compras avulsas, cria e tira de venda planos e pacotes (desmarcando "Ativo"), muda a carteira de quem não assina, a amostra grátis e o aviso no topo do site. Tudo é validado antes de salvar e vale em até 30 segundos. **Pedidos já feitos mantêm o preço e os créditos da hora da compra.**
 - **Monitoramento de erros:** falhas da API, das telas do site, do monitor e dos coletores vão para o painel. Os administradores recebem um e-mail de alerta, no máximo um a cada 15 minutos. Toda manhã o monitor também confere se alguma base oficial atrasou.
 
@@ -428,14 +441,16 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Testes no navegador a cada envio para o GitHub (Playwright, computador e celular): conta, e-mail, compra, consulta, dossiê, lote, carteira, painel e LGPD. Acharam e corrigiram um limite de acessos que fazia o logo e os botões sumirem em escritórios com vários técnicos (veja [docs/testes-navegador.md](docs/testes-navegador.md)).
 - [x] Backup fora do servidor (cópia cifrada todo dia, em qualquer armazenamento S3) e alertas de site fora do ar e de backup que não rodou (vigia a cada 5 min, pelo endereço público, avisando um serviço externo como o healthchecks.io). Bloco "Servidor" no painel. Testado no ensaio, inclusive a queda do site e a volta da cópia (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [x] Explicação para o produtor por IA (OpenAI), com conferência automática do texto, explicação de modelo sem IA, chave cifrada pelo painel, limite diário e uso do mês (veja [docs/ia.md](docs/ia.md)).
-- [x] Central de ajuda com cara de chat, com 53 respostas prontas conferidas no código, busca que entende a pergunta escrita e página `/ajuda`. Também: tour de boas-vindas na primeira entrada, gravado na conta, e menu com todas as telas no celular. Testado no navegador (veja [docs/central-de-ajuda.md](docs/central-de-ajuda.md)).
+- [x] Central de ajuda com cara de chat, com 54 respostas prontas conferidas no código, busca que entende a pergunta escrita e página `/ajuda`. Também: tour de boas-vindas na primeira entrada, gravado na conta, e menu com todas as telas no celular. Testado no navegador (veja [docs/central-de-ajuda.md](docs/central-de-ajuda.md)).
+
+- [x] Cupons de desconto pelo painel, sincronizados com o Asaas: porcentagem ou valor fixo, planos e produtos escolhidos, meses de desconto na assinatura (a mensalidade volta sozinha ao valor cheio), limite de usos no total e por conta, só na primeira compra, datas de início e fim, pausar, encerrar o desconto, link de divulgação e números de cada cupom. Testado na API (memória e PostgreSQL) e no navegador (veja [docs/cupons.md](docs/cupons.md)).
 
 **Falta para lançar**
 
 - [ ] Contratar o servidor e o domínio e subir seguindo [docs/implantacao.md](docs/implantacao.md).
 - [ ] Contratar um provedor de e-mail (SMTP) e verificar o domínio nele (o código já está pronto).
 - [ ] Revisão de um advogado: termos de uso, privacidade (LGPD), prazos de guarda depois da exclusão de conta e linguagem do dossiê.
-- [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
+- [ ] Conta no Asaas aprovada (chaves de sandbox e de produção). No sandbox, conferir também o fim do desconto de um cupom na assinatura (a mensalidade voltando ao valor cheio), como diz [docs/cupons.md](docs/cupons.md).
 - [ ] Conta gratuita no healthchecks.io (2 checks: site e backup) e um armazenamento S3 para a cópia do backup, de preferência no Brasil. Guardar a `BACKUP_EXTERNO_SENHA` fora do servidor (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [ ] (Opcional) Conta na OpenAI com limite de gasto, e a chave cadastrada no painel (aba Inteligência artificial). Incluir o fornecedor de IA na política de privacidade.
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
@@ -515,5 +530,7 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
 | [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
+| [docs/cupons.md](docs/cupons.md) | Cupons de desconto: o que o administrador controla, o que o cliente vê, como o desconto chega ao Asaas e todas as regras de uso. |
 | [docs/marca.md](docs/marca.md) | A marca: logotipo e arquivos, cores, fonte, tom de voz, slogan e as checagens do nome (domínio, INPI). |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |
+| [docs/proposta-futura-eudr.md](docs/proposta-futura-eudr.md) | Proposta de uma futura startup, depois que o Apto Rural der lucro: comprovar a origem sem desmatamento para a exportação (EUDR), com fases e metas. |

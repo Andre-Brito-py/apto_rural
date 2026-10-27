@@ -237,6 +237,8 @@ export interface Assinatura {
   link?: string;
   criadaEm: string;
   ativadaEm?: string;
+  /** Cupom em andamento: valorMensal é o valor com desconto; mesesRestantes null = todas as mensalidades. */
+  desconto?: { cupom: string; valorCheio: number; mesesRestantes: number | null } | null;
 }
 
 export interface Catalogo {
@@ -274,6 +276,71 @@ export interface Pedido {
   valor: number;
   status: 'pendente' | 'pago' | 'estornado' | 'cancelado';
   criadoEm: string;
+  cupom?: string;
+  desconto?: number;
+}
+
+/** Preço de um plano ou produto com o cupom digitado (docs/cupons.md). */
+export type PrecoCupom =
+  | { id: string; plano: boolean; valido: true; de: number; por: number; desconto: number; meses: number | null; texto: string }
+  | { id: string; plano: boolean; valido: false; mensagem: string };
+
+export type SituacaoCupom = 'ativo' | 'pausado' | 'agendado' | 'vencido' | 'esgotado';
+
+/** O que o administrador define em um cupom. */
+export interface DadosCupom {
+  codigo: string;
+  descricao: string;
+  tipo: 'percentual' | 'fixo';
+  valor: number;
+  /** Ids de planos e produtos; vazio = todos. */
+  alvos: string[];
+  /** Mensalidades com desconto; null = todas. */
+  meses: number | null;
+  limiteUsos: number | null;
+  limitePorConta: number;
+  apenasNovos: boolean;
+  validoDe: string | null;
+  validoAte: string | null;
+  ativo: boolean;
+}
+
+export interface CupomAdmin extends DadosCupom {
+  id: string;
+  criadoEm: string;
+  atualizadoEm: string;
+  situacao: SituacaoCupom;
+  usados: number;
+  reservados: number;
+  descontoConcedido: number;
+  receita: number;
+}
+
+export interface UsoCupom {
+  id: string;
+  usuarioId: string;
+  email: string;
+  nome: string;
+  pedidoId?: string;
+  assinaturaId?: string;
+  item: string;
+  nomeItem: string;
+  valorOriginal: number;
+  valorFinal: number;
+  meses: number | null;
+  mensalidadesPagas: number;
+  descontoEncerradoEm?: string;
+  status: 'reservado' | 'usado' | 'liberado';
+  criadoEm: string;
+  usadoEm?: string;
+}
+
+export interface ItemCupom {
+  id: string;
+  nome: string;
+  valor: number;
+  plano: boolean;
+  ativo: boolean;
 }
 
 export interface NovaConsulta {
@@ -393,12 +460,16 @@ export const api = {
   redefinirSenha: (token: string, senha: string) => pedir<Sessao>('/v1/senha/redefinir', post({ token, senha })),
 
   produtos: () => pedir<Catalogo>('/v1/produtos'),
-  comprar: (produto: string, documento?: string) => pedir<{ id: string; link: string }>('/v1/pedidos', post({ produto, documento })),
+  /** Cupom de 100%: sem cobrança, volta gratis e o saldo novo em vez do link. */
+  comprar: (produto: string, documento?: string, cupom?: string) =>
+    pedir<{ id: string; link?: string; gratis?: boolean; saldo?: Saldo }>('/v1/pedidos', post({ produto, documento, cupom })),
+  validarCupom: (codigo: string) => pedir<{ codigo: string; itens: PrecoCupom[] }>('/v1/cupons/validar', post({ codigo })),
   pedidos: () => pedir<{ pedidos: Pedido[] }>('/v1/pedidos'),
   pedido: (id: string) => pedir<{ pedido: Pedido; produto?: Produto }>(`/v1/pedidos/${encodeURIComponent(id)}`),
   planos: () => pedir<{ planos: Plano[]; pagamentoDisponivel: boolean; exigeDocumento: boolean }>('/v1/planos'),
   assinatura: () => pedir<{ assinatura: Assinatura | null; limiteCarteira: number; podePagar: boolean }>('/v1/assinatura'),
-  assinar: (plano: string, documento?: string) => pedir<{ id: string; link: string }>('/v1/assinaturas', post({ plano, documento })),
+  assinar: (plano: string, documento?: string, cupom?: string) =>
+    pedir<{ id: string; link: string }>('/v1/assinaturas', post({ plano, documento, cupom })),
   cancelarAssinatura: () => pedir<{ ok: boolean }>('/v1/assinatura/cancelar', post()),
   pagarMesSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/assinaturas/${encodeURIComponent(id)}/pagar-mes`, post()),
 
@@ -427,6 +498,14 @@ export const api = {
       pedir<{ pedidos: (Pedido & { email: string; usuarioId: string; provedor: string; pagoEm: string | null; motivoEstorno?: string })[] }>(
         '/v1/admin/pedidos',
       ),
+    cupons: () => pedir<{ cupons: CupomAdmin[]; itens: ItemCupom[]; hoje: string }>('/v1/admin/cupons'),
+    cupom: (id: string) => pedir<{ cupom: CupomAdmin; usos: UsoCupom[] }>(`/v1/admin/cupons/${encodeURIComponent(id)}`),
+    criarCupom: (dados: DadosCupom) => pedir<{ cupom: CupomAdmin }>('/v1/admin/cupons', post(dados)),
+    salvarCupom: (id: string, dados: DadosCupom) =>
+      pedir<{ cupom: CupomAdmin }>(`/v1/admin/cupons/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(dados) }),
+    apagarCupom: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/cupons/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    encerrarDescontoCupom: (usoId: string) =>
+      pedir<{ ok: boolean; mensagem: string }>(`/v1/admin/cupons/usos/${encodeURIComponent(usoId)}/encerrar-desconto`, post()),
     estornar: (id: string, motivo: string) => pedir<{ ok: boolean }>(`/v1/admin/pedidos/${encodeURIComponent(id)}/estornar`, post({ motivo })),
     cancelarPedido: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/pedidos/${encodeURIComponent(id)}/cancelar`, post()),
     cancelarAssinatura: (id: string) => pedir<{ ok: boolean }>(`/v1/admin/assinaturas/${encodeURIComponent(id)}/cancelar`, post()),

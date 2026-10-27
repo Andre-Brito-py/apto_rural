@@ -6,6 +6,7 @@ import { hashToken, novoTokenSessao } from '../contas/senha.js';
 import type { Usuario } from '../contas/tipos.js';
 import { config } from '../config.js';
 import { ErroConfiguracao, ESQUEMAS, type ChaveConfig } from '../configuracoes.js';
+import { cupomAoCancelarAssinatura } from '../cupons/aplicar.js';
 import { aplicarEvento } from '../pagamentos/aplicar.js';
 import { COOKIE_SESSAO, erro, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto, type NivelAdmin } from '../contexto.js';
 
@@ -204,20 +205,24 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
     const pedido = await ctx.contas.buscarPedido(req.params.id);
     if (!pedido) return erro(reply, 404, 'Pedido não encontrado.');
     if (pedido.status !== 'pago') return erro(reply, 409, 'Só dá para estornar pedido pago.');
-    if (!ctx.pagamento || ctx.pagamento.nome !== pedido.provedor || !pedido.provedorId) {
+    // Cupom de 100%: não houve cobrança, então só os créditos saem.
+    const semCobranca = pedido.provedor === 'cupom';
+    if (!semCobranca && (!ctx.pagamento || ctx.pagamento.nome !== pedido.provedor || !pedido.provedorId)) {
       return erro(reply, 409, 'Este pedido foi pago por outro meio; estorne pelo painel do provedor.');
     }
-    try {
-      await ctx.pagamento.estornar(pedido.provedorId, `Apto Rural: ${corpo.data.motivo}`);
-    } catch (e) {
-      return erro(
-        reply,
-        502,
-        `O Asaas recusou o estorno: ${(e as Error).message}. Boleto pago e Pix sem saldo na conta precisam ser estornados pelo painel do Asaas.`,
-      );
+    if (!semCobranca) {
+      try {
+        await ctx.pagamento!.estornar(pedido.provedorId!, `Apto Rural: ${corpo.data.motivo}`);
+      } catch (e) {
+        return erro(
+          reply,
+          502,
+          `O Asaas recusou o estorno: ${(e as Error).message}. Boleto pago e Pix sem saldo na conta precisam ser estornados pelo painel do Asaas.`,
+        );
+      }
     }
     // Retira os créditos já; o webhook PAYMENT_REFUNDED, quando chegar, não lança de novo.
-    await aplicarEvento(ctx.contas, pedido, 'estornado');
+    await aplicarEvento(ctx.contas, pedido, 'estornado', ctx.cupons);
     await ctx.admin!.registrarMotivoEstorno(pedido.id, corpo.data.motivo);
     await ctx.admin!.auditar(admin.id, 'estornou_pedido', pedido.usuarioId, { pedido: pedido.id, valor: pedido.valor, motivo: corpo.data.motivo });
     return { ok: true, saldo: await ctx.contas.saldo(pedido.usuarioId) };
@@ -236,7 +241,7 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
         return erro(reply, 502, `O Asaas recusou o cancelamento: ${(e as Error).message}`);
       }
     }
-    await aplicarEvento(ctx.contas, pedido, 'cancelado');
+    await aplicarEvento(ctx.contas, pedido, 'cancelado', ctx.cupons);
     await ctx.admin!.auditar(admin.id, 'cancelou_pedido', pedido.usuarioId, { pedido: pedido.id, valor: pedido.valor });
     return { ok: true };
   });
@@ -255,6 +260,7 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
       }
     }
     await ctx.contas.atualizarAssinatura(a.id, { status: 'cancelada' });
+    await cupomAoCancelarAssinatura(ctx.cupons, a.id);
     await ctx.admin!.auditar(admin.id, 'cancelou_assinatura', a.usuarioId, { assinatura: a.id, plano: a.nomePlano });
     return { ok: true };
   });

@@ -4,6 +4,7 @@ import { api, type ErroRegistrado, type PainelResumo, type RegistroAuditoria, ty
 import { useSessao } from '../sessao';
 import { dataBr } from '../textos';
 import { ConfiguracoesPainel } from './ConfiguracoesPainel';
+import { CuponsPainel } from './CuponsPainel';
 import { IAPainel } from './IAPainel';
 
 export const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -16,7 +17,7 @@ const SITUACAO_BASE = {
   nao_carregada: { texto: 'Não carregada', classe: 's-impedimento' },
 } as const;
 
-type Aba = 'geral' | 'usuarios' | 'pedidos' | 'configuracoes' | 'ia' | 'auditoria';
+type Aba = 'geral' | 'usuarios' | 'pedidos' | 'cupons' | 'configuracoes' | 'ia' | 'auditoria';
 
 /** Painel interno, em abas: saúde do sistema e do negócio, usuários, vendas, preços e auditoria. */
 export function Admin() {
@@ -54,6 +55,7 @@ export function Admin() {
     { id: 'geral', rotulo: 'Visão geral', marca: (r?.erros24h ?? 0) + basesComProblema || undefined },
     { id: 'usuarios', rotulo: 'Usuários' },
     { id: 'pedidos', rotulo: 'Pedidos', marca: r?.pedidosPendentes || undefined },
+    { id: 'cupons', rotulo: 'Cupons' },
     { id: 'configuracoes', rotulo: 'Preços e limites' },
     ...(nivel === 'admin'
       ? [
@@ -96,6 +98,7 @@ export function Admin() {
       {falha && <p className="alerta alerta-erro">{falha}</p>}
 
       {aba === 'usuarios' && <Usuarios />}
+      {aba === 'cupons' && <CuponsPainel podeAlterar={nivel === 'admin'} />}
       {aba === 'configuracoes' && <ConfiguracoesPainel podeAlterar={nivel === 'admin'} />}
       {aba === 'ia' && nivel === 'admin' && <IAPainel />}
       {aba === 'auditoria' && nivel === 'admin' && <Auditoria />}
@@ -231,7 +234,15 @@ export function Admin() {
                       <Link to={`/admin/usuarios/${p.usuarioId}`}>{p.email}</Link>
                     </td>
                     <td>{p.produto}</td>
-                    <td>{reais(p.valor)}</td>
+                    <td>
+                      {reais(p.valor)}
+                      {p.cupom && (
+                        <span className="ajuda" style={{ marginTop: 2 }}>
+                          cupom <span className="mono">{p.cupom}</span>
+                          {p.desconto ? ` (−${reais(p.desconto)})` : ''}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       {SITUACAO_PEDIDO[p.status] ?? p.status}
                       {p.provedor === 'simulado' ? ' (simulado)' : ''}
@@ -328,11 +339,17 @@ export const NOME_ACAO: Record<string, string> = {
   definiu_chave_ia: 'Cadastrou a chave da OpenAI',
   apagou_chave_ia: 'Apagou a chave da OpenAI',
   cancelou_assinatura: 'Cancelou uma assinatura',
+  criou_cupom: 'Criou um cupom',
+  alterou_cupom: 'Alterou um cupom',
+  apagou_cupom: 'Apagou um cupom',
+  encerrou_desconto_cupom: 'Encerrou o desconto de cupom de uma assinatura',
 };
 
 export function descreverDetalhes(d: Record<string, unknown>): string {
   // Mudança de configuração guarda o antes e o depois inteiros: mostra só a chave.
   if (d.chave && ('antes' in d || 'depois' in d)) return `configuração: ${String(d.chave)}`;
+  // Cupom alterado: o antes e o depois ficam no registro; na lista, só o código.
+  if (d.cupom && ('antes' in d || 'depois' in d)) return `cupom: ${String(d.cupom)}`;
   return Object.entries(d)
     .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
     .join(' · ');

@@ -54,6 +54,11 @@ export interface ProvedorPagamento {
   criarAssinatura(dados: DadosAssinatura): Promise<Cobranca>;
   /** Encerra a recorrência (as mensalidades pendentes são removidas). */
   cancelarAssinatura(provedorId: string): Promise<void>;
+  /**
+   * Muda o valor das próximas mensalidades (fim do desconto de um cupom), inclusive das
+   * que já foram geradas e ainda não foram pagas.
+   */
+  atualizarValorAssinatura(provedorId: string, valorMensal: number): Promise<void>;
   /** Valida a origem e traduz o corpo do webhook. null = origem inválida. */
   lerWebhook(cabecalhos: Record<string, string | string[] | undefined>, corpo: unknown): EventoPagamento | null;
 }

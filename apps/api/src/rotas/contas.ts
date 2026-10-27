@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../contas/senha.js';
 import type { TipoCredito, TipoTokenEmail, Usuario } from '../contas/tipos.js';
 import { enviarLinkEmail } from '../contas/links.js';
+import { cupomAoCancelarAssinatura } from '../cupons/aplicar.js';
 import { TentativasLogin } from '../contas/tentativas.js';
 import { COOKIE_SESSAO, erro, hojeBrasilia, nivelAdmin, opcoesCookie, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { hashEmail } from '../documento.js';
@@ -249,6 +250,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
         }
       }
       await ctx.contas.atualizarAssinatura(assinatura.id, { status: 'cancelada' });
+      await cupomAoCancelarAssinatura(ctx.cupons, assinatura.id);
     }
 
     const { nome, email } = u;

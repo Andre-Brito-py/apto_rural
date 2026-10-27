@@ -1,4 +1,6 @@
 import type { Pedido, RepositorioContas, TipoCredito } from '../contas/tipos.js';
+import { cupomDoPedido } from '../cupons/aplicar.js';
+import type { RepositorioCupons } from '../cupons/tipos.js';
 import { PACOTES_LEGADOS, PRODUTOS_PADRAO } from '../produtos.js';
 import type { EventoPagamento } from './tipos.js';
 
@@ -12,9 +14,15 @@ function creditosDoPedido(pedido: Pedido) {
 
 /**
  * Aplica um evento de pagamento ao pedido. Idempotente: cada lançamento tem
- * referência única (pedido:<id>:<tipo> / estorno:<id>:<tipo>).
+ * referência única (pedido:<id>:<tipo> / estorno:<id>:<tipo>). Com o repositório de
+ * cupons, o uso do cupom do pedido acompanha (pago conta; cancelado e estornado liberam).
  */
-export async function aplicarEvento(contas: RepositorioContas, pedido: Pedido, tipo: EventoPagamento['tipo']): Promise<void> {
+export async function aplicarEvento(
+  contas: RepositorioContas,
+  pedido: Pedido,
+  tipo: EventoPagamento['tipo'],
+  cupons?: RepositorioCupons,
+): Promise<void> {
   const { creditos, nome } = creditosDoPedido(pedido);
   const tipos = Object.entries(creditos).filter(([, q]) => q > 0) as [TipoCredito, number][];
 
@@ -23,13 +31,16 @@ export async function aplicarEvento(contas: RepositorioContas, pedido: Pedido, t
       await contas.lancar({ usuarioId: pedido.usuarioId, tipo: t, quantidade: q, motivo: `Compra: ${nome}`, referencia: `pedido:${pedido.id}:${t}` });
     }
     if (pedido.status !== 'pago') await contas.atualizarPedido(pedido.id, { status: 'pago' });
+    if (cupons) await cupomDoPedido(cupons, pedido, 'pago');
   } else if (tipo === 'estornado' && pedido.status === 'pago') {
     // O saldo pode ficar negativo: novas consultas param até regularizar.
     for (const [t, q] of tipos) {
       await contas.lancar({ usuarioId: pedido.usuarioId, tipo: t, quantidade: -q, motivo: `Estorno: ${nome}`, referencia: `estorno:${pedido.id}:${t}` });
     }
     await contas.atualizarPedido(pedido.id, { status: 'estornado' });
+    if (cupons) await cupomDoPedido(cupons, pedido, 'estornado');
   } else if (tipo === 'cancelado' && pedido.status === 'pendente') {
     await contas.atualizarPedido(pedido.id, { status: 'cancelado' });
+    if (cupons) await cupomDoPedido(cupons, pedido, 'cancelado');
   }
 }

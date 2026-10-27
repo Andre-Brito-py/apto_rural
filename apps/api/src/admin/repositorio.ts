@@ -210,7 +210,7 @@ export class RepositorioAdmin {
   async pedidos(limite = 100) {
     const { rows } = await this.pool.query(
       `SELECT p.id, p.produto, p.nome_produto, p.valor, p.status, p.provedor, p.criado_em, p.pago_em, p.motivo_estorno,
-              u.email, u.id AS usuario_id
+              p.cupom_codigo, p.desconto, u.email, u.id AS usuario_id
          FROM pedido p JOIN usuario u ON u.id = p.usuario_id ORDER BY p.criado_em DESC LIMIT $1`,
       [limite],
     );
@@ -219,6 +219,8 @@ export class RepositorioAdmin {
       usuarioId: r.usuario_id,
       produto: r.nome_produto ?? r.produto,
       motivoEstorno: r.motivo_estorno ?? undefined,
+      cupom: r.cupom_codigo ?? undefined,
+      desconto: r.desconto == null ? undefined : Number(r.desconto),
       valor: Number(r.valor),
       status: r.status,
       provedor: r.provedor,
