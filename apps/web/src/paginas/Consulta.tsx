@@ -55,7 +55,10 @@ export function Consulta({ saude }: { saude: Saude | null }) {
     let vivo = true;
     api
       .moduloFiscal(codigoCar)
-      .then((r) => vivo && setMfMunicipio({ chave: chaveMunicipio, municipio: r.municipio, ha: r.moduloFiscalHa }))
+      .then(
+        (r) =>
+          vivo && setMfMunicipio(r.municipio && r.moduloFiscalHa ? { chave: chaveMunicipio, municipio: r.municipio, ha: r.moduloFiscalHa } : null),
+      )
       .catch(() => vivo && setMfMunicipio(null));
     return () => {
       vivo = false;

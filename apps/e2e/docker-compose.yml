@@ -1,0 +1,9 @@
+# Caixa de correio falsa para os testes de navegador rodarem no computador.
+# (O banco é o do docker-compose.yml da raiz, porta 5433; os testes usam um banco próprio, apto_e2e.)
+# Uso: docker compose -f apps/e2e/docker-compose.yml up -d
+services:
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP
+      - "127.0.0.1:8026:8025" # tela e API dos e-mails (8026: a 8025 é do ensaio de produção)

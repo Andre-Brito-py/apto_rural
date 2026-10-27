@@ -86,7 +86,11 @@ export function criarServidor(ctx: Contexto = criarContexto()) {
   });
   app.register(cors, { origin: config.webOrigin, credentials: true });
   app.register(cookie);
-  app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
+  // Freio geral só para a API (/v1). Os arquivos do site (JS, CSS, fontes, logo) ficam de
+  // fora: cada página carrega de 10 a 15 deles, e um escritório com vários técnicos atrás do
+  // mesmo endereço de internet estourava o limite e perdia o logo e os botões (achado nos
+  // testes de navegador). Login, cadastro e e-mails têm freios próprios, bem mais apertados.
+  app.register(rateLimit, { max: 300, timeWindow: '1 minute', allowList: (req) => !req.url.startsWith('/v1/') });
 
   // "Entrar como" é só leitura: fora sair e voltar, nada que altere dados ou gaste crédito.
   const LIBERADAS_NA_PERSONIFICACAO = new Set(['DELETE /v1/sessao', 'POST /v1/admin/voltar', 'POST /v1/erros']);

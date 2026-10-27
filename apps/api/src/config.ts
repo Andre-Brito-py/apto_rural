@@ -45,6 +45,8 @@ export const config = {
     usuario: process.env.SMTP_USUARIO || undefined,
     senha: process.env.SMTP_SENHA || undefined,
     remetente: process.env.EMAIL_REMETENTE ?? '',
+    /** Só para os testes de navegador (Mailpit sem TLS). Recusado em produção. */
+    semTls: process.env.SMTP_SEM_TLS === '1',
   },
 };
 
@@ -59,6 +61,7 @@ if (producao) {
   if (!/^[0-9a-f]{64}$/i.test(config.chaveSegredos)) {
     throw new Error('Em produção, CHAVE_SEGREDOS é obrigatória: 64 caracteres hexadecimais (gere com: openssl rand -hex 32).');
   }
+  if (config.smtp.semTls) throw new Error('SMTP_SEM_TLS (só para testes) não pode ser usado em produção.');
   if (config.asaas.url && config.asaas.ambiente === 'producao') {
     throw new Error('ASAAS_URL (Asaas falso do ensaio) não pode ser usado com ASAAS_AMBIENTE=producao.');
   }

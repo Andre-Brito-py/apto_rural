@@ -52,7 +52,9 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
     const car = normalizarCar(req.params.car);
     if (!car) return erro(reply, 400, 'Código do CAR inválido.', 'car');
     const mf = ctx.banco ? await ctx.banco.moduloFiscal(car) : null;
-    if (!mf) return erro(reply, 404, 'Não temos o módulo fiscal deste município.');
+    // Município fora da tabela (criado depois de 2013, ou CAR de exemplo) é um caso normal, não
+    // erro: responde vazio, sem 404 (que o navegador mostra como erro a cada consulta).
+    if (!mf) return { municipio: null, moduloFiscalHa: null };
     return { municipio: mf.municipio, moduloFiscalHa: mf.ha };
   });
 

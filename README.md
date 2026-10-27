@@ -300,7 +300,10 @@ No computador de desenvolvimento, a API só aceita conexões do próprio computa
 npm test            # regras do MCR + API (contas, compras, pagamentos) + leitura da planilha do lote
 npm run typecheck   # confere os tipos do código
 npm run build       # gera a versão de produção do site e da API
+npm run e2e         # abre o site num Chrome de verdade (computador e celular) e faz o caminho do cliente
 ```
+
+Os testes no navegador precisam do banco e de uma caixa de correio falsa no ar; o passo a passo está em [docs/testes-navegador.md](docs/testes-navegador.md). No GitHub, eles rodam sozinhos a cada envio.
 
 Teste com fazendas reais (precisa da opção B):
 
@@ -414,6 +417,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Visual profissional em todo o site: landing page e telas do app no mesmo padrão.
 - [x] Equipes no plano Escritório: convite por e-mail, papéis (responsável, administrador, técnico) e créditos e carteira compartilhados (testado de ponta a ponta com o banco real).
 - [x] Ensaio geral de produção neste computador: as imagens de produção, HTTPS, as 7 bases, conta, e-mail, compra, consulta, dossiê em PDF, carteira, alertas e **backup com restauração**. Achou e corrigiu 6 problemas, entre eles o das terras indígenas, que não carregariam no servidor Linux. Roteiro, resultado e a lista do lançamento em [docs/ensaio-producao.md](docs/ensaio-producao.md).
+- [x] Testes no navegador a cada envio para o GitHub (Playwright, computador e celular): conta, e-mail, compra, consulta, dossiê, lote, carteira, painel e LGPD. Acharam e corrigiram um limite de acessos que fazia o logo e os botões sumirem em escritórios com vários técnicos (veja [docs/testes-navegador.md](docs/testes-navegador.md)).
 - [x] Backup fora do servidor (cópia cifrada todo dia, em qualquer armazenamento S3) e alertas de site fora do ar e de backup que não rodou (vigia a cada 5 min, pelo endereço público, avisando um serviço externo como o healthchecks.io). Bloco "Servidor" no painel. Testado no ensaio, inclusive a queda do site e a volta da cópia (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [x] Explicação para o produtor por IA (OpenAI), com conferência automática do texto, explicação de modelo sem IA, chave cifrada pelo painel, limite diário e uso do mês (veja [docs/ia.md](docs/ia.md)).
 

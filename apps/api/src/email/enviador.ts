@@ -16,14 +16,15 @@ export class EnviadorSmtp implements Enviador {
   private transporte: Transporter;
 
   constructor(
-    opcoes: { host: string; porta: number; usuario?: string; senha?: string },
+    opcoes: { host: string; porta: number; usuario?: string; senha?: string; semTls?: boolean },
     private remetente: string,
   ) {
     this.transporte = nodemailer.createTransport({
       host: opcoes.host,
       port: opcoes.porta,
       secure: opcoes.porta === 465, // 465 = TLS direto; 587 = STARTTLS
-      requireTLS: opcoes.porta !== 465 && opcoes.porta !== 25,
+      // semTls: só nos testes de navegador, com o Mailpit local (recusado em produção).
+      requireTLS: !opcoes.semTls && opcoes.porta !== 465 && opcoes.porta !== 25,
       auth: opcoes.usuario ? { user: opcoes.usuario, pass: opcoes.senha } : undefined,
     });
   }

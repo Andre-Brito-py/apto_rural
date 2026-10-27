@@ -8,6 +8,9 @@ dist/
 acesso-local.txt
 *.log
 coverage/
+# resultados dos testes de navegador (Playwright)
+apps/e2e/test-results/
+apps/e2e/playwright-report/
 # dados baixados pelos coletores
 dados/
 __pycache__/

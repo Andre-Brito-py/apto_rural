@@ -13,7 +13,8 @@
     "dev:api": "npm run build -w @apto/regras && npm run dev -w @apto/api",
     "dev:web": "npm run build -w @apto/regras && npm run dev -w @apto/web",
     "test": "npm run test -w @apto/regras && npm run build -w @apto/regras && npm run test -w @apto/api && npm run test -w @apto/web",
-    "typecheck": "npm run build -w @apto/regras && npm run typecheck -w @apto/api && npm run typecheck -w @apto/web"
+    "typecheck": "npm run build -w @apto/regras && npm run typecheck -w @apto/api && npm run typecheck -w @apto/web",
+    "e2e": "npm run build && npm run test -w @apto/e2e"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -45,6 +45,10 @@ const entrada = z.object({
 
 const LIMITE_LOGIN = { config: { rateLimit: { max: 10, timeWindow: '15 minutes' } } };
 const LIMITE_EMAIL = { config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } };
+// Confirmar o e-mail: o link traz um código aleatório de 256 bits (impossível de adivinhar), então o
+// freio só evita abuso. Com 5, o 6º técnico de um escritório atrás do mesmo endereço de internet
+// não conseguia confirmar a conta (achado nos testes de navegador).
+const LIMITE_CONFIRMAR = { config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } };
 
 const comToken = z.object({ token: z.string().min(20).max(200) });
 const redefinir = comToken.extend({ senha: senhaNova });
@@ -151,7 +155,7 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
     };
   });
 
-  app.post('/v1/conta/confirmar', LIMITE_EMAIL, async (req, reply) => {
+  app.post('/v1/conta/confirmar', LIMITE_CONFIRMAR, async (req, reply) => {
     const corpo = comToken.safeParse(req.body);
     const usuarioId = corpo.success ? await ctx.contas.consumirTokenEmail(hashToken(corpo.data.token), 'confirmacao') : null;
     if (!usuarioId) return erro(reply, 400, 'Este link de confirmação é inválido, já foi usado ou venceu. Peça um novo na sua conta.');

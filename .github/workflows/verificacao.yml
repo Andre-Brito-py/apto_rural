@@ -69,6 +69,54 @@ jobs:
       - name: Rodar de novo (não pode aplicar nada duas vezes)
         run: npm run migrar -w @apto/api
 
+  navegador:
+    name: Testes no navegador (ponta a ponta)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: apto
+          POSTGRES_PASSWORD: apto
+          POSTGRES_DB: apto_rural
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U apto -h 127.0.0.1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      # Caixa de correio falsa: a API manda os e-mails de verdade e o teste lê o link de confirmação.
+      mailpit:
+        image: axllent/mailpit:v1.21.8
+        ports: ['1025:1025', '8026:8025']
+    env:
+      E2E_BANCO: postgres://apto:apto@127.0.0.1:5432
+      E2E_MAILPIT: http://127.0.0.1:8026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build de produção (o teste usa o site compilado, como em produção)
+        run: npm run build
+      - name: Instalar o Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/e2e
+      - name: Rodar os testes (computador e celular)
+        run: npm run test -w @apto/e2e
+      - name: Guardar o relatório (com fotos e passo a passo) se algo falhar
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes-navegador
+          path: |
+            apps/e2e/playwright-report
+            apps/e2e/test-results
+          retention-days: 14
+
   coletores:
     name: Coletores (Python)
     runs-on: ubuntu-latest
