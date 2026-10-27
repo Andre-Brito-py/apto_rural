@@ -138,6 +138,15 @@ export interface PainelResumo {
     diasSemConferir: number | null;
     situacao: 'em_dia' | 'atrasada' | 'nao_carregada';
   }[];
+  /** Backup e vigia do site (docs/backup-e-vigia.md). */
+  servidor: {
+    ultimoBackup: { quando: string; bytes: number | null; localOk: boolean; externo: 'ok' | 'erro' | 'desligado'; mensagem: string | null } | null;
+    ultimoBackupOk: string | null;
+    ultimaCopiaExterna: string | null;
+    ultimaVigia: { quando: string; ok: boolean; ms: number | null; mensagem: string | null; avisado: boolean } | null;
+    vigiaFalhas24h: number;
+    vigiaAvisoConfigurado: boolean;
+  };
 }
 
 export interface UsuarioAdmin {

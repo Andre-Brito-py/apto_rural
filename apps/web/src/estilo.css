@@ -294,6 +294,15 @@ details.extra[open] > summary::before { content: '−'; }
 .dados dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .mapa { width: 100%; max-width: 180px; aspect-ratio: 1; justify-self: center; background: #eef3ea; border-radius: 10px; border: 1px solid var(--linha); }
 
+/* Painel: backup e vigia do site (Admin.tsx, SaudeServidor). */
+.lista-servidor { list-style: none; margin: 0; padding: 0; display: grid; }
+.lista-servidor li { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 12px 0; border-top: 1px solid var(--linha); }
+.lista-servidor li:first-child { border-top: 0; padding-top: 4px; }
+.lista-servidor li > span:first-child { display: grid; gap: 2px; min-width: 0; }
+.lista-servidor .fonte-suave { font-size: 0.86rem; overflow-wrap: anywhere; }
+.lista-servidor .selo { flex: none; }
+@media (max-width: 559px) { .lista-servidor li { flex-direction: column; align-items: flex-start; } }
+
 /* Explicação para o produtor (Resultado.tsx) e aba de IA do painel (IAPainel.tsx). */
 .explicacao-produtor { display: grid; gap: 14px; }
 .explicacao-topo { display: flex; gap: 14px; align-items: flex-start; }

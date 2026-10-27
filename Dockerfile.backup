@@ -1,0 +1,14 @@
+# Imagem do backup: pg_dump (vem da imagem do PostGIS, mesma versão do banco) e
+# rclone, que manda a cópia CIFRADA para um armazenamento fora do servidor
+# (qualquer S3: Backblaze B2, Cloudflare R2, AWS S3, Wasabi…). Ver docs/backup-e-vigia.md.
+#
+# Sem apt: a imagem do PostGIS é Debian 11, cujos repositórios saíram do ar. O rclone
+# é um binário único e vem da imagem oficial, com a lista de certificados para o HTTPS.
+FROM rclone/rclone:1.68.2 AS rclone
+
+FROM postgis/postgis:16-3.4
+COPY --from=rclone /usr/local/bin/rclone /usr/local/bin/rclone
+COPY --from=rclone /etc/ssl/certs/ca-certificates.crt /etc/ssl/rclone-ca.crt
+ENV SSL_CERT_FILE=/etc/ssl/rclone-ca.crt
+COPY deploy/backup.sh /backup.sh
+ENTRYPOINT ["sh", "/backup.sh"]

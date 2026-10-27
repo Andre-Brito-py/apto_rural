@@ -117,3 +117,7 @@ jobs:
         run: docker build -t apto-rural:verificacao .
       - name: Montar a imagem dos coletores
         run: docker build -f Dockerfile.coletores -t apto-rural-coletores:verificacao .
+      - name: Montar a imagem do backup (pg_dump + rclone) e conferir o script
+        run: |
+          docker build -f Dockerfile.backup -t apto-rural-backup:verificacao .
+          docker run --rm --entrypoint sh apto-rural-backup:verificacao -c 'rclone version | head -1 && sh -n /backup.sh'

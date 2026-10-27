@@ -59,7 +59,7 @@ O Apto Rural guarda contas, senhas (em forma irreversível), pedidos pagos e dad
 - [ ] Gerar senhas e chaves **fortes e únicas** no `.env.producao` (`openssl rand -hex 32`) e nunca enviá-lo ao GitHub.
 - [ ] Ativar a **verificação em duas etapas** no GitHub, no Asaas, no provedor de e-mail, no registro do domínio e no servidor.
 - [ ] No servidor, entrar só por **chave SSH** (sem senha) e liberar no firewall apenas as portas 22, 80 e 443.
-- [ ] Copiar os **backups para fora do servidor** com alguma frequência e testar uma restauração.
+- [ ] Configurar a **cópia automática e cifrada dos backups para fora do servidor** e os **alertas de site fora do ar** ([backup-e-vigia.md](backup-e-vigia.md)), guardar a `BACKUP_EXTERNO_SENHA` num gerenciador de senhas e testar uma restauração a partir da cópia de fora.
 - [ ] Rodar `npm audit` antes de cada atualização e ativar os alertas do Dependabot no GitHub.
 - [ ] Revisão de um advogado da política de privacidade, incluindo o plano para incidentes (abaixo).
 

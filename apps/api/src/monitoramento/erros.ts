@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import type { Enviador } from '../email/enviador.js';
 
-export type OrigemErro = 'api' | 'site' | 'monitor' | 'coletor';
+export type OrigemErro = 'api' | 'site' | 'monitor' | 'coletor' | 'backup' | 'vigia';
 
 export interface NovoErro {
   origem: OrigemErro;

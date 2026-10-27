@@ -9,6 +9,8 @@ Antes de contratar o servidor, dá para rodar o Apto Rural **exatamente como vai
 | --- | --- | --- |
 | Provedor de e-mail (SMTP) | **Mailpit**, uma caixa de correio falsa que guarda todos os e-mails | http://localhost:8025 |
 | Asaas (Pix, cartão, boleto) | **Asaas falso** (`deploy/ensaio/asaas-falso.mjs`), com uma fatura de teste e o botão "Pagar" que manda o aviso (webhook) igual ao Asaas | http://localhost:8099 |
+| Armazenamento externo do backup (S3) | **rclone serve s3** local (`s3-falso`): recebe a cópia cifrada | (interno) |
+| Serviço de alerta (healthchecks.io) | **Alerta falso** no mesmo servidor do Asaas falso: guarda os sinais do vigia e do backup | http://localhost:8099/vigia |
 | OpenAI (explicação para o produtor) | **OpenAI falsa**, no mesmo servidor: responde no formato da Responses API. Qualquer chave começando com `sk-` funciona; terminada em `ruim`, é recusada | (interna) |
 | Seu domínio | `localhost`, com um certificado que o próprio Caddy gera | https://localhost |
 

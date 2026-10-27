@@ -24,6 +24,14 @@ export interface SaudeBase {
 
 const dia = (d: Date | null) => (d ? d.toISOString() : null);
 
+export interface SaudeServidor {
+  ultimoBackup: { quando: string; bytes: number | null; localOk: boolean; externo: 'ok' | 'erro' | 'desligado'; mensagem: string | null } | null;
+  ultimoBackupOk: string | null;
+  ultimaCopiaExterna: string | null;
+  ultimaVigia: { quando: string; ok: boolean; ms: number | null; mensagem: string | null; avisado: boolean } | null;
+  vigiaFalhas24h: number;
+}
+
 export class RepositorioAdmin {
   constructor(private pool: pg.Pool) {}
 
@@ -79,16 +87,74 @@ export class RepositorioAdmin {
       `DELETE FROM token_email WHERE COALESCE(usado_em, expira_em) < now() - interval '7 days'`,
     );
     const erros = await this.pool.query(`DELETE FROM erro_registro WHERE quando < now() - interval '90 days'`);
+    // O vigia grava uma linha a cada 5 minutos: 30 dias bastam para o painel.
+    await this.pool.query(`DELETE FROM vigia_verificacao WHERE quando < now() - interval '30 days'`);
     return { sessoes: sessoes.rowCount ?? 0, tokens: tokens.rowCount ?? 0, erros: erros.rowCount ?? 0 };
   }
 
-  /** Falhas dos coletores nas últimas horas (gravadas por eles no registro de erros). */
-  async falhasColetores(horas = 24): Promise<string[]> {
-    const { rows } = await this.pool.query<{ mensagem: string }>(
-      `SELECT mensagem FROM erro_registro WHERE origem = 'coletor' AND quando > now() - make_interval(hours => $1) ORDER BY quando`,
+  /** Falhas gravadas direto no banco pelos coletores e pelo backup nas últimas horas. */
+  async falhasRecentes(horas = 24): Promise<{ origem: 'coletor' | 'backup'; mensagem: string }[]> {
+    const { rows } = await this.pool.query<{ origem: 'coletor' | 'backup'; mensagem: string }>(
+      `SELECT origem, mensagem FROM erro_registro
+        WHERE origem IN ('coletor', 'backup') AND quando > now() - make_interval(hours => $1) ORDER BY quando`,
       [horas],
     );
-    return rows.map((r) => r.mensagem);
+    return rows;
+  }
+
+  /** Último backup, o último que deu certo e a última conferência do vigia, para o painel e o monitor. */
+  async saudeServidor(): Promise<SaudeServidor> {
+    const { rows } = await this.pool.query(`
+      SELECT
+        (SELECT row_to_json(b) FROM (SELECT quando, bytes, local_ok AS "localOk", externo, mensagem
+                                       FROM backup_execucao ORDER BY quando DESC LIMIT 1) b) AS ultimo_backup,
+        (SELECT max(quando) FROM backup_execucao WHERE local_ok) AS ultimo_backup_ok,
+        (SELECT max(quando) FROM backup_execucao WHERE externo = 'ok') AS ultima_copia_externa,
+        (SELECT row_to_json(v) FROM (SELECT quando, ok, ms, mensagem, avisado
+                                       FROM vigia_verificacao ORDER BY quando DESC LIMIT 1) v) AS ultima_vigia,
+        (SELECT count(*) FROM vigia_verificacao WHERE NOT ok AND quando > now() - interval '24 hours')::int AS vigia_falhas_24h
+    `);
+    const r = rows[0];
+    return {
+      ultimoBackup: r.ultimo_backup ? { ...r.ultimo_backup, bytes: r.ultimo_backup.bytes == null ? null : Number(r.ultimo_backup.bytes) } : null,
+      ultimoBackupOk: dia(r.ultimo_backup_ok),
+      ultimaCopiaExterna: dia(r.ultima_copia_externa),
+      ultimaVigia: r.ultima_vigia,
+      vigiaFalhas24h: r.vigia_falhas_24h,
+    };
+  }
+
+  /** Backups dos últimos 2 dias cujo sinal ainda não foi ao serviço de alerta externo. */
+  async backupsSemSinal(): Promise<{ id: string; ok: boolean; mensagem: string }[]> {
+    const { rows } = await this.pool.query<{ id: string; local_ok: boolean; externo: string; mensagem: string | null }>(
+      `SELECT id, local_ok, externo, mensagem FROM backup_execucao
+        WHERE NOT sinal_enviado AND quando > now() - interval '2 days' ORDER BY quando`,
+    );
+    return rows.map((r) => ({
+      id: String(r.id),
+      // Cópia externa desligada não é falha do backup (o painel e o monitor avisam disso à parte).
+      ok: r.local_ok && r.externo !== 'erro',
+      mensagem: !r.local_ok
+        ? `Backup do banco falhou: ${r.mensagem ?? ''}`
+        : r.externo === 'erro'
+          ? `Cópia fora do servidor falhou: ${r.mensagem ?? ''}`
+          : r.externo === 'ok'
+            ? 'Backup ok e cópia cifrada enviada para fora do servidor.'
+            : 'Backup ok; cópia fora do servidor desligada.',
+    }));
+  }
+
+  async marcarSinalBackup(id: string) {
+    await this.pool.query('UPDATE backup_execucao SET sinal_enviado = true WHERE id = $1', [id]);
+  }
+
+  async registrarVigia(v: { ok: boolean; ms: number; mensagem?: string; avisado: boolean }) {
+    await this.pool.query('INSERT INTO vigia_verificacao (ok, ms, mensagem, avisado) VALUES ($1, $2, $3, $4)', [
+      v.ok,
+      v.ms,
+      v.mensagem ?? null,
+      v.avisado,
+    ]);
   }
 
   async saudeBases(): Promise<SaudeBase[]> {

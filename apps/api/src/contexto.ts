@@ -31,6 +31,8 @@ export interface Contexto {
   admin: RepositorioAdmin | null;
   /** Equipes do plano Escritório; null sem banco (cada pessoa usa só a própria conta). */
   equipe: RepositorioEquipe | null;
+  /** O banco responde agora? true/false; null quando não há banco (modo demonstração). */
+  bancoResponde: () => Promise<boolean | null>;
   /** Explicação por IA para o produtor, a chave cifrada e o uso (docs/ia.md). */
   ia: { explicacao: ServicoExplicacao; segredos: Segredos; uso: UsoIA };
 }

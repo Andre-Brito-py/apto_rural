@@ -64,8 +64,8 @@ export function rotasAdmin(app: FastifyInstance, ctx: Contexto) {
 
   app.get('/v1/admin/resumo', async (req, reply) => {
     if (!(await exigir(req, reply, 'suporte'))) return reply;
-    const [resumo, bases] = await Promise.all([ctx.admin!.resumo(), ctx.admin!.saudeBases()]);
-    return { resumo, bases };
+    const [resumo, bases, servidor] = await Promise.all([ctx.admin!.resumo(), ctx.admin!.saudeBases(), ctx.admin!.saudeServidor()]);
+    return { resumo, bases, servidor: { ...servidor, vigiaAvisoConfigurado: !!config.vigia.url } };
   });
 
   app.get<{ Querystring: { busca?: string } }>('/v1/admin/usuarios', async (req, reply) => {

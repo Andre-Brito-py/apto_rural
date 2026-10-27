@@ -101,10 +101,23 @@ function openaiFalsa(req, corpo) {
   ];
 }
 
+// Serviço de alerta FALSO (imita o healthchecks.io): guarda os sinais do vigia e do backup.
+// GET /vigia mostra o que chegou. URL = deu certo; URL/fail = falhou.
+const sinais = [];
+
 createServer(async (req, res) => {
   const url = new URL(req.url, ENDERECO);
   const caminho = url.pathname;
   try {
+    const v = /^\/vigia\/([a-z]+)(\/fail)?$/.exec(caminho);
+    if (v) {
+      let texto = '';
+      for await (const parte of req) texto += parte;
+      sinais.push({ quando: new Date().toISOString(), nome: v[1], ok: !v[2], mensagem: texto.slice(0, 300) });
+      console.log(`sinal ${v[1]} ${v[2] ? 'FALHA' : 'ok'}: ${texto.slice(0, 120)}`);
+      return json(res, 200, { ok: true });
+    }
+    if (caminho === '/vigia') return json(res, 200, sinais.slice(-50));
     if (req.method === 'POST' && caminho === '/openai/v1/responses') {
       const [status, corpo] = openaiFalsa(req, await lerCorpo(req));
       console.log(`openai falsa → ${status}`);

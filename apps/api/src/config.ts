@@ -27,6 +27,16 @@ export const config = {
    * em hexadecimal (64 caracteres). Obrigatória em produção. Ver docs/ia.md.
    */
   chaveSegredos: process.env.CHAVE_SEGREDOS ?? '',
+  /** Vigia do site (docs/backup-e-vigia.md). */
+  vigia: {
+    /** Endereço do sinal no serviço de alerta externo (ex.: https://hc-ping.com/…). Sem ele, ninguém de fora é avisado. */
+    url: process.env.VIGIA_URL_SITE || undefined,
+    /** Sinal do backup diário no mesmo serviço (outro "check"). */
+    urlBackup: process.env.VIGIA_URL_BACKUP || undefined,
+    /** Endereço que o vigia confere; o padrão é o endereço público do site. */
+    endereco: process.env.VIGIA_ENDERECO || process.env.WEB_ORIGIN || 'http://localhost:5180',
+    intervaloMin: Number(process.env.VIGIA_INTERVALO_MIN ?? 5),
+  },
   /** Só para o ensaio de produção e testes: aponta para uma IA falsa. */
   iaUrl: process.env.IA_URL || undefined,
   smtp: {

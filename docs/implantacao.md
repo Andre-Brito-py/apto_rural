@@ -11,7 +11,7 @@ Guia passo a passo, sem pressupor experiência com servidores.
 | **coletores** | Todo dia às 4h (Brasília) confere as bases oficiais e só recarrega o que mudou. CNUC e CNFP, que são pesados, aos domingos. |
 | **monitor** | Todo dia às 6h reconfere as fazendas das carteiras e manda os avisos por e-mail (mesma imagem da API). |
 | **caddy** | Recebe as visitas e cuida do **HTTPS** (o cadeado), renovando o certificado sozinho. |
-| **backup** | Todo dia às 3h salva uma cópia do banco e guarda os últimos 14 dias. |
+| **backup** | Todo dia às 3h salva uma cópia do banco, guarda os últimos 14 dias e manda uma cópia **cifrada** para fora do servidor (se configurado). |
 
 Tudo isso é descrito em `docker-compose.prod.yml` e sobe com um comando.
 
@@ -80,7 +80,11 @@ Em produção a API não sobe sem `SMTP_HOST` e `EMAIL_REMETENTE`. No desenvolvi
 
 Coloque seu e-mail em `ADMIN_EMAILS` no `.env.producao` (vários e-mails separados por vírgula), suba de novo, crie sua conta no site com esse e-mail e confirme. O painel fica em `https://seu-dominio/admin`. Os alertas de erro chegam nesses e-mails.
 
-## 8. Explicação por IA (opcional, pelo painel)
+## 8. Backup fora do servidor e alerta de site fora do ar
+
+Crie a conta gratuita no healthchecks.io e um armazenamento compatível com S3, preencha as variáveis `BACKUP_S3_*`, `BACKUP_EXTERNO_SENHA` e `VIGIA_URL_*` no `.env.producao` e rode de novo o comando do passo 4. O passo a passo, e como restaurar se o servidor sumir, está em [backup-e-vigia.md](backup-e-vigia.md).
+
+## 9. Explicação por IA (opcional, pelo painel)
 
 A `CHAVE_SEGREDOS` do `.env.producao` (gere com `openssl rand -hex 32`) é obrigatória: sem ela a API não sobe. Ela cifra a chave da OpenAI que você vai cadastrar no painel. A chave da OpenAI **não** vai no `.env`: entra pelo painel, na aba **Inteligência artificial**, e passa a valer sem reiniciar nada. Passo a passo e cuidados em [ia.md](ia.md).
 
@@ -109,5 +113,5 @@ docker compose -f docker-compose.prod.yml exec backup sh -c \
 - **Não troque** o `DOCUMENTO_HASH_SECRET` depois de carregar o cadastro do MTE. Se trocar, rode o coletor do MTE de novo com `--forcar`.
 - Se trocar a `CHAVE_SEGREDOS`, a chave da OpenAI salva no painel deixa de abrir: cadastre de novo na aba Inteligência artificial.
 - Em produção a API se recusa a subir sem banco e sem as chaves do Asaas, e o modo demonstração fica desligado.
-- Os backups ficam no próprio servidor. Para segurança extra, copie-os periodicamente para fora dele.
+- **Configure a cópia do backup fora do servidor e os alertas de site fora do ar** ([backup-e-vigia.md](backup-e-vigia.md)). Sem isso, se o servidor se perder, os backups vão junto, e uma queda de madrugada passa sem ninguém ver. O painel mostra em vermelho enquanto faltar.
 - Antes de lançar, faça a lista "O que depende de você" de [seguranca.md](seguranca.md) (duas etapas nas contas, SSH só por chave, firewall com 22, 80 e 443).

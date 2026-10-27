@@ -142,6 +142,8 @@ export function Admin() {
         </>
       )}
 
+      {aba === 'geral' && painel && <SaudeServidor s={painel.servidor} />}
+
       {aba === 'geral' && painel && (
         <section className="cartao pilha-p">
           <div className="item-topo">
@@ -334,6 +336,77 @@ export function descreverDetalhes(d: Record<string, unknown>): string {
   return Object.entries(d)
     .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
     .join(' · ');
+}
+
+const tamanho = (bytes: number | null) =>
+  bytes == null ? '' : bytes > 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1e6))} MB`;
+const horasDesde = (iso: string | null) => (iso ? (Date.now() - Date.parse(iso)) / 3_600_000 : null);
+
+/** Backup do banco, cópia fora do servidor e vigia do site (docs/backup-e-vigia.md). */
+function SaudeServidor({ s }: { s: PainelResumo['servidor'] }) {
+  const horasBackup = horasDesde(s.ultimoBackupOk);
+  const backupOk = horasBackup != null && horasBackup <= 26;
+  const externo = s.ultimoBackup?.externo;
+  const vigiaOk = s.ultimaVigia?.ok === true && (horasDesde(s.ultimaVigia.quando) ?? 99) < 0.5;
+
+  const linhas: { nome: string; ok: boolean; selo: string; detalhe: string }[] = [
+    {
+      nome: 'Backup do banco (todo dia às 3h)',
+      ok: backupOk,
+      selo: backupOk ? 'Em dia' : s.ultimoBackupOk ? 'Atrasado' : 'Nunca rodou',
+      detalhe: s.ultimoBackupOk
+        ? `Último que deu certo: ${dataHora(s.ultimoBackupOk)}${s.ultimoBackup?.localOk ? ` · ${tamanho(s.ultimoBackup.bytes)}` : ''}`
+        : 'Ainda não há backup registrado.',
+    },
+    {
+      nome: 'Cópia fora do servidor (cifrada)',
+      ok: externo === 'ok',
+      selo: externo === 'ok' ? 'Enviada' : externo === 'erro' ? 'Falhou' : externo === 'desligado' ? 'Desligada' : '—',
+      detalhe:
+        externo === 'desligado'
+          ? 'Configure BACKUP_S3_* no .env.producao: sem isso, se o servidor se perder, os backups vão junto.'
+          : externo === 'erro'
+            ? `Última tentativa falhou${s.ultimoBackup?.mensagem ? `: ${s.ultimoBackup.mensagem.slice(0, 160)}` : ''}.`
+            : s.ultimaCopiaExterna
+              ? `Última cópia enviada: ${dataHora(s.ultimaCopiaExterna)}`
+              : 'Ainda não há cópia registrada.',
+    },
+    {
+      nome: 'Vigia do site (a cada 5 min, pelo endereço público)',
+      ok: vigiaOk && s.vigiaAvisoConfigurado,
+      selo: !s.ultimaVigia ? 'Sem dados' : !vigiaOk ? 'Falhando' : s.vigiaAvisoConfigurado ? 'No ar' : 'Sem aviso externo',
+      detalhe: [
+        s.ultimaVigia
+          ? `Última conferência: ${dataHora(s.ultimaVigia.quando)}, ${s.ultimaVigia.ok ? `ok em ${s.ultimaVigia.ms} ms` : (s.ultimaVigia.mensagem ?? 'falhou')}`
+          : 'O vigia ainda não rodou.',
+        s.vigiaFalhas24h ? `${s.vigiaFalhas24h} falhas nas últimas 24 h` : '',
+        s.vigiaAvisoConfigurado ? '' : 'Configure VIGIA_URL_SITE para ser avisado se o servidor cair.',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    },
+  ];
+  const problemas = linhas.filter((l) => !l.ok).length;
+
+  return (
+    <section className="cartao pilha-p">
+      <div className="item-topo">
+        <h2 className="secao-titulo">Servidor</h2>
+        <span className={`selo ${problemas ? 's-impedimento' : 's-sem_impedimento'}`}>{problemas ? `${problemas} para ver` : 'Tudo em ordem'}</span>
+      </div>
+      <ul className="lista-servidor">
+        {linhas.map((l) => (
+          <li key={l.nome}>
+            <span>
+              <strong>{l.nome}</strong>
+              <span className="fonte-suave">{l.detalhe}</span>
+            </span>
+            <span className={`selo ${l.ok ? 's-sem_impedimento' : 's-impedimento'}`}>{l.selo}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function Auditoria() {

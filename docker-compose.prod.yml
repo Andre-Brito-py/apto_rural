@@ -52,6 +52,7 @@ services:
     environment:
       DATABASE_URL: postgres://apto:${POSTGRES_PASSWORD}@db:5432/apto_rural
       WEB_ORIGIN: https://${DOMINIO}
+    # Também é o vigia do site: a cada 5 min confere o endereço público e avisa o serviço de alerta.
     command: ["node", "apps/api/dist/monitorar.js", "--agendar"]
     healthcheck:
       disable: true
@@ -75,18 +76,27 @@ services:
       - api
 
   backup:
-    image: postgis/postgis:16-3.4
+    # pg_dump + rclone: backup diário e cópia cifrada fora do servidor (docs/backup-e-vigia.md).
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
     restart: unless-stopped
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       BACKUP_DIAS: ${BACKUP_DIAS:-14}
+      BACKUP_S3_PROVEDOR: ${BACKUP_S3_PROVEDOR:-Other}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGIAO: ${BACKUP_S3_REGIAO:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_CHAVE: ${BACKUP_S3_CHAVE:-}
+      BACKUP_S3_SEGREDO: ${BACKUP_S3_SEGREDO:-}
+      BACKUP_EXTERNO_SENHA: ${BACKUP_EXTERNO_SENHA:-}
+      BACKUP_EXTERNO_DIAS: ${BACKUP_EXTERNO_DIAS:-30}
     volumes:
-      - ./deploy/backup.sh:/backup.sh:ro
       - backups:/backups
-    entrypoint: ["sh", "/backup.sh"]
     depends_on:
-      db:
-        condition: service_healthy
+      api:
+        condition: service_healthy # a API aplica as migrações (tabela backup_execucao) antes
 
 volumes:
   pgdata:

@@ -26,11 +26,14 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
   }
 
   // O healthcheck do Docker chama a cada 30 s: só registra no log se der problema.
-  app.get('/v1/saude', { logLevel: 'warn' }, async () => {
+  app.get('/v1/saude', { logLevel: 'warn' }, async (_req, reply) => {
+    // Confere o banco de verdade: com ele fora do ar, responde 503 (o Docker e o vigia percebem).
+    const banco = await ctx.bancoResponde();
+    if (banco === false) return reply.status(503).send({ ok: false, banco: false, demo: null, aviso: null });
     const aviso = (await ctx.config.obter()).aviso_site;
     return {
       ok: true,
-      banco: ctx.banco != null,
+      banco: banco === true,
       demo: ctx.demo != null ? CARS_DEMO : null,
       // Aviso no topo do site, definido pelo painel (ex.: manutenção, novidade).
       aviso: aviso.ativo && aviso.texto ? { texto: aviso.texto, tipo: aviso.tipo } : null,

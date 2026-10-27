@@ -14,6 +14,7 @@ import { config } from './config.js';
 import { hojeBrasilia, type Contexto } from './contexto.js';
 import { mensagemAvisosCarteira } from './email/mensagens.js';
 import { criarContexto } from './servidor.js';
+import { iniciarVigia } from './vigia.js';
 
 const HORA = 6;
 
@@ -91,11 +92,37 @@ export async function verificarBases(ctx: Contexto): Promise<number> {
     });
   }
   // Coletor que falhou mas ainda tem a carga anterior valendo só ficaria "atrasado" dias
-  // depois: as falhas das últimas 24 h já vão no e-mail de hoje (elas estão no painel).
-  for (const mensagem of await ctx.admin.falhasColetores(24)) {
-    ctx.erros.avisar({ origem: 'coletor', mensagem });
+  // depois: as falhas das últimas 24 h (de coletor e de backup) já vão no e-mail de hoje.
+  for (const f of await ctx.admin.falhasRecentes(24)) {
+    ctx.erros.avisar({ origem: f.origem, mensagem: f.mensagem });
   }
-  return problemas.length;
+  return problemas.length + (config.producao ? await verificarBackup(ctx) : 0);
+}
+
+/**
+ * Em produção: backup que não dá certo há mais de 26 h (pega também o contêiner de backup
+ * parado, que não grava erro nenhum) e cópia fora do servidor desligada viram alerta.
+ */
+export async function verificarBackup(ctx: Contexto): Promise<number> {
+  if (!ctx.admin) return 0;
+  const s = await ctx.admin.saudeServidor();
+  const horas = s.ultimoBackupOk ? (Date.now() - Date.parse(s.ultimoBackupOk)) / 3_600_000 : null;
+  let problemas = 0;
+  if (horas == null || horas > 26) {
+    problemas++;
+    await ctx.erros.registrar({
+      origem: 'monitor',
+      mensagem: horas == null ? 'O backup do banco ainda não rodou nenhuma vez.' : `O backup do banco não dá certo há ${Math.floor(horas)} horas.`,
+    });
+  }
+  if (s.ultimoBackup?.externo === 'desligado') {
+    problemas++;
+    await ctx.erros.registrar({
+      origem: 'monitor',
+      mensagem: 'A cópia do backup fora do servidor está desligada: configure BACKUP_S3_* no .env.producao (docs/backup-e-vigia.md).',
+    });
+  }
+  return problemas;
 }
 
 function proximaExecucao(): number {
@@ -115,7 +142,7 @@ async function rodar(ctx: Contexto) {
   console.log(
     `[${new Date().toISOString()}] Carteira: ${r.imoveis} imóveis reconferidos, ${r.comMudanca} com mudança, ` +
       `${r.falhas} falhas, ${r.emails} e-mails, em ${Math.round((Date.now() - inicio) / 1000)}s. ` +
-      `Bases com problema: ${basesComProblema}.` +
+      `Bases e backup com problema: ${basesComProblema}.` +
       (limpos ? ` Limpeza: ${limpos.sessoes} sessões, ${limpos.tokens} links e ${limpos.erros} erros antigos.` : ''),
   );
   await ctx.erros.enviarAgora();
@@ -124,6 +151,13 @@ async function rodar(ctx: Contexto) {
 if (process.argv[1]?.endsWith('monitorar.js') || process.argv[1]?.endsWith('monitorar.ts')) {
   const ctx = criarContexto();
   if (process.argv.includes('--agendar')) {
+    // O processo fica no ar o dia todo: é também o vigia do site.
+    iniciarVigia(ctx, {
+      endereco: config.vigia.endereco,
+      urlAviso: config.vigia.url,
+      urlBackup: config.vigia.urlBackup,
+      intervaloMs: config.vigia.intervaloMin * 60_000,
+    });
     const ciclo = () => {
       const espera = proximaExecucao();
       console.log(`Próxima reconferência da carteira em ${Math.round(espera / 60000)} minutos.`);

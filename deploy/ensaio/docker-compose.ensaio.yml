@@ -26,6 +26,20 @@ services:
     env_file: !override .env.ensaio
     environment:
       ASAAS_URL: http://asaas-falso:8099/v3
+      # O vigia confere o site pela porta 8081 do Caddy (o https://localhost do ensaio é o próprio contêiner).
+      VIGIA_ENDERECO: http://caddy:8081
+
+  # Armazenamento externo FALSO para a cópia cifrada do backup: o próprio rclone servindo
+  # uma pasta como S3 ("rclone serve s3"). O "bucket" é a pasta apto-backups.
+  s3-falso:
+    image: rclone/rclone:1.68.2
+    restart: unless-stopped
+    entrypoint: ["sh", "-c", "mkdir -p /data/apto-backups && exec rclone serve s3 /data --addr :9000 --auth-key \"$$CHAVE,$$SEGREDO\""]
+    environment:
+      CHAVE: ${BACKUP_S3_CHAVE}
+      SEGREDO: ${BACKUP_S3_SEGREDO}
+    volumes:
+      - s3falso:/data
 
   caddy:
     ports:
@@ -60,3 +74,6 @@ services:
       SITE_URL: https://${DOMINIO}
     ports:
       - "127.0.0.1:8099:8099"
+
+volumes:
+  s3falso:

@@ -4,7 +4,8 @@
 # O Caddyfile de produção já importa o trecho dos cabeçalhos (cabecalhos.caddy).
 import /etc/caddy/Caddyfile.producao
 
-http://localhost:8081 {
+# Qualquer nome na porta 8081 (localhost:8081 no navegador, caddy:8081 para o vigia do ensaio).
+http://:8081 {
 	encode zstd gzip
 	reverse_proxy api:3333
 	import cabecalhos

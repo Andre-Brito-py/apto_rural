@@ -414,6 +414,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Visual profissional em todo o site: landing page e telas do app no mesmo padrão.
 - [x] Equipes no plano Escritório: convite por e-mail, papéis (responsável, administrador, técnico) e créditos e carteira compartilhados (testado de ponta a ponta com o banco real).
 - [x] Ensaio geral de produção neste computador: as imagens de produção, HTTPS, as 7 bases, conta, e-mail, compra, consulta, dossiê em PDF, carteira, alertas e **backup com restauração**. Achou e corrigiu 6 problemas, entre eles o das terras indígenas, que não carregariam no servidor Linux. Roteiro, resultado e a lista do lançamento em [docs/ensaio-producao.md](docs/ensaio-producao.md).
+- [x] Backup fora do servidor (cópia cifrada todo dia, em qualquer armazenamento S3) e alertas de site fora do ar e de backup que não rodou (vigia a cada 5 min, pelo endereço público, avisando um serviço externo como o healthchecks.io). Bloco "Servidor" no painel. Testado no ensaio, inclusive a queda do site e a volta da cópia (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [x] Explicação para o produtor por IA (OpenAI), com conferência automática do texto, explicação de modelo sem IA, chave cifrada pelo painel, limite diário e uso do mês (veja [docs/ia.md](docs/ia.md)).
 
 **Falta para lançar**
@@ -422,6 +423,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [ ] Contratar um provedor de e-mail (SMTP) e verificar o domínio nele (o código já está pronto).
 - [ ] Revisão de um advogado: termos de uso, privacidade (LGPD), prazos de guarda depois da exclusão de conta e linguagem do dossiê.
 - [ ] Conta no Asaas aprovada (chaves de sandbox e de produção).
+- [ ] Conta gratuita no healthchecks.io (2 checks: site e backup) e um armazenamento S3 para a cópia do backup, de preferência no Brasil. Guardar a `BACKUP_EXTERNO_SENHA` fora do servidor (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [ ] (Opcional) Conta na OpenAI com limite de gasto, e a chave cadastrada no painel (aba Inteligência artificial). Incluir o fornecedor de IA na política de privacidade.
 - [ ] Confirmar as licenças de uso das bases da Funai e do MMA.
 - [ ] Fazer a lista "O que depende de você" de [docs/seguranca.md](docs/seguranca.md): senhas fortes, verificação em duas etapas, acesso ao servidor só por chave e backup fora do servidor.

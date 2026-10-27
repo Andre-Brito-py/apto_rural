@@ -49,6 +49,16 @@ export function criarContexto(): Contexto {
     erros: new RegistroErros(pool, email, config.adminEmails, config.webOrigin),
     config: configuracoes,
     email,
+    // Consulta mínima com prazo curto: o healthcheck e o vigia não podem ficar pendurados.
+    bancoResponde: async () => {
+      if (!pool) return null;
+      try {
+        await Promise.race([pool.query('SELECT 1'), new Promise((_, falha) => setTimeout(() => falha(new Error('prazo')), 3000))]);
+        return true;
+      } catch {
+        return false;
+      }
+    },
     ia: {
       explicacao: new ServicoExplicacao({
         config: configuracoes,
