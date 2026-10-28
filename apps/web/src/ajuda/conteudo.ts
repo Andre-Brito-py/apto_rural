@@ -26,7 +26,7 @@ export const CATEGORIAS: { id: CategoriaId; nome: string; resumo: string }[] = [
   { id: 'resultado', nome: 'Entender o resultado', resumo: 'Semáforo, itens do MCR e saídas' },
   { id: 'mapa', nome: 'Mapa', resumo: 'O que o mapa do entorno mostra' },
   { id: 'dossie', nome: 'Dossiê', resumo: 'O documento para levar ao banco' },
-  { id: 'explicacao', nome: 'Explicação para o produtor', resumo: 'O texto em palavras simples' },
+  { id: 'explicacao', nome: 'Explicação e inteligência artificial', resumo: 'O texto em palavras simples e o apoio por IA' },
   { id: 'carteira', nome: 'Carteira e avisos', resumo: 'Acompanhar imóveis todo dia' },
   { id: 'lote', nome: 'Consulta em lote', resumo: 'Vários imóveis com uma planilha' },
   { id: 'creditos', nome: 'Créditos e pagamento', resumo: 'Planos, compra e assinatura' },
@@ -149,6 +149,18 @@ export const PERGUNTAS: Pergunta[] = [
     ],
     links: [{ rotulo: 'Ver a consulta', para: '/consultar' }],
     palavras: ['ativo', 'pendente', 'suspenso', 'cancelado', 'demonstrativo', 'status do car'],
+    telas: ['/consultar'],
+  },
+  {
+    id: 'recibo-car',
+    categoria: 'consulta',
+    pergunta: 'Dá para preencher a consulta com o recibo do CAR?',
+    resposta: [
+      'Sim. Na consulta, toque em "Preencher com o recibo do CAR (PDF)" e escolha o recibo de inscrição ou o demonstrativo baixado do Sicar. O sistema preenche o código do CAR, a situação e os módulos fiscais que achar no documento. Confira antes de consultar: nada é consultado sem você tocar em "Consultar imóvel".',
+      'Precisa ser o PDF baixado do Sicar. Foto ou documento escaneado não tem texto para ler: nesse caso, preencha à mão. O arquivo fica no seu aparelho; só o texto dele é enviado para a leitura. Ler o recibo não gasta crédito, mas pede que você esteja na sua conta.',
+    ],
+    links: [{ rotulo: 'Fazer uma consulta', para: '/consultar' }],
+    palavras: ['recibo', 'recibo do car', 'demonstrativo', 'pdf do sicar', 'preencher sozinho', 'preencher automatico', 'ler o recibo', 'nao reconheceu', 'recibo nao reconhecido', 'nao reconhecemos o recibo'],
     telas: ['/consultar'],
   },
   {
@@ -390,6 +402,42 @@ export const PERGUNTAS: Pergunta[] = [
     palavras: ['salvar pdf', 'imprimir dossie', 'baixar dossie'],
     telas: ['/consulta/'],
   },
+  {
+    id: 'conferir-documento',
+    categoria: 'dossie',
+    pergunta: 'Como confiro um documento (ASV, PRAD, TAC, licença) no dossiê?',
+    resposta: [
+      'No dossiê, em cada item com impedimento ou atenção, há o bloco "Apoio para montar este item". Em "Conferir um documento", escolha o PDF ou a foto do documento. A inteligência artificial lê o documento e compara com o que a consulta encontrou: tipo, órgão, número, datas, área e qual documento da lista ele parece atender.',
+      'Cada ponto vem marcado como "Confere", "Diverge" ou "Conferir" (quando você precisa olhar). O site também diz se o documento cita o CAR deste imóvel, o de outro imóvel ou nenhum. Quem conclui é você: a conferência não muda o resultado da consulta.',
+      'Prefira o PDF digital. Documento escaneado ou foto vai como imagem; nesse caso, confira os números e as datas no papel. Não gasta crédito, e o bloco só aparece na tela: não sai na impressão do dossiê.',
+    ],
+    palavras: ['conferir documento', 'asv', 'prad', 'tac', 'licenca', 'termo de embargo', 'autorizacao', 'enviar documento', 'anexar', 'confere', 'diverge', 'mandar documento', 'mandar o prad', 'mandar a asv', 'subir documento'],
+    telas: ['/consulta/'],
+  },
+  {
+    id: 'rascunhos',
+    categoria: 'dossie',
+    pergunta: 'O dossiê escreve a carta ao banco ou o requerimento?',
+    resposta: [
+      'Escreve um rascunho para você revisar. No bloco "Apoio para montar este item", aparecem os rascunhos que fazem sentido para aquele item: "Carta ao banco" em todos; "Pedido de correção do desenho do CAR" quando o problema vem do cruzamento do mapa (embargo, terra indígena, Unidade de Conservação ou floresta pública); e "Requerimento ao órgão responsável" para embargo, desmatamento (Prodes) e situação do CAR.',
+      'O texto usa os fatos da consulta e vem numa caixa que você pode editar. Complete o que está entre [colchetes], como nome, registro e número do processo, e toque em "Copiar texto". As mudanças na caixa não ficam salvas: copie quando terminar.',
+      'Sem a inteligência artificial disponível, sai um modelo fixo para completar. O rascunho não promete aprovação: quem decide é o banco ou o órgão.',
+    ],
+    palavras: ['carta', 'carta ao banco', 'requerimento', 'retificacao', 'corrigir o car', 'modelo de carta', 'oficio', 'rascunho', 'texto pronto'],
+    telas: ['/consulta/'],
+  },
+  {
+    id: 'documento-privacidade',
+    categoria: 'dossie',
+    pergunta: 'Para onde vão os documentos que envio para conferir?',
+    resposta: [
+      'O arquivo não fica guardado no Apto Rural: ficam só o que foi lido e os pontos da conferência, junto com a consulta, visíveis para você e a sua equipe. Dá para apagar quando quiser, pelo botão "Apagar".',
+      'Para a leitura, o conteúdo vai para um fornecedor de inteligência artificial (OpenAI), marcado para não ser guardado por ele. Do PDF digital vai só o texto, sem CPF, CNPJ, código do CAR e e-mail. Documento escaneado ou foto vai como imagem, do jeito que está: por isso o site pede a sua confirmação antes de enviar.',
+    ],
+    links: [{ rotulo: 'Política de privacidade', para: '/privacidade' }],
+    palavras: ['privacidade', 'documento guardado', 'lgpd', 'openai', 'seguranca do documento', 'quem ve', 'apagar documento'],
+    telas: ['/consulta/'],
+  },
 
   // ---------------------------------------------------------------- Explicação
   {
@@ -402,6 +450,18 @@ export const PERGUNTAS: Pergunta[] = [
     ],
     palavras: ['explicacao', 'produtor', 'texto simples', 'ia', 'inteligencia artificial', 'resumo'],
     telas: ['/consulta/'],
+  },
+  {
+    id: 'onde-ia',
+    categoria: 'explicacao',
+    pergunta: 'Onde o Apto Rural usa inteligência artificial?',
+    resposta: [
+      'Em cinco lugares, sempre como apoio: a explicação para o produtor, no resultado; a leitura do recibo do CAR, na consulta; a conferência de documentos e os rascunhos (carta ao banco, correção do CAR, requerimento), no dossiê; e a frase que explica cada mudança no e-mail da carteira.',
+      'A inteligência artificial nunca decide o resultado: quem decide é a regra do MCR, com as bases oficiais. Toda resposta dela passa por uma conferência automática antes de aparecer, e é barrada se trouxer número que não está nos fatos, promessa de aprovação ou dado pessoal. Quando ela não está disponível, cada função tem um plano B: explicação e rascunho de modelo, leitura do recibo só pelo texto, e a conferência de documentos fica para você fazer pela lista do dossiê.',
+    ],
+    links: [{ rotulo: 'Política de privacidade', para: '/privacidade' }],
+    palavras: ['ia', 'inteligencia artificial', 'chatgpt', 'openai', 'robo', 'automatico', 'confiavel', 'quem decide'],
+    telas: ['/consulta/', '/consultar'],
   },
 
   // ---------------------------------------------------------------- Carteira
@@ -433,7 +493,10 @@ export const PERGUNTAS: Pergunta[] = [
     id: 'aviso-email',
     categoria: 'carteira',
     pergunta: 'Recebi um e-mail de mudança num imóvel. O que fazer?',
-    resposta: ['Abra a carteira: as mudanças novas aparecem no alto, com o que mudou e o link para o resultado atualizado. Mudança causada só por uma base que falhou ao atualizar não gera aviso.'],
+    resposta: [
+      'O e-mail traz, para cada imóvel, o que mudou e uma frase curta dizendo o que isso significa e o que fazer, por exemplo conferir o resultado antes da próxima proposta daquele imóvel.',
+      'Abra a carteira: as mudanças novas aparecem no alto, com o que mudou e o link para o resultado atualizado. Mudança causada só por uma base que falhou ao atualizar não gera aviso.',
+    ],
     links: [{ rotulo: 'Abrir a carteira', para: '/carteira' }],
     palavras: ['email de aviso', 'mudanca', 'mudou', 'alerta', 'notificacao'],
     telas: ['/carteira'],
