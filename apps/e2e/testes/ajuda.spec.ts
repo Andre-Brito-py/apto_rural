@@ -34,6 +34,8 @@ test('página de ajuda: busca sem acento e resposta aberta pelo endereço', asyn
   await page.goto('/ajuda');
   await page.getByRole('searchbox').fill('modulo fiscal');
   await expect(page.getByText('O que são os módulos fiscais e por que pedem?')).toBeVisible();
+  await page.getByRole('searchbox').fill('carta ao banco');
+  await expect(page.getByText('O dossiê escreve a carta ao banco ou o requerimento?')).toBeVisible();
   await page.goto('/ajuda#quilombolas');
   await expect(page.getByText('o acervo do Incra exige login')).toBeVisible();
 });
