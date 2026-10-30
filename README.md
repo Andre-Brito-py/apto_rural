@@ -13,13 +13,14 @@ Este README explica o problema do zero (não precisa saber nada de crédito rura
 3. [O que o Apto Rural verifica](#3-o-que-o-apto-rural-verifica)
 4. [As datas que importam](#4-as-datas-que-importam)
 5. [Como o sistema funciona](#5-como-o-sistema-funciona)
-6. [O diferencial: do vermelho ao verde](#6-o-diferencial-do-vermelho-ao-verde)
-7. [Como o produto ganha dinheiro](#7-como-o-produto-ganha-dinheiro)
-8. [Rodar no seu computador](#8-rodar-no-seu-computador)
-9. [Mapa das pastas](#9-mapa-das-pastas)
-10. [Situação do projeto](#10-situação-do-projeto)
-11. [Regras de ouro do projeto](#11-regras-de-ouro-do-projeto)
-12. [Documentos de apoio](#12-documentos-de-apoio)
+6. [As telas, uma por uma](#6-as-telas-uma-por-uma)
+7. [O diferencial: do vermelho ao verde](#7-o-diferencial-do-vermelho-ao-verde)
+8. [Como o produto ganha dinheiro](#8-como-o-produto-ganha-dinheiro)
+9. [Rodar no seu computador](#9-rodar-no-seu-computador)
+10. [Mapa das pastas](#10-mapa-das-pastas)
+11. [Situação do projeto](#11-situação-do-projeto)
+12. [Regras de ouro do projeto](#12-regras-de-ouro-do-projeto)
+13. [Documentos de apoio](#13-documentos-de-apoio)
 
 ---
 
@@ -169,7 +170,193 @@ Com as bases reais, cada consulta leva em torno de **0,1 segundo** (veja [docs/t
 
 ---
 
-## 6. O diferencial: do vermelho ao verde
+## 6. As telas, uma por uma
+
+As imagens abaixo são do próprio sistema, no modo de demonstração, com **dados fictícios** (os CARs `MT-0000000-…` são exemplos). Elas foram tiradas em 28/10/2026; para refazer depois de mudar uma tela, veja [docs/telas.md](docs/telas.md).
+
+### 6.1 Página inicial (quem chega sem conta)
+
+![Página inicial](docs/img/telas/01-inicio.png)
+
+A página de vendas para quem ainda não tem conta.
+- **O que mostra:** o que o Apto Rural faz, um exemplo de resultado e as vantagens (1ª consulta grátis, só bases oficiais, resultado em segundos).
+- **O que dá para fazer:** "Consultar uma fazenda grátis" (cria a conta), "Como funciona" e os menus de planos, ajuda e entrada.
+- Quem já tem conta não vê esta página: entra direto na consulta.
+
+### 6.2 Nova consulta
+
+![Nova consulta](docs/img/telas/02-nova-consulta.png)
+
+Onde o técnico informa o imóvel. São três blocos:
+1. **Dados do imóvel:**
+   - **"Preencher com o recibo do CAR (PDF)":** lê o recibo ou o demonstrativo do Sicar e preenche o código, a situação e os módulos fiscais. O arquivo fica no aparelho; só o texto é lido.
+   - **Código do CAR:** aceita com ou sem pontos e confere o formato antes de gastar.
+   - **Situação do CAR:** ativo, pendente, suspenso, cancelado ou "não sei".
+   - **Módulos fiscais:** com o contorno, o sistema mostra uma estimativa pela tabela do Incra.
+2. **Mapa do imóvel:** o arquivo do contorno (shapefile em .zip, KML ou GeoJSON). Antes de consultar, aparece uma prévia do desenho e da área para conferir.
+3. **Opcional:** CAR coletivo e a checagem do CPF/CNPJ do produtor no cadastro do Ministério do Trabalho (só com a autorização dele).
+
+Os botões "Testar com um exemplo fictício" mostram resultados de demonstração sem gastar crédito. "Muitos imóveis?" leva à consulta em lote.
+
+### 6.3 Resultado
+
+![Resultado da consulta](docs/img/telas/03-resultado.png)
+
+A resposta da consulta, de cima para baixo:
+- **O semáforo:** "Impedimento provável", "Atenção" ou "Sem impedimento encontrado", com a contagem de itens (impedimento, atenção, não verificado, ok).
+- **Dados da consulta:** CAR, data e o código de verificação, o mesmo do QR.
+- **Botões:** enviar o resumo no WhatsApp, salvar o relatório em PDF e abrir o dossiê.
+- **Explicação para o produtor:** um texto em palavras simples, pronto para mandar (veja 6.5).
+- **Mapa do imóvel e do entorno** (veja 6.4).
+- **Acompanhar este imóvel:** põe o imóvel na carteira (nas consultas reais).
+
+**Item por item do MCR 2-9.** Mais abaixo, cada item do Manual de Crédito Rural aparece com o resultado, o que foi encontrado, as **saídas que a própria norma admite** (com os documentos de cada uma), a base oficial com a data de atualização e o item da norma.
+
+<img src="docs/img/telas/04b-itens.png" alt="Item por item do MCR" width="520">
+
+O que o técnico tira daqui:
+- **O que pesa e por quê:** no exemplo, um embargo do Ibama dá impedimento, e o desmatamento depois de 2019 dá atenção, porque a exigência só começa em 01/07/2027 para esse imóvel.
+- **O que o sistema já conferiu sozinho:** por exemplo, se a área embargada está dentro do limite de 5% da exceção temporária.
+- **O que ficou sem conferir:** fica marcado "Não verificado" e nunca aparece como verde.
+
+### 6.4 Mapa do imóvel e do entorno
+
+![Mapa do entorno](docs/img/telas/04-mapa.png)
+
+O desenho da fazenda e do que está em volta:
+- **O que encosta no imóvel:** cada área ganha um número no ponto de contato, com quantos hectares ficam dentro (no exemplo, 18 ha de um embargo do Ibama).
+- **O que está perto:** a distância até o imóvel, como a Unidade de Conservação a 913 m do exemplo.
+- **Escala, norte e a fonte** de cada base, com a data. O desenho é simplificado; os limites oficiais são os de cada órgão.
+
+O mapa é guardado como foto do dia da consulta e também sai no dossiê.
+
+### 6.5 Explicação para o produtor
+
+![Explicação para o produtor](docs/img/telas/05-explicacao.png)
+
+Um texto curto que o técnico manda ao produtor: o que deu, o que pesa e o que dá para fazer.
+- **Com a IA ligada,** a inteligência artificial escreve o texto a partir do resultado oficial, e uma conferência automática barra qualquer texto que mude a situação, prometa aprovação ou invente número.
+- **Sem IA,** sai a explicação montada direto das regras (a da imagem).
+- **Botões:** "Copiar texto" e "Mandar para o produtor" (WhatsApp).
+
+### 6.6 Dossiê do imóvel
+
+![Dossiê](docs/img/telas/06-dossie.png)
+
+O documento para levar ao banco quando a consulta dá impedimento ou atenção. Gerar usa 1 crédito de dossiê.
+- **Cabeçalho:** CAR, data, código de verificação e o **QR** que abre a consulta original, para o gerente conferir.
+- **Resumo** dos itens com problema e o tipo de cada um ("Plano de saída" ou "Dossiê de contestação").
+- **Mapa** e, para cada item, o que foi encontrado, a base, a norma e as saídas, com o **checklist dos documentos** a juntar.
+- **Observações e assinatura** do responsável técnico.
+- **"Imprimir ou salvar em PDF"** tira só a folha, sem os menus do site.
+
+**Apoio para montar cada item.** Só aparece na tela, não sai na impressão:
+
+<img src="docs/img/telas/07-dossie-apoio.png" alt="Apoio do dossiê" width="560">
+
+- **Conferir um documento:** o técnico envia a ASV, o PRAD, o TAC, a licença… A IA compara com a consulta e marca cada ponto como "Confere", "Diverge" ou "Conferir". O arquivo não fica guardado.
+- **Rascunhos:**
+  - **Quais aparecem:** a "Carta ao banco" em todos os itens; o "Pedido de correção do desenho do CAR" nos itens de mapa; o "Requerimento ao órgão responsável" para embargo, Prodes e CAR.
+  - **Como usar:** o texto vem numa caixa editável, com [colchetes] no que falta completar, e o botão "Copiar texto".
+  - **Sem IA:** sai um modelo fixo, como na imagem.
+
+### 6.7 Consulta em lote
+
+![Consulta em lote](docs/img/telas/08-lote.png)
+
+Para escritórios e cooperativas: vários imóveis de uma vez.
+1. **Planilha (CSV)** com os códigos do CAR, até 200 linhas. Há uma planilha-modelo para baixar.
+2. **Contornos** (opcional), todos de uma vez. O sistema acha o imóvel pelo código do CAR no nome do arquivo ou dentro dele.
+
+Antes de gastar, a tela mostra a lista, quais imóveis têm contorno e quantos créditos o lote usa. No fim, dá para baixar o resultado em planilha e pôr todos na carteira.
+
+### 6.8 Carteira
+
+![Carteira](docs/img/telas/09-carteira.png)
+
+Os imóveis que o técnico acompanha. Todo dia de manhã o sistema reconfere cada um com as bases atualizadas. Se surgir um embargo, mudar a situação do CAR ou chegar a data do Prodes, aparece um aviso aqui e vai um e-mail, com uma frase explicando o que mudou e o que fazer. Dá para incluir um imóvel ou vários (em lote). O número de imóveis depende do plano. Na imagem, a carteira está vazia, como fica para quem acabou de criar a conta.
+
+### 6.9 Planos
+
+![Planos](docs/img/telas/10-planos.png)
+
+Onde o cliente compra.
+- **Assinatura mensal:** planos Projetista e Escritório, com créditos todo mês e a carteira inclusa.
+- **Compra avulsa:** uma consulta ou um dossiê.
+- **Saldo:** quantas consultas e dossiês a pessoa ainda tem.
+- **Cupom:** campo para o cupom de desconto; o link de divulgação `/planos?cupom=CÓDIGO` já chega com o cupom aplicado.
+- **Pagamento:** Pix, cartão ou boleto, pelo Asaas. Os preços vêm do painel e mudam sem mexer no código.
+
+### 6.10 Central de ajuda
+
+![Central de ajuda](docs/img/telas/11-central-de-ajuda.png)
+
+O botão verde "Dúvidas?", em todas as telas, abre um chat com **61 respostas prontas**, conferidas no código.
+- **Sugestões:** as dúvidas comuns da tela aberta.
+- **Perguntas escritas:** entende o jeito de cada um perguntar ("aceita pix?", "carta ao banco") e mostra links para a tela certa.
+- **Sem resposta pronta:** diz que não achou e oferece os assuntos, sem inventar.
+- **Custo:** não usa IA e roda no próprio navegador.
+
+A página `/ajuda` tem as mesmas respostas, com busca. Pela ajuda também dá para rever o **tour de boas-vindas**, que mostra o sistema em 8 passos na primeira entrada.
+
+### 6.11 Minha conta
+
+![Minha conta](docs/img/telas/12-minha-conta.png)
+
+- **Saldo** de consultas e dossiês, e atalhos para consultar, carteira, equipe e planos.
+- **Dados da conta** e a confirmação do e-mail.
+- **Verificação em duas etapas:** código do aplicativo autenticador, além da senha, com códigos de recuperação.
+- **Seus dados (LGPD):** baixar tudo num arquivo e excluir a conta.
+
+### 6.12 No celular
+
+<img src="docs/img/telas/13-celular-resultado.png" alt="Resultado no celular" width="300">
+
+Tudo funciona no celular, sem rolagem para os lados: as telas se reorganizam em uma coluna, os botões ficam grandes para o dedo e o menu reúne todas as telas. Foi pensado para quem está no campo, com sol forte e internet fraca.
+
+### 6.13 Painel administrativo
+
+Só para quem está em `ADMIN_EMAILS`. Em produção, abre só com a verificação em duas etapas ligada e vale 12 horas por login.
+
+**Visão geral:**
+
+![Painel: visão geral](docs/img/telas/14-painel.png)
+
+- **Negócio:** receita recorrente, receita em 30 dias, pedidos pendentes e contas.
+- **Uso:** consultas, imóveis na carteira, créditos em circulação e erros das últimas 24 horas.
+- **Servidor:** backup, cópia fora do servidor e vigia do site. Na imagem estão em vermelho porque é o ambiente de demonstração, sem backup configurado.
+- **Bases oficiais:** a data de cada uma e se está em dia.
+- **Outras abas:** usuários (ficha, créditos, bloqueio, "entrar como"), pedidos (estorno e cancelamento), preços e limites, e auditoria (o registro de tudo o que foi feito no painel).
+
+**Cupons:**
+
+![Painel: lista de cupons](docs/img/telas/16-painel-cupons.png)
+
+A lista mostra cada cupom com desconto, onde vale, usos, validade, situação, desconto dado e receita. Ao criar um cupom, o administrador escolhe:
+- porcentagem ou valor fixo;
+- em quais planos e produtos vale;
+- por quantas mensalidades;
+- quantas vezes pode ser usado, no total e por conta;
+- de que data a que data vale.
+
+Antes de salvar, a tela mostra **como fica o preço** de cada plano:
+
+![Painel: novo cupom](docs/img/telas/15-painel-novo-cupom.png)
+
+**Inteligência artificial:**
+
+![Painel: inteligência artificial](docs/img/telas/17-painel-ia.png)
+
+- **Chave da OpenAI:** guardada cifrada; depois de salva, só aparece o final.
+- **Ligar a IA** e escolher as funções. Cada uma diz o que acontece quando está desligada.
+- **Modelo e limite de chamadas por dia.**
+- **Uso do mês,** por função, com o custo estimado.
+- **O que vai para a OpenAI**, explicado na própria tela.
+- **Normas novas:** cole o texto de uma resolução e a IA aponta o que mudou e quais regras do site conferir.
+
+---
+
+## 7. O diferencial: do vermelho ao verde
 
 Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 
@@ -181,7 +368,7 @@ Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 
 ---
 
-## 7. Como o produto ganha dinheiro
+## 8. Como o produto ganha dinheiro
 
 O principal é a **assinatura mensal**: todo mês o técnico recebe créditos e pode acompanhar mais fazendas na carteira.
 
@@ -243,7 +430,7 @@ Outras regras:
 
 ---
 
-## 8. Rodar no seu computador
+## 9. Rodar no seu computador
 
 ### O que precisa estar instalado
 
@@ -399,7 +586,7 @@ O passo a passo completo (servidor, domínio, webhook do Asaas, backups) está e
 
 ---
 
-## 9. Mapa das pastas
+## 10. Mapa das pastas
 
 ```
 packages/regras   O coração: cada regra do MCR em código, com a norma citada e testes.
@@ -417,7 +604,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 ---
 
-## 10. Situação do projeto
+## 11. Situação do projeto
 
 **Pronto e testado**
 
@@ -515,7 +702,7 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 
 ---
 
-## 11. Regras de ouro do projeto
+## 12. Regras de ouro do projeto
 
 1. **Só fonte oficial.** Nenhuma regra entra no código sem a norma oficial citada (Banco Central, ministérios, Ibama, Inpe…). O que não foi confirmado fica marcado "A CONFIRMAR".
 2. **Nunca verde sem checar.** Se uma base não foi consultada, o item aparece como "Não verificado".
@@ -525,7 +712,7 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 
 ---
 
-## 12. Documentos de apoio
+## 13. Documentos de apoio
 
 | Documento | Para que serve |
 | --- | --- |
@@ -533,6 +720,7 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 | [docs/conformidade-legal.md](docs/conformidade-legal.md) | Cuidados legais e critérios do produto que precisam de revisão jurídica. |
 | [docs/arquitetura.md](docs/arquitetura.md) | Como as peças se encaixam e por quê. |
 | [docs/frontend.md](docs/frontend.md) | Decisões de interface para o técnico do campo. |
+| [docs/telas.md](docs/telas.md) | Como refazer as fotos das telas do README. |
 | [docs/central-de-ajuda.md](docs/central-de-ajuda.md) | Central de ajuda (respostas prontas), tour de boas-vindas e menu: como funcionam e como acrescentar uma resposta. |
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
