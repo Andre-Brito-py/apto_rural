@@ -17,6 +17,32 @@ const novoPedido = z.object({
 });
 
 export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
+  /**
+   * Cancela (no provedor e aqui) as outras cobranças da conta, ainda não pagas, com o mesmo
+   * cupom. false se o provedor recusou alguma: ela pode ter acabado de ser paga.
+   */
+  async function cancelarCobrancasAntigasDoCupom(usuarioId: string, pedidoNovoId: string, codigo: string) {
+    const antigas = (await ctx.contas.pedidosDoUsuario(usuarioId)).filter(
+      (p) => p.id !== pedidoNovoId && p.status === 'pendente' && p.cupom === codigo,
+    );
+    for (const antiga of antigas) {
+      if (antiga.provedorId && ctx.pagamento?.nome === antiga.provedor) {
+        try {
+          await ctx.pagamento.cancelar(antiga.provedorId);
+        } catch (e) {
+          await ctx.erros.registrar({
+            origem: 'api',
+            mensagem: `Não foi possível cancelar no provedor a cobrança antiga ${antiga.id} com o cupom ${codigo}: ${(e as Error).message}`,
+            usuarioId,
+          });
+          return false;
+        }
+      }
+      await aplicarEvento(ctx.contas, antiga, 'cancelado', ctx.cupons);
+    }
+    return true;
+  }
+
   app.get('/v1/produtos', async (req) => {
     // Quem já tem cadastro no provedor de pagamento não precisa informar o CPF/CNPJ de novo.
     const u = await usuarioDaRequisicao(ctx, req);
@@ -79,6 +105,17 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
       if (typeof reserva === 'string') {
         await ctx.contas.atualizarPedido(pedido.id, { status: 'cancelado' });
         return erro(reply, 409, MENSAGEM_RESERVA[reserva], 'cupom');
+      }
+      // A reserva nova liberou a antiga: a cobrança antiga com este cupom não pode continuar
+      // pagável, senão quem pagasse os dois links levaria o desconto duas vezes.
+      if (!(await cancelarCobrancasAntigasDoCupom(u.id, pedido.id, cupom.cupom.codigo))) {
+        await aplicarEvento(ctx.contas, pedido, 'cancelado', ctx.cupons);
+        return erro(
+          reply,
+          409,
+          'Você já tem um pagamento em aberto com este cupom e não conseguimos cancelá-lo agora. Pague pelo link anterior ou tente de novo em instantes.',
+          'cupom',
+        );
       }
     }
     if (gratis) {
@@ -152,6 +189,8 @@ export function rotasPedidos(app: FastifyInstance, ctx: Contexto) {
       const u = await usuarioDaRequisicao(ctx, req);
       const pedido = await ctx.contas.buscarPedido(req.params.id);
       if (!u || !pedido || pedido.usuarioId !== u.id) return erro(reply, 404, 'Pedido não encontrado.');
+      // Como no Asaas: cobrança cancelada (ou já paga) não se paga de novo.
+      if (pedido.status !== 'pendente') return erro(reply, 409, 'Esta cobrança não está mais em aberto.');
       await aplicarEvento(ctx.contas, pedido, 'pago', ctx.cupons);
       return { ok: true, saldo: await ctx.contas.saldo(u.id) };
     });

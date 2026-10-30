@@ -65,7 +65,8 @@ export function Privacidade() {
           Quando você pede uma explicação, um rascunho, a leitura do recibo do CAR ou a conferência de um documento do dossiê, o pedido é
           processado por um fornecedor de IA (OpenAI), com servidores fora do Brasil, marcado para não ser guardado por ele. Antes do envio,
           tiramos CPF, CNPJ, código do CAR e e-mail do texto. Documento escaneado ou foto vai como imagem, do jeito que está, e só depois de
-          você confirmar. Os arquivos não ficam guardados no Apto Rural: guardamos só o que foi lido e conferido, junto com a consulta.
+          você confirmar. Os arquivos não ficam guardados no Apto Rural: guardamos só o que foi lido e conferido, junto com a consulta. Isso entra no
+          arquivo "baixar meus dados" e é apagado se você excluir a conta.
         </p>
         <h2 className="secao-titulo">Seus direitos (LGPD, art. 18)</h2>
         <p>

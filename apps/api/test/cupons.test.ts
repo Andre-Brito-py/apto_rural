@@ -194,6 +194,34 @@ describe('cupom na compra avulsa', () => {
     expect(cupons.find((c: { codigo: string }) => c.codigo === 'DUASVEZES')).toMatchObject({ reservados: 1, usados: 0 });
   });
 
+  it('a cobrança nova cancela a antiga com o mesmo cupom: não dá para pagar os dois links e levar o desconto duas vezes', async () => {
+    await criar({ codigo: 'SOUMAVEZ', tipo: 'percentual', valor: 50 });
+    const cancelar = vi.spyOn(ctx.pagamento!, 'cancelar');
+    const primeira = (await comprar(cliente.cookie, 'consulta-avulsa', 'SOUMAVEZ')).json().id as string;
+    const segunda = (await comprar(cliente.cookie, 'consulta-avulsa', 'SOUMAVEZ')).json().id as string;
+    const antiga = await ctx.contas.buscarPedido(primeira);
+    expect(antiga!.status).toBe('cancelado');
+    expect(cancelar).toHaveBeenCalledWith(antiga!.provedorId);
+    expect((await ctx.contas.buscarPedido(segunda))!.status).toBe('pendente');
+    // O link antigo não paga mais; o novo paga, e o cupom fica usado uma vez só.
+    expect((await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${primeira}/pagar`, headers: { cookie: cliente.cookie } })).statusCode).toBe(409);
+    expect((await app.inject({ method: 'POST', url: `/v1/dev/pedidos/${segunda}/pagar`, headers: { cookie: cliente.cookie } })).statusCode).toBe(200);
+    const { cupons } = (await app.inject({ method: 'GET', url: '/v1/admin/cupons', headers: { cookie: admin } })).json();
+    expect(cupons.find((c: { codigo: string }) => c.codigo === 'SOUMAVEZ')).toMatchObject({ usados: 1, reservados: 0 });
+    cancelar.mockRestore();
+  });
+
+  it('se o provedor não cancelar a cobrança antiga, a nova não é criada', async () => {
+    await criar({ codigo: 'TRAVADO', tipo: 'percentual', valor: 50 });
+    const primeira = (await comprar(cliente.cookie, 'consulta-avulsa', 'TRAVADO')).json().id as string;
+    const cancelar = vi.spyOn(ctx.pagamento!, 'cancelar').mockRejectedValueOnce(new Error('cobrança já paga'));
+    const r = await comprar(cliente.cookie, 'consulta-avulsa', 'TRAVADO');
+    expect(r.statusCode).toBe(409);
+    expect(r.json().erro).toMatchObject({ campo: 'cupom', mensagem: expect.stringMatching(/pagamento em aberto/) });
+    expect((await ctx.contas.buscarPedido(primeira))!.status).toBe('pendente');
+    cancelar.mockRestore();
+  });
+
   it('limite total: quando esgota, a próxima pessoa ouve que esgotou; cancelar a cobrança devolve o uso', async () => {
     await criar({ codigo: 'PRIMEIRO', tipo: 'percentual', valor: 50, limiteUsos: 1 });
     const outro = await conta(app, email, 'outro@exemplo.com');

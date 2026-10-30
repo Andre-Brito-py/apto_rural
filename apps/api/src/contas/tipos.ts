@@ -172,4 +172,6 @@ export interface DadosDoTitular {
   sessoesAbertas: Record<string, unknown>[];
   /** Participação em equipe (como responsável ou membro). */
   equipe: Record<string, unknown>[];
+  /** Apoio por IA nas consultas: documentos conferidos e rascunhos. */
+  apoioIA: Record<string, unknown>[];
 }

@@ -387,7 +387,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
   async exportarDados(usuarioId: string): Promise<DadosDoTitular> {
     const q = (sql: string) => this.pool.query(sql, [usuarioId]).then((r) => r.rows);
     // Nunca sai: hash da senha e hashes de tokens (não são dados da pessoa, e sim chaves de segurança).
-    const [conta, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe] = await Promise.all([
+    const [conta, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe, apoioIA] = await Promise.all([
       q(`SELECT id, nome, email, whatsapp, profissao, papel, criado_em, aceite_termos_em, email_confirmado_em, bloqueado_em
            FROM usuario WHERE id = $1`),
       q('SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id'),
@@ -408,8 +408,13 @@ export class RepositorioContasPostgres implements RepositorioContas {
            FROM equipe e WHERE e.dono_id = $1
          UNION ALL
          SELECT m.papel, m.entrou_em, NULL FROM equipe_membro m WHERE m.usuario_id = $1`),
+      // Apoio por IA: o que foi lido dos documentos e os rascunhos (podem ter nome do produtor e outros dados).
+      q(`SELECT a.id, a.consulta_id, a.tipo, a.regra_id, a.dados, a.criado_em
+           FROM consulta_apoio a
+          WHERE a.criado_por = $1 OR a.consulta_id IN (SELECT id FROM consulta WHERE usuario_id = $1)
+          ORDER BY a.criado_em`),
     ]);
-    return { conta: conta[0] ?? {}, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe };
+    return { conta: conta[0] ?? {}, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe, apoioIA };
   }
 
   async excluirConta(usuarioId: string, emailHash: string) {
@@ -426,6 +431,9 @@ export class RepositorioContasPostgres implements RepositorioContas {
       await cliente.query('DELETE FROM token_email WHERE usuario_id = $1', [usuarioId]);
       await cliente.query('DELETE FROM totp_recuperacao WHERE usuario_id = $1', [usuarioId]);
       await cliente.query('DELETE FROM sessao WHERE usuario_id = $1 OR personificado_por = $1', [usuarioId]);
+      // Apoio por IA das consultas da pessoa (documentos lidos e rascunhos): só ela e a equipe viam, e
+      // pode ter dado pessoal. O relatório do QR não depende disso. Antes de a consulta perder o dono.
+      await cliente.query('DELETE FROM consulta_apoio WHERE consulta_id IN (SELECT id FROM consulta WHERE usuario_id = $1)', [usuarioId]);
       // Consultas: o QR do relatório que foi ao banco continua abrindo, mas sem dono e sem o código do CPF/CNPJ.
       await cliente.query('UPDATE consulta SET usuario_id = NULL, documento_hash = NULL WHERE usuario_id = $1', [usuarioId]);
       // A linha fica (pedidos e créditos apontam para ela), sem nenhum dado pessoal.

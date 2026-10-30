@@ -240,6 +240,7 @@ export class RepositorioContasMemoria implements RepositorioContas {
         .filter((s) => s.usuarioId === usuarioId && s.expiraEm > agora)
         .map((s) => ({ expira_em: s.expiraEm, aberta_pelo_suporte: s.personificadoPor != null })),
       equipe: [],
+      apoioIA: [],
     };
   }
 

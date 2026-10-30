@@ -10,6 +10,7 @@ const { CARS_DEMO } = await import('../src/repositorio/demo.js');
 const { EnviadorMemoria } = await import('../src/email/enviador.js');
 const { ExecutorIA } = await import('../src/ia/executor.js');
 const { lerReciboPorPadroes } = await import('../src/ia/recibo.js');
+const { LEITURAS_RECIBO_POR_DIA } = await import('../src/rotas/ia.js');
 const { fraseDeModelo, conferirFrase } = await import('../src/ia/carteira.js');
 const { mensagemAvisosCarteira } = await import('../src/email/mensagens.js');
 const { formatarCar } = await import('@apto/regras');
@@ -108,6 +109,30 @@ describe('recibo do CAR', () => {
     const inventado = await app.inject({ method: 'POST', url: '/v1/ia/recibo-car', headers: { cookie }, payload: { texto } });
     expect(inventado.json()).toMatchObject({ origem: 'texto', motivoSemIA: 'barrada' });
     expect(inventado.json().modulosFiscais).toBeUndefined();
+  });
+
+  it('só com o e-mail confirmado, e com limite de leituras por conta por dia', async () => {
+    const { app, ctx, email, respostas } = montar();
+    await ligarIA(ctx);
+    respostas.recibo_car = () => ({ situacao: 'ativo', area_ha: 1234.56, modulos_fiscais: null, municipio: 'Sorriso', uf: 'MT', data_inscricao: '10/05/2016' });
+    const ler = (cookie: string, i: number) =>
+      // Endereços diferentes: o teste é do limite por conta, não do freio por endereço de internet.
+      app.inject({ method: 'POST', url: '/v1/ia/recibo-car', headers: { cookie }, remoteAddress: `10.0.${Math.floor(i / 200)}.${i % 200}`, payload: { texto: DEMONSTRATIVO } });
+
+    const semConfirmar = cookieDe(
+      await app.inject({ method: 'POST', url: '/v1/conta', payload: { nome: 'Sem Confirmar', email: 'nova@exemplo.com', senha: 'senha-bem-longa', aceiteTermos: true } }),
+    );
+    const r = await ler(semConfirmar, 0);
+    expect(r.statusCode).toBe(403);
+    expect(r.json().erro.mensagem).toMatch(/Confirme seu e-mail/);
+
+    const cookie = await conta(app, email, 'muitos-recibos@exemplo.com');
+    for (let i = 0; i < LEITURAS_RECIBO_POR_DIA; i++) expect((await ler(cookie, i + 1)).statusCode).toBe(200);
+    const demais = await ler(cookie, 999);
+    expect(demais.statusCode).toBe(429);
+    expect(demais.json().erro.mensagem).toMatch(/limite por conta/);
+    // Outra conta continua lendo.
+    expect((await ler(await conta(app, email, 'outra-conta@exemplo.com'), 1000)).statusCode).toBe(200);
   });
 });
 

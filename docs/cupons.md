@@ -104,6 +104,8 @@ A simulação do formulário marca em vermelho os itens em que o cupom ficaria a
 - **Quando um uso conta:** assim que a fatura com o cupom é gerada (fica "aguardando pagamento") e, de vez, quando é paga.
 - **Fatura não paga:** a reserva deixa de contar no limite depois de **3 dias**, o prazo da fatura avulsa do Asaas. Se a pessoa pagar depois disso, o uso volta a contar. Num cupom com limite, pode acontecer de passar um pouco do limite nesse caso.
 - **A mesma pessoa gera outra fatura com o mesmo cupom** (fechou a primeira sem pagar): a reserva antiga é liberada e a nova fica no lugar, sem gastar o limite dela.
+  - **A fatura antiga é cancelada no Asaas na mesma hora.** Sem isso, quem pagasse os dois links levaria o desconto duas vezes, mesmo num cupom de 1 uso por conta (achado na revisão de 30/10/2026).
+  - Se o Asaas recusar o cancelamento (por exemplo, a fatura antiga acabou de ser paga), a fatura nova não é criada. A pessoa ouve que já tem um pagamento em aberto com o cupom, e o erro aparece no painel.
 - **Cancelado ou estornado:** pedido avulso cancelado (pelo painel ou pelo Asaas) ou estornado devolve o uso: ele deixa de contar.
 - **Assinatura cancelada antes do primeiro pagamento** devolve o uso. Depois de paga uma mensalidade, o uso fica contado, mesmo que a pessoa cancele depois.
 - **Dois clientes no último uso ao mesmo tempo:** só um leva. A conferência final é feita no banco, com o cupom travado durante a reserva; o outro ouve "Este cupom acabou de esgotar."

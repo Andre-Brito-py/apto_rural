@@ -58,6 +58,11 @@ Na nova consulta, o botão **"Preencher com o recibo do CAR (PDF)"** lê o recib
 3. **A IA completa o que faltou**, com o texto sem CPF, CNPJ, CAR e e-mail. O código do CAR vem **sempre** da leitura por padrões (cópia literal), nunca da IA.
 4. **Conferência:** todo número que a IA devolver precisa estar escrito no recibo; UF, data e situação precisam estar no formato certo. Senão, fica só o que os padrões acharam.
 
+**Quem pode usar e quanto:**
+- Só contas com o **e-mail confirmado**, como na consulta grátis. Isso evita contas falsas em série gastando a IA.
+- Até **30 leituras por conta, por dia** (`LEITURAS_RECIBO_POR_DIA` em `rotas/ia.ts`). A leitura é grátis e o limite diário da IA é um só para o site inteiro: sem esse freio, uma conta sozinha gastaria a IA do dia de todo mundo.
+- A contagem fica na memória da API: zera à meia-noite de Brasília ou quando a API reinicia.
+
 ## Conferência de documentos do dossiê
 
 Em cada item do dossiê (impedimento ou atenção), **"Conferir um documento"** recebe a ASV, o PRAD, o TAC, o termo de embargo, a licença… A IA compara com o que a consulta encontrou e devolve: tipo do documento, órgão, número, datas, área, qual documento da lista da saída ele parece atender, e de 1 a 6 pontos **confere / diverge / conferir**. Quem conclui é o técnico.

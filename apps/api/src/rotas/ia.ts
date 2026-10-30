@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Usuario } from '../contas/tipos.js';
-import { erro, nivelAdmin, usuarioDaRequisicao, type Contexto } from '../contexto.js';
+import { erro, hojeBrasilia, nivelAdmin, usuarioDaRequisicao, type Contexto } from '../contexto.js';
 import { contaEmUso, pessoasDaConta } from '../equipe/conta.js';
 import type { DocumentoConferido } from '../ia/documentos.js';
 import { conferirDocumento, MAXIMO_IMAGENS, TAMANHO_MAXIMO_DOCUMENTO } from '../ia/documentos.js';
@@ -33,11 +33,38 @@ const comNorma = z.object({
 const MAXIMO_POR_CONSULTA = 40;
 
 /**
+ * Leituras de recibo do CAR por conta, por dia. A leitura é grátis e o limite diário de IA é um
+ * só para o site todo: sem este freio, uma conta sozinha gastaria a IA do dia de todo mundo.
+ */
+export const LEITURAS_RECIBO_POR_DIA = 30;
+
+/** Conta as leituras do dia por conta, na memória (zera à meia-noite de Brasília ou ao reiniciar). */
+class LeiturasDoDia {
+  private dia = '';
+  private porConta = new Map<string, number>();
+
+  /** true e conta mais uma, se a conta ainda pode ler hoje. */
+  usar(usuarioId: string): boolean {
+    const hoje = hojeBrasilia();
+    if (hoje !== this.dia) {
+      this.dia = hoje;
+      this.porConta.clear();
+    }
+    const usadas = this.porConta.get(usuarioId) ?? 0;
+    if (usadas >= LEITURAS_RECIBO_POR_DIA) return false;
+    this.porConta.set(usuarioId, usadas + 1);
+    return true;
+  }
+}
+
+/**
  * Funções de apoio por IA (docs/ia.md). A IA nunca muda o resultado: lê documentos e
  * escreve rascunhos para o técnico conferir. Documentos e rascunhos ficam no dossiê, que
  * já foi pago: só quem fez a consulta (ou a equipe dela) usa e vê.
  */
 export function rotasIA(app: FastifyInstance, ctx: Contexto) {
+  const leiturasRecibo = new LeiturasDoDia();
+
   async function buscar(id: string) {
     return (ctx.demo && (await ctx.demo.buscar(id))) || (ctx.banco && (await ctx.banco.buscar(id))) || null;
   }
@@ -71,9 +98,14 @@ export function rotasIA(app: FastifyInstance, ctx: Contexto) {
   app.post('/v1/ia/recibo-car', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
     const u = await usuarioDaRequisicao(ctx, req);
     if (!u) return erro(reply, 401, 'Entre na sua conta para ler o recibo.');
+    // Como a consulta grátis: só depois de confirmar o e-mail (evita contas falsas em série gastando a IA).
+    if (!u.emailConfirmado) return erro(reply, 403, 'Confirme seu e-mail para usar a leitura do recibo. Enquanto isso, preencha à mão.');
     const corpo = comRecibo.safeParse(req.body);
     if (!corpo.success) {
       return erro(reply, 400, 'Não achamos texto neste arquivo. Use o PDF baixado do Sicar (não a foto ou o escaneado) ou preencha à mão.');
+    }
+    if (!leiturasRecibo.usar(u.id)) {
+      return erro(reply, 429, `Você já leu ${LEITURAS_RECIBO_POR_DIA} recibos hoje, o limite por conta. Amanhã libera de novo; até lá, preencha à mão.`);
     }
     const leitura = await lerRecibo(ctx.ia.executor, corpo.data.texto);
     const achou = leitura.car || leitura.situacao || leitura.modulosFiscais || leitura.areaHa;

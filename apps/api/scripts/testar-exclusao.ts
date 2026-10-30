@@ -57,7 +57,12 @@ async function main() {
   const a = await app.inject({ method: 'POST', url: '/v1/assinaturas', headers: { cookie }, payload: { plano: 'plano-projetista' } });
   assert.equal(a.statusCode, 201, a.body);
   await app.inject({ method: 'POST', url: `/v1/dev/assinaturas/${a.json().id}/pagar-mes`, headers: { cookie } });
-  console.log('✓ conta com consulta real, carteira e assinatura paga');
+  // Apoio por IA guardado na consulta (um documento conferido, com o nome do produtor).
+  await pool.query(
+    `INSERT INTO consulta_apoio (consulta_id, tipo, regra_id, dados, criado_por) VALUES ($1, 'documento', 'mcr-2-9-embargo', $2, $3)`,
+    [consultaId, { nomeArquivo: 'matricula.pdf', campos: { proprietario: 'João Produtor' } }, titular.id],
+  );
+  console.log('✓ conta com consulta real, carteira, assinatura paga e um documento conferido pela IA');
 
   // 1) Baixar meus dados.
   const d = await app.inject({ method: 'GET', url: '/v1/conta/dados', headers: { cookie } });
@@ -69,7 +74,11 @@ async function main() {
   assert.equal(dados.assinaturas[0].status, 'ativa');
   assert.ok(dados.pedidos.length >= 1);
   assert.doesNotMatch(d.body, /scrypt|senha_hash|token_hash/);
-  console.log(`✓ arquivo de dados: conta, ${dados.consultas.length} consulta, carteira, assinatura, ${dados.pedidos.length} pedido(s), sem senha`);
+  assert.equal(dados.apoioIA.length, 1);
+  assert.equal(dados.apoioIA[0].dados.campos.proprietario, 'João Produtor');
+  console.log(
+    `✓ arquivo de dados: conta, ${dados.consultas.length} consulta, carteira, assinatura, ${dados.pedidos.length} pedido(s), apoio por IA, sem senha`,
+  );
 
   // 2) O suporte, no modo "entrar como", não baixa os dados de ninguém nem exclui a conta.
   const suporte = await conta('Suporte Teste', `suporte-${marca}@exemplo.com`);
@@ -100,7 +109,8 @@ async function main() {
   assert.ok(u.excluida_em && u.bloqueado_em);
   const conta0 = async (tabela: string) => Number((await um(`SELECT count(*) AS n FROM ${tabela} WHERE usuario_id = $1`)).n);
   for (const t of ['imovel_monitorado', 'aviso', 'sessao', 'token_email', 'consulta']) assert.equal(await conta0(t), 0, `${t} deveria estar vazio`);
-  console.log('✓ apagados: nome, e-mail, WhatsApp, senha, carteira, avisos, sessões e links; consultas desligadas da conta');
+  assert.equal((await pool.query('SELECT 1 FROM consulta_apoio WHERE consulta_id = $1', [consultaId])).rowCount, 0, 'apoio por IA deveria estar apagado');
+  console.log('✓ apagados: nome, e-mail, WhatsApp, senha, carteira, avisos, sessões, links e apoio por IA; consultas desligadas da conta');
 
   assert.ok((await conta0('pedido')) >= 1, 'pedidos devem ficar (CTN art. 195)');
   assert.ok((await conta0('credito_lancamento')) >= 1);

@@ -447,6 +447,10 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 
 - [x] Segunda revisão de segurança (27/10/2026): **verificação em duas etapas** (aplicativo autenticador, com códigos de recuperação; obrigatória para administração e suporte em produção), painel só com login de até 12 horas, aviso por e-mail a cada acesso ao painel, alertas de erro que não viram golpe, respostas da API sem cópia no navegador, faxina dos avisos antigos do Asaas e cifra do backup reforçada. Na IA, o pedido vai com raciocínio baixo (a resposta não é mais cortada) e a conferência deixou de barrar texto correto. Veja [docs/seguranca.md](docs/seguranca.md) e [docs/ia.md](docs/ia.md).
 - [x] Cupons de desconto pelo painel, sincronizados com o Asaas: porcentagem ou valor fixo, planos e produtos escolhidos, meses de desconto na assinatura (a mensalidade volta sozinha ao valor cheio), limite de usos no total e por conta, só na primeira compra, datas de início e fim, pausar, encerrar o desconto, link de divulgação e números de cada cupom. Testado na API (memória e PostgreSQL) e no navegador (veja [docs/cupons.md](docs/cupons.md)).
+- [x] Revisão de 30/10/2026, com 3 correções e um teste para cada:
+  - **Cupom:** gerar uma fatura nova com o cupom cancela a antiga no Asaas. Antes, quem pagasse os dois links levava o desconto duas vezes.
+  - **LGPD:** o que a IA leu dos documentos e os rascunhos agora entram no "baixar meus dados" e são apagados na exclusão da conta.
+  - **Leitura do recibo do CAR:** só com o e-mail confirmado e até 30 por conta por dia, para uma conta sozinha não gastar a IA do dia de todo mundo.
 
 **Falta para lançar**
 
