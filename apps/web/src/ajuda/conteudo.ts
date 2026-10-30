@@ -157,7 +157,7 @@ export const PERGUNTAS: Pergunta[] = [
     pergunta: 'Dá para preencher a consulta com o recibo do CAR?',
     resposta: [
       'Sim. Na consulta, toque em "Preencher com o recibo do CAR (PDF)" e escolha o recibo de inscrição ou o demonstrativo baixado do Sicar. O sistema preenche o código do CAR, a situação e os módulos fiscais que achar no documento. Confira antes de consultar: nada é consultado sem você tocar em "Consultar imóvel".',
-      'Precisa ser o PDF baixado do Sicar. Foto ou documento escaneado não tem texto para ler: nesse caso, preencha à mão. O arquivo fica no seu aparelho; só o texto dele é enviado para a leitura. Ler o recibo não gasta crédito, mas pede que você esteja na sua conta.',
+      'Precisa ser o PDF baixado do Sicar. Foto ou documento escaneado não tem texto para ler: nesse caso, preencha à mão. O arquivo fica no seu aparelho; só o texto dele é enviado para a leitura. Ler o recibo não gasta crédito, mas pede que você esteja na sua conta, com o e-mail confirmado. Cada conta lê até 30 recibos por dia.',
     ],
     links: [{ rotulo: 'Fazer uma consulta', para: '/consultar' }],
     palavras: ['recibo', 'recibo do car', 'demonstrativo', 'pdf do sicar', 'preencher sozinho', 'preencher automatico', 'ler o recibo', 'nao reconheceu', 'recibo nao reconhecido', 'nao reconhecemos o recibo'],

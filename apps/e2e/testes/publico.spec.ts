@@ -29,6 +29,19 @@ test.describe('páginas públicas', () => {
     }
   });
 
+  test('link do rodapé abre a tela nova do topo; voltar devolve à mesma altura', async ({ page }) => {
+    await page.goto('/ajuda');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const antes = await page.evaluate(() => window.scrollY);
+    expect(antes).toBeGreaterThan(500);
+    await page.locator('.rodape').getByRole('link', { name: 'Planos e preços' }).click();
+    await expect(page).toHaveURL(/\/planos$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/ajuda$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+  });
+
   test('endereço que não existe mostra a página do site, não erro do servidor', async ({ page }) => {
     const r = await page.goto('/nao-existe-esta-pagina');
     expect(r?.status()).toBe(200);

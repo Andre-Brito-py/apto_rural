@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { abrirAjuda } from './ajuda/eventos';
 import { api, type Saude } from './api';
 import { Cabecalho } from './componentes/Cabecalho';
@@ -28,6 +28,21 @@ import { Resultado } from './paginas/Resultado';
 import { AvisoConfirmarEmail, ConfirmarEmail, EsqueciSenha, RedefinirSenha } from './paginas/Senha';
 import { useSessao } from './sessao';
 
+/**
+ * Tela nova abre do topo. Sem isso, um link do rodapé abria a tela seguinte já rolada até
+ * o fim. Voltar e avançar do navegador (POP) mantêm a posição de onde a pessoa estava.
+ */
+function TelaNovaNoTopo() {
+  const { pathname, hash } = useLocation();
+  const tipo = useNavigationType();
+  useEffect(() => {
+    // Com #, a própria tela rola até o trecho pedido (ex.: /ajuda#quilombolas).
+    if (tipo !== 'POP' && !hash) window.scrollTo(0, 0);
+    // Só quando a tela muda: trocar o filtro (?aba=) ou o # não volta ao topo.
+  }, [pathname]);
+  return null;
+}
+
 export function App() {
   const [saude, setSaude] = useState<Saude | null>(null);
   const { sessao, carregando } = useSessao();
@@ -38,6 +53,7 @@ export function App() {
 
   return (
     <>
+      <TelaNovaNoTopo />
       <FaixaPersonificacao />
 
       <Cabecalho />
