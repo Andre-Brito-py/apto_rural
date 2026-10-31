@@ -54,7 +54,9 @@ export class RepositorioAdmin {
         (SELECT count(*) FROM erro_registro WHERE quando > now() - interval '24 hours')::int AS erros_24h,
         (SELECT count(*) FROM assinatura WHERE status = 'ativa')::int AS assinantes,
         (SELECT count(*) FROM assinatura WHERE status = 'inadimplente')::int AS inadimplentes,
-        (SELECT coalesce(sum(valor_mensal), 0) FROM assinatura WHERE status = 'ativa') AS receita_recorrente
+        -- Receita por mês: a anuidade conta 1/12 por mês.
+        (SELECT coalesce(sum(CASE WHEN ciclo = 'anual' THEN valor_mensal / 12 ELSE valor_mensal END), 0)
+           FROM assinatura WHERE status = 'ativa') AS receita_recorrente
     `);
     const r = rows[0];
     return {
@@ -267,7 +269,7 @@ export class RepositorioAdmin {
         [id],
       ),
       this.pool.query(
-        `SELECT id, nome_plano, valor_mensal, status, criada_em, ativada_em, cancelada_em,
+        `SELECT id, nome_plano, valor_mensal, ciclo, valida_ate, status, criada_em, ativada_em, cancelada_em,
                 (SELECT count(*) FROM pedido p WHERE p.assinatura_id = s.id AND p.status = 'pago')::int AS meses_pagos
            FROM assinatura s WHERE usuario_id = $1 ORDER BY criada_em DESC`,
         [id],
@@ -304,6 +306,8 @@ export class RepositorioAdmin {
         id: s.id,
         nomePlano: s.nome_plano,
         valorMensal: Number(s.valor_mensal),
+        ciclo: s.ciclo,
+        validaAte: dia(s.valida_ate),
         status: s.status,
         criadaEm: dia(s.criada_em),
         ativadaEm: dia(s.ativada_em),

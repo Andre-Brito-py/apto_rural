@@ -28,17 +28,44 @@ import { Resultado } from './paginas/Resultado';
 import { AvisoConfirmarEmail, ConfirmarEmail, EsqueciSenha, RedefinirSenha } from './paginas/Senha';
 import { useSessao } from './sessao';
 
+/** Posição da rolagem de cada entrada do histórico (pela chave da navegação). */
+const posicoes = new Map<string, number>();
+
 /**
  * Tela nova abre do topo. Sem isso, um link do rodapé abria a tela seguinte já rolada até
- * o fim. Voltar e avançar do navegador (POP) mantêm a posição de onde a pessoa estava.
+ * o fim. Voltar e avançar do navegador (POP) devolvem a posição de onde a pessoa estava:
+ * o próprio site guarda e devolve, porque o navegador sozinho restaura antes de a tela
+ * trocar e corta a rolagem quando a tela anterior ainda era curta (ex.: Planos carregando).
  */
 function TelaNovaNoTopo() {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, key } = useLocation();
   const tipo = useNavigationType();
   useEffect(() => {
-    // Com #, a própria tela rola até o trecho pedido (ex.: /ajuda#quilombolas).
-    if (tipo !== 'POP' && !hash) window.scrollTo(0, 0);
-    // Só quando a tela muda: trocar o filtro (?aba=) ou o # não volta ao topo.
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+  }, []);
+  // Guarda a posição desta entrada enquanto a pessoa rola.
+  useEffect(() => {
+    const guardar = () => posicoes.set(key, window.scrollY);
+    window.addEventListener('scroll', guardar, { passive: true });
+    return () => window.removeEventListener('scroll', guardar);
+  }, [key]);
+  useEffect(() => {
+    if (tipo !== 'POP') {
+      // Com #, a própria tela rola até o trecho pedido (ex.: /ajuda#quilombolas).
+      if (!hash) window.scrollTo(0, 0);
+      return;
+    }
+    // Voltar: devolve a posição guardada; se a tela ainda está carregando, tenta por até 1 s.
+    const alvo = posicoes.get(key) ?? 0;
+    let tentativas = 0;
+    let espera: ReturnType<typeof setTimeout>;
+    const devolver = () => {
+      window.scrollTo(0, alvo);
+      if (Math.abs(window.scrollY - alvo) > 2 && ++tentativas < 20) espera = setTimeout(devolver, 50);
+    };
+    devolver();
+    return () => clearTimeout(espera);
+    // Só quando a tela muda: trocar o filtro (?aba=) ou o # não mexe na rolagem.
   }, [pathname]);
   return null;
 }

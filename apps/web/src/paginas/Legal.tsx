@@ -33,6 +33,10 @@ export function Termos() {
           Cada consulta de imóvel real usa 1 crédito de consulta; cada dossiê usa 1 crédito de dossiê. Os créditos entram após a confirmação do
           pagamento pelo meio de pagamento e não vencem. Regras de reembolso: a definir.
         </p>
+        <p>
+          A assinatura pode ser mensal ou anual. No plano anual, os créditos do ano inteiro entram no pagamento, e a renovação é automática
+          depois de um ano. Cancelar a renovação mantém o plano até o fim do ano pago.
+        </p>
       </section>
       <Link to="/privacidade">Política de privacidade</Link>
     </div>

@@ -70,6 +70,8 @@ A central de ajuda tem a resposta "Como uso um cupom de desconto?".
 
 ---
 
+**No plano anual** ([plano-anual.md](plano-anual.md)), o desconto vai na anuidade. Um cupom de "N mensalidades" vale só na primeira anuidade; um de "todas as mensalidades" vale em todas. Na página de Planos, o cupom mostra o preço com desconto no mensal e no anual.
+
 ## 4. Como o desconto chega ao Asaas
 
 O Asaas não tem um cadastro de "cupom". O Apto Rural calcula o preço com desconto e manda **esse valor** para a cobrança. Por isso funciona com Pix, cartão e boleto, sem nada a configurar no Asaas.

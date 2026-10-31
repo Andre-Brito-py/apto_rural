@@ -42,12 +42,17 @@ export const PACOTES_LEGADOS: Produto[] = [
   { id: 'pacote-escritorio', nome: 'Pacote Escritório', descricao: '', valor: 499, creditos: { consulta: 100, dossie: 10 }, ativo: false },
 ];
 
-/** Assinatura mensal: créditos todo mês e carteira de imóveis acompanhados. */
+/** Assinatura mensal (ou anual): créditos e carteira de imóveis acompanhados. */
 export interface Plano {
   id: string;
   nome: string;
   descricao: string;
   valorMensal: number;
+  /**
+   * Preço do plano anual: uma cobrança por ano, com os créditos de 12 meses liberados no
+   * pagamento (docs/plano-anual.md). null = sem opção anual; ausente = o padrão do plano.
+   */
+  valorAnual?: number | null;
   /** Créditos lançados a cada mensalidade paga (acumulam: não vencem). */
   creditosMensais: { consulta: number; dossie: number };
   /** Quantos imóveis a conta pode acompanhar na carteira com este plano. */
@@ -56,6 +61,17 @@ export interface Plano {
   limiteMembros: number;
   destaque?: boolean;
   ativo: boolean;
+}
+
+/** Configurações salvas antes do plano anual não têm o campo: vale o padrão do plano (ou sem anual). */
+export function valorAnualDoPlano(p: Pick<Plano, 'id'> & { valorAnual?: number | null }): number | null {
+  if (p.valorAnual !== undefined) return p.valorAnual;
+  return PLANOS_PADRAO.find((x) => x.id === p.id)?.valorAnual ?? null;
+}
+
+/** Créditos de um ano do plano (liberados de uma vez no plano anual). */
+export function creditosDoAno(p: Pick<Plano, 'creditosMensais'>) {
+  return { consulta: p.creditosMensais.consulta * 12, dossie: p.creditosMensais.dossie * 12 };
 }
 
 /** Configurações salvas antes das equipes não têm o campo: vale o padrão do plano (ou 1). */
@@ -70,6 +86,8 @@ export const PLANOS_PADRAO: Plano[] = [
     nome: 'Projetista',
     descricao: '20 consultas e 2 dossiês por mês, carteira com até 50 imóveis.',
     valorMensal: 199,
+    // Anual = 10 mensalidades (2 meses grátis).
+    valorAnual: 1990,
     creditosMensais: { consulta: 20, dossie: 2 },
     limiteCarteira: 50,
     limiteMembros: 1,
@@ -81,6 +99,7 @@ export const PLANOS_PADRAO: Plano[] = [
     nome: 'Escritório',
     descricao: '100 consultas e 10 dossiês por mês, carteira com até 300 imóveis e equipe de até 5 pessoas.',
     valorMensal: 499,
+    valorAnual: 4990,
     creditosMensais: { consulta: 100, dossie: 10 },
     limiteCarteira: 300,
     limiteMembros: 5,

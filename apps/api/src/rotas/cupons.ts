@@ -5,6 +5,7 @@ import { avaliarCupom, encerrarDesconto, NAO_ENCONTRADO, type ItemCompra } from 
 import { FORMATO_CODIGO, normalizarCodigo, situacao } from '../cupons/regras.js';
 import type { DadosCupom } from '../cupons/tipos.js';
 import { erro, hojeBrasilia, nivelAdmin, usuarioDaRequisicao, type Contexto, type NivelAdmin } from '../contexto.js';
+import { valorAnualDoPlano } from '../produtos.js';
 
 const data = z
   .string()
@@ -59,14 +60,19 @@ export function rotasCupons(app: FastifyInstance, ctx: Contexto) {
     const corpo = comCodigo.safeParse(req.body);
     if (!corpo.success) return erro(reply, 400, 'Digite o código do cupom.', 'cupom');
     const u = await usuarioDaRequisicao(ctx, req);
+    // Planos com opção anual entram duas vezes: o preço mensal e o da anuidade.
+    const anuais = (await ctx.config.obter()).planos
+      .filter((p) => p.ativo && valorAnualDoPlano(p) != null)
+      .map((p) => ({ id: p.id, nome: `${p.nome} (anual)`, valor: valorAnualDoPlano(p)!, plano: true, anual: true, ativo: true }));
     const resultados = await Promise.all(
-      (await itens())
+      [...(await itens()), ...anuais]
         .filter((i) => i.ativo)
         .map(async (i) => {
           const a = await avaliarCupom(ctx, corpo.data.codigo, i, u);
+          const ciclo = !i.plano ? undefined : i.anual ? ('anual' as const) : ('mensal' as const);
           return a.ok
-            ? { id: i.id, plano: i.plano, valido: true as const, de: i.valor, por: a.final, desconto: a.desconto, meses: a.meses, texto: a.texto }
-            : { id: i.id, plano: i.plano, valido: false as const, mensagem: a.mensagem, motivo: a.motivo };
+            ? { id: i.id, plano: i.plano, ciclo, valido: true as const, de: i.valor, por: a.final, desconto: a.desconto, meses: a.meses, texto: a.texto }
+            : { id: i.id, plano: i.plano, ciclo, valido: false as const, mensagem: a.mensagem, motivo: a.motivo };
         }),
     );
     if (!resultados.some((r) => r.valido)) {

@@ -108,6 +108,8 @@ await p.goto(BASE + '/carteira');
 await foto(p, '09-carteira');
 await p.goto(BASE + '/planos');
 await foto(p, '10-planos');
+await p.getByRole('radio', { name: /Anual/ }).click();
+await foto(p, '10b-planos-anual', { fullPage: true, clip: { x: 0, y: 0, width: 1280, height: 1250 } });
 await p.goto(urlResultado);
 await p.waitForTimeout(800);
 await p.getByRole('button', { name: 'Abrir a central de ajuda' }).click();

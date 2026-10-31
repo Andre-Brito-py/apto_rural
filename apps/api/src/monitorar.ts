@@ -10,6 +10,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { avaliar, compararResultados } from '@apto/regras';
+import { encerrarAnuaisVencidas } from './assinaturas/mensalidades.js';
 import { config } from './config.js';
 import { hojeBrasilia, type Contexto } from './contexto.js';
 import { mensagemAvisosCarteira } from './email/mensagens.js';
@@ -140,6 +141,8 @@ function proximaExecucao(): number {
 
 async function rodar(ctx: Contexto) {
   const inicio = Date.now();
+  // Plano anual com a renovação cancelada e o ano pago já acabado: encerra (docs/plano-anual.md).
+  const anuaisEncerrados = await encerrarAnuaisVencidas(ctx.contas);
   const r = await monitorarCarteira(ctx);
   const basesComProblema = await verificarBases(ctx);
   const limpos = await ctx.admin?.limparVencidos();
@@ -147,7 +150,8 @@ async function rodar(ctx: Contexto) {
     `[${new Date().toISOString()}] Carteira: ${r.imoveis} imóveis reconferidos, ${r.comMudanca} com mudança, ` +
       `${r.falhas} falhas, ${r.emails} e-mails, em ${Math.round((Date.now() - inicio) / 1000)}s. ` +
       `Bases e backup com problema: ${basesComProblema}.` +
-      (limpos ? ` Limpeza: ${limpos.sessoes} sessões, ${limpos.tokens} links e ${limpos.erros} erros antigos.` : ''),
+      (limpos ? ` Limpeza: ${limpos.sessoes} sessões, ${limpos.tokens} links e ${limpos.erros} erros antigos.` : '') +
+      (anuaisEncerrados ? ` Planos anuais encerrados no fim do ano pago: ${anuaisEncerrados}.` : ''),
   );
   await ctx.erros.enviarAgora();
 }

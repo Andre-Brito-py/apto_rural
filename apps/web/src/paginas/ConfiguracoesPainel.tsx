@@ -182,7 +182,11 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
 
   return (
     <div className="pilha-p">
-      <strong>Planos mensais (assinatura)</strong>
+      <strong>Planos de assinatura (mensal e anual)</strong>
+      <span className="ajuda" style={{ marginTop: 0 }}>
+        R$/ano é o preço do plano anual: uma cobrança por ano, com as consultas e os dossiês de 12 meses liberados no pagamento. Deixe vazio
+        para não oferecer o anual. Quem já assina mantém o preço que contratou.
+      </span>
       <div className="tabela-rolavel">
         <table className="tabela tabela-edicao">
           <thead>
@@ -191,6 +195,7 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
               <th>Nome</th>
               <th>Descrição</th>
               <th>R$/mês</th>
+              <th title="Uma cobrança por ano, com os créditos de 12 meses liberados no pagamento. Vazio = sem opção anual.">R$/ano</th>
               <th>Consultas/mês</th>
               <th>Dossiês/mês</th>
               <th>Carteira</th>
@@ -217,6 +222,18 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
                 </td>
                 <td>
                   <input className="entrada" type="number" step="0.01" value={p.valorMensal} onChange={(e) => mudar(i, { valorMensal: num(e.target.value) })} disabled={!podeAlterar} />
+                </td>
+                <td>
+                  <input
+                    className="entrada"
+                    type="number"
+                    step="0.01"
+                    placeholder="sem anual"
+                    aria-label={`Valor anual do plano ${p.nome}`}
+                    value={p.valorAnual ?? ''}
+                    onChange={(e) => mudar(i, { valorAnual: e.target.value === '' ? null : num(e.target.value) })}
+                    disabled={!podeAlterar}
+                  />
                 </td>
                 <td>
                   <input
@@ -269,7 +286,7 @@ function PlanosEditor({ inicial, podeAlterar }: { inicial: Plano[]; podeAlterar:
             type="button"
             className="botao botao-secundario"
             onClick={() =>
-              setPlanos((ps) => [...ps, { id: '', nome: '', descricao: '', valorMensal: 0, creditosMensais: { consulta: 0, dossie: 0 }, limiteCarteira: 0, limiteMembros: 1, ativo: true }])
+              setPlanos((ps) => [...ps, { id: '', nome: '', descricao: '', valorMensal: 0, valorAnual: null, creditosMensais: { consulta: 0, dossie: 0 }, limiteCarteira: 0, limiteMembros: 1, ativo: true }])
             }
           >
             Novo plano

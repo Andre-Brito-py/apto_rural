@@ -350,6 +350,12 @@ export function Landing() {
                     {reais(p.valorMensal)}
                     <span>/mês</span>
                   </p>
+                  {p.valorAnual != null && (
+                    <p className="plano-anual-conta">
+                      ou {reais(p.valorAnual)} por ano
+                      {12 * p.valorMensal > p.valorAnual ? `, economia de ${reais(12 * p.valorMensal - p.valorAnual)}` : ''}
+                    </p>
+                  )}
                   <ul>
                     <li>
                       <Icone nome="check" className="l-icone-p" /> {p.creditosMensais.consulta} consultas por mês

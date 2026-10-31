@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Route } from '@playwright/test';
 import { vigiarErros } from './apoio';
 
 test.describe('páginas públicas', () => {
@@ -34,6 +34,26 @@ test.describe('páginas públicas', () => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const antes = await page.evaluate(() => window.scrollY);
     expect(antes).toBeGreaterThan(500);
+    await page.locator('.rodape').getByRole('link', { name: 'Planos e preços' }).click();
+    await expect(page).toHaveURL(/\/planos$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/ajuda$/);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+  });
+
+  test('voltar devolve à mesma altura mesmo quando a tela seguinte ainda estava carregando', async ({ page }) => {
+    // Planos lentos: a tela de Planos ainda está curta quando a pessoa volta. O navegador sozinho
+    // cortava a rolagem nessa hora; o site guarda a posição e devolve depois de trocar de tela.
+    const atrasar = async (rota: Route) => {
+      await new Promise((ok) => setTimeout(ok, 3000));
+      await rota.continue();
+    };
+    await page.route('**/v1/planos', atrasar);
+    await page.route('**/v1/produtos', atrasar);
+    await page.goto('/ajuda');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
     await page.locator('.rodape').getByRole('link', { name: 'Planos e preços' }).click();
     await expect(page).toHaveURL(/\/planos$/);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);

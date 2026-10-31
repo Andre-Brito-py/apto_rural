@@ -54,6 +54,12 @@ O que **fica guardado** e por quê:
 - A conta e os dados continuam sendo de cada pessoa: cada membro baixa os próprios dados e exclui a própria conta. Ao sair da equipe, volta a usar só a própria conta.
 - As consultas feitas por um membro ficam ligadas a ele (não ao responsável); o crédito gasto fica no extrato do responsável com a indicação de quem usou.
 
+## Plano anual (docs/plano-anual.md)
+
+- **Cancelar é não renovar:** o plano anual vale até o fim do ano pago, e não há devolução proporcional. Os créditos do ano já foram entregues no pagamento.
+- **Direito de arrependimento:** compra pela internet pode ser desfeita em até 7 dias (Código de Defesa do Consumidor, art. 49). Hoje isso é feito pelo painel: cancelar a assinatura e estornar o pedido.
+- **A CONFIRMAR** com advogado: a regra de devolução do anual, o tratamento dos créditos já usados no arrependimento e o texto dos termos de uso.
+
 ## Apoio por inteligência artificial (docs/ia.md)
 
 - **A IA não decide nada:** o resultado é do motor de regras. A explicação só reescreve, sempre com o aviso de que foi gerada por IA e de que vale o resultado oficial. Texto que mude a situação ou prometa aprovação é barrado antes de aparecer.

@@ -106,6 +106,8 @@ export interface FichaUsuario {
     id: string;
     nomePlano: string;
     valorMensal: number;
+    ciclo?: CicloAssinatura;
+    validaAte?: string | null;
     status: Assinatura['status'];
     criadaEm: string;
     ativadaEm: string | null;
@@ -200,6 +202,8 @@ export interface Plano {
   nome: string;
   descricao: string;
   valorMensal: number;
+  /** Preço do plano anual (créditos do ano liberados no pagamento); null = sem opção anual. */
+  valorAnual?: number | null;
   creditosMensais: Saldo;
   limiteCarteira: number;
   /** Pessoas que usam a conta, contando o responsável (1 = sem equipe). */
@@ -237,10 +241,14 @@ export interface ConviteEquipe {
   situacao: 'pendente' | 'aceito' | 'cancelado' | 'vencido';
 }
 
+export type CicloAssinatura = 'mensal' | 'anual';
+
 export interface Assinatura {
   id: string;
   planoId: string;
   nomePlano: string;
+  ciclo: CicloAssinatura;
+  /** Valor de cada cobrança: a mensalidade ou, no anual, a anuidade. */
   valorMensal: number;
   creditos: Saldo;
   limiteCarteira: number;
@@ -248,6 +256,9 @@ export interface Assinatura {
   link?: string;
   criadaEm: string;
   ativadaEm?: string;
+  /** Anual: até quando o ano pago vale; renovacaoCanceladaEm = não vai renovar. */
+  validaAte?: string;
+  renovacaoCanceladaEm?: string;
   /** Cupom em andamento: valorMensal é o valor com desconto; mesesRestantes null = todas as mensalidades. */
   desconto?: { cupom: string; valorCheio: number; mesesRestantes: number | null } | null;
 }
@@ -292,9 +303,10 @@ export interface Pedido {
 }
 
 /** Preço de um plano ou produto com o cupom digitado (docs/cupons.md). */
+/** Nos planos, ciclo diz se é o preço mensal ou o anual (os dois vêm na lista). */
 export type PrecoCupom =
-  | { id: string; plano: boolean; valido: true; de: number; por: number; desconto: number; meses: number | null; texto: string }
-  | { id: string; plano: boolean; valido: false; mensagem: string };
+  | { id: string; plano: boolean; ciclo?: CicloAssinatura; valido: true; de: number; por: number; desconto: number; meses: number | null; texto: string }
+  | { id: string; plano: boolean; ciclo?: CicloAssinatura; valido: false; mensagem: string };
 
 export type SituacaoCupom = 'ativo' | 'pausado' | 'agendado' | 'vencido' | 'esgotado';
 
@@ -582,9 +594,9 @@ export const api = {
   pedido: (id: string) => pedir<{ pedido: Pedido; produto?: Produto }>(`/v1/pedidos/${encodeURIComponent(id)}`),
   planos: () => pedir<{ planos: Plano[]; pagamentoDisponivel: boolean; exigeDocumento: boolean }>('/v1/planos'),
   assinatura: () => pedir<{ assinatura: Assinatura | null; limiteCarteira: number; podePagar: boolean }>('/v1/assinatura'),
-  assinar: (plano: string, documento?: string, cupom?: string) =>
-    pedir<{ id: string; link: string }>('/v1/assinaturas', post({ plano, documento, cupom })),
-  cancelarAssinatura: () => pedir<{ ok: boolean }>('/v1/assinatura/cancelar', post()),
+  assinar: (plano: string, documento?: string, cupom?: string, ciclo: CicloAssinatura = 'mensal') =>
+    pedir<{ id: string; link: string }>('/v1/assinaturas', post({ plano, documento, cupom, ciclo })),
+  cancelarAssinatura: () => pedir<{ ok: boolean; validaAte?: string }>('/v1/assinatura/cancelar', post()),
   pagarMesSimulado: (id: string) => pedir<{ ok: boolean; saldo: Saldo }>(`/v1/dev/assinaturas/${encodeURIComponent(id)}/pagar-mes`, post()),
 
   carteira: () => pedir<{ imoveis: ImovelCarteira[]; limite: number; disponivel: boolean; podeRemover: boolean }>('/v1/carteira'),

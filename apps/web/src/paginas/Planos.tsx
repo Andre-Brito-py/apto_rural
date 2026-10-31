@@ -1,24 +1,37 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { api, type Assinatura, type Catalogo, type Plano, type PrecoCupom, type Produto, type Saldo } from '../api';
+import { api, type Assinatura, type Catalogo, type CicloAssinatura, type Plano, type PrecoCupom, type Produto, type Saldo } from '../api';
 import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
 import { contagem, dataBr } from '../textos';
 
 const reais = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-/** "Nas 3 primeiras mensalidades; depois, R$ 199,00/mês." */
-function precoDepois(p: Extract<PrecoCupom, { valido: true }>, cheio: number) {
+/** "Nas 3 primeiras mensalidades; depois, R$ 199,00/mês." (no anual, "/ano") */
+function precoDepois(p: Extract<PrecoCupom, { valido: true }>, cheio: number, ciclo: CicloAssinatura) {
   if (p.meses == null) return `${p.texto}.`;
-  return `${p.texto}; depois, ${reais(cheio)}/mês.`;
+  return `${p.texto}; depois, ${reais(cheio)}${ciclo === 'anual' ? '/ano' : '/mês'}.`;
 }
+
+const POR: Record<CicloAssinatura, string> = { mensal: '/mês', anual: '/ano' };
+
+/** Preços do cupom por item: o plano entra duas vezes (mensal e anual); o avulso, uma. */
+const chavePreco = (id: string, ciclo?: CicloAssinatura) => `${id}|${ciclo ?? ''}`;
 
 const SITUACAO: Record<Assinatura['status'], string> = {
   pendente: 'Aguardando o primeiro pagamento',
   ativa: 'Ativa',
-  inadimplente: 'Mensalidade em atraso',
+  inadimplente: 'Pagamento em atraso',
   cancelada: 'Cancelada',
 };
+
+/** "2 meses grátis" quando o anual sai por um número inteiro de mensalidades a menos; senão, só "com desconto". */
+function vantagemAnual(planos: Plano[]): string {
+  const meses = planos.filter((p) => p.valorAnual != null).map((p) => (12 * p.valorMensal - p.valorAnual!) / p.valorMensal);
+  if (!meses.length) return '';
+  const inteiro = meses.every((m) => m === meses[0] && Number.isInteger(m) && m > 0);
+  return inteiro ? `${meses[0]} ${meses[0] === 1 ? 'mês grátis' : 'meses grátis'}` : 'com desconto';
+}
 
 /** Escolha do que comprar: assinatura mensal (principal) ou compra avulsa. */
 export function Planos() {
@@ -37,6 +50,9 @@ export function Planos() {
   const [parametros, setParametros] = useSearchParams();
   const [codigo, setCodigo] = useState(parametros.get('cupom') ?? '');
   const [cupom, setCupom] = useState<{ codigo: string; precos: Record<string, PrecoCupom> } | null>(null);
+  // Mensal ou anual: o link de divulgação pode já vir com ?ciclo=anual.
+  const [ciclo, setCiclo] = useState<CicloAssinatura>(parametros.get('ciclo') === 'anual' ? 'anual' : 'mensal');
+  const temAnual = planos.some((p) => p.valorAnual != null);
   const [erroCupom, setErroCupom] = useState('');
   const [aplicando, setAplicando] = useState(false);
   const [sucesso, setSucesso] = useState('');
@@ -56,9 +72,9 @@ export function Planos() {
     try {
       const r = await api.validarCupom(texto);
       conferido.current = `${r.codigo}|${sessao?.usuario.id ?? ''}`;
-      setCupom({ codigo: r.codigo, precos: Object.fromEntries(r.itens.map((i) => [i.id, i])) });
+      setCupom({ codigo: r.codigo, precos: Object.fromEntries(r.itens.map((i) => [chavePreco(i.id, i.ciclo), i])) });
       setCodigo(r.codigo);
-      setParametros({ cupom: r.codigo }, { replace: true });
+      setParametros({ cupom: r.codigo, ...(ciclo === 'anual' ? { ciclo } : {}) }, { replace: true });
     } catch (e) {
       setErroCupom((e as Error).message);
     } finally {
@@ -79,12 +95,22 @@ export function Planos() {
     setParametros({}, { replace: true });
   }
 
-  /** Preço com o cupom, se ele vale neste plano ou produto. */
-  const comCupom = (id: string) => {
-    const p = cupom?.precos[id];
+  /** Preço com o cupom, se ele vale neste plano (no ciclo escolhido) ou produto. */
+  const comCupom = (id: string, c?: CicloAssinatura) => {
+    const p = cupom?.precos[chavePreco(id, c)];
     return p?.valido ? p : null;
   };
-  const cupomDe = (id: string) => (comCupom(id) ? cupom!.codigo : undefined);
+  const cupomDe = (id: string, c?: CicloAssinatura) => (comCupom(id, c) ? cupom!.codigo : undefined);
+  const mensagemCupom = (id: string, c?: CicloAssinatura) => (cupom?.precos[chavePreco(id, c)] as { mensagem?: string } | undefined)?.mensagem;
+
+  function escolherCiclo(c: CicloAssinatura) {
+    setCiclo(c);
+    setEscolhido(null);
+    const p = new URLSearchParams(parametros);
+    if (c === 'anual') p.set('ciclo', 'anual');
+    else p.delete('ciclo');
+    setParametros(p, { replace: true });
+  }
 
   useEffect(() => {
     if (sessao)
@@ -131,11 +157,20 @@ export function Planos() {
     }
   }
 
+  // Anual já pago: cancelar é não renovar (o plano vale até o fim do ano pago).
+  const anualPago = assinatura?.ciclo === 'anual' && assinatura.status === 'ativa' && assinatura.validaAte != null;
+
   async function cancelar() {
-    if (!window.confirm('Cancelar a assinatura? As próximas mensalidades não serão cobradas e os créditos que você já tem continuam seus.')) return;
+    const pergunta = anualPago
+      ? `Cancelar a renovação? O plano continua valendo até ${dataBr(assinatura!.validaAte!)}, e a próxima anuidade não será cobrada. Os créditos que você já tem continuam seus.`
+      : 'Cancelar a assinatura? As próximas cobranças não serão feitas e os créditos que você já tem continuam seus.';
+    if (!window.confirm(pergunta)) return;
     try {
-      await api.cancelarAssinatura();
-      setAssinatura(null);
+      const r = await api.cancelarAssinatura();
+      if (r.validaAte) {
+        setAssinatura({ ...assinatura!, renovacaoCanceladaEm: new Date().toISOString() });
+        setSucesso(`Renovação cancelada. Seu plano continua valendo até ${dataBr(r.validaAte)}.`);
+      } else setAssinatura(null);
     } catch (e) {
       setErro((e as Error).message);
     }
@@ -155,7 +190,9 @@ export function Planos() {
       <div className="topo-pagina topo-centro">
         <p className="sobretitulo">Planos</p>
         <h1 className="titulo-pagina">Escolha como quer usar o Apto Rural</h1>
-        <p className="subtitulo">Assine e receba créditos todo mês, com a carteira de fazendas inclusa. Pix, cartão ou boleto.</p>
+        <p className="subtitulo">
+          Assine por mês ou por ano e receba créditos, com a carteira de fazendas inclusa. Pix, cartão ou boleto.
+        </p>
       </div>
 
       {catalogo?.simulado && (
@@ -226,7 +263,8 @@ export function Planos() {
           {assinatura && (
             <div className="assinatura-atual pilha-p">
               <p>
-                Plano <strong>{assinatura.nomePlano}</strong> — {reais(assinatura.valorMensal)}/mês
+                Plano <strong>{assinatura.nomePlano}</strong> — {reais(assinatura.valorMensal)}
+                {POR[assinatura.ciclo ?? 'mensal']}
                 {assinatura.desconto && (
                   <span className="fonte-suave">
                     {' '}
@@ -234,25 +272,35 @@ export function Planos() {
                     {assinatura.desconto.mesesRestantes == null
                       ? ''
                       : assinatura.desconto.mesesRestantes === 0
-                        ? `; a próxima já vem com o valor cheio, ${reais(assinatura.desconto.valorCheio)}/mês`
-                        : `; ainda ${assinatura.desconto.mesesRestantes === 1 ? 'mais 1 mensalidade' : `mais ${assinatura.desconto.mesesRestantes} mensalidades`} com desconto, depois ${reais(assinatura.desconto.valorCheio)}/mês`}
+                        ? `; a próxima já vem com o valor cheio, ${reais(assinatura.desconto.valorCheio)}${POR[assinatura.ciclo ?? 'mensal']}`
+                        : assinatura.ciclo === 'anual'
+                          ? `; desconto na primeira anuidade, depois ${reais(assinatura.desconto.valorCheio)}/ano`
+                          : `; ainda ${assinatura.desconto.mesesRestantes === 1 ? 'mais 1 mensalidade' : `mais ${assinatura.desconto.mesesRestantes} mensalidades`} com desconto, depois ${reais(assinatura.desconto.valorCheio)}/mês`}
                     )
                   </span>
                 )}{' '}
                 ·{' '}
                 <span className={assinatura.status === 'ativa' ? 'verificacao sim' : 'verificacao nao'}>{SITUACAO[assinatura.status]}</span>
                 {assinatura.ativadaEm && <span className="fonte-suave"> · desde {dataBr(assinatura.ativadaEm)}</span>}
+                {anualPago && (
+                  <span className="fonte-suave">
+                    {' '}
+                    · {assinatura.renovacaoCanceladaEm ? 'renovação cancelada: vale até' : 'renova em'} {dataBr(assinatura.validaAte!)}
+                  </span>
+                )}
               </p>
               {podePagar && (
                 <div className="acoes-imovel">
                   {assinatura.status !== 'ativa' && assinatura.link && (
                     <a href={assinatura.link} className="botao botao-primario">
-                      Pagar mensalidade
+                      {assinatura.ciclo === 'anual' ? 'Pagar anuidade' : 'Pagar mensalidade'}
                     </a>
                   )}
-                  <button type="button" className="link-botao" onClick={cancelar}>
-                    Cancelar assinatura
-                  </button>
+                  {!assinatura.renovacaoCanceladaEm && (
+                    <button type="button" className="link-botao" onClick={cancelar}>
+                      {anualPago ? 'Cancelar renovação' : 'Cancelar assinatura'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -261,64 +309,108 @@ export function Planos() {
       )}
 
       <section className="pilha-p">
-        <h2 className="secao-titulo topo-centro">Assinatura mensal</h2>
-        <ul className="l-planos">
-          {planos.map((p) => (
-            <li key={p.id} className={`l-plano${p.destaque ? ' l-plano-destaque' : ''}`}>
-              {p.destaque && <span className="l-plano-selo">Recomendado</span>}
-              <h3>{p.nome}</h3>
-              {comCupom(p.id) ? (
-                <>
-                  <p className="l-plano-preco">
-                    <s className="preco-antigo">{reais(p.valorMensal)}</s> {reais(comCupom(p.id)!.por)}
-                    <span>/mês</span>
-                  </p>
-                  <p className="cupom-texto">{precoDepois(comCupom(p.id)!, p.valorMensal)}</p>
-                </>
-              ) : (
-                <p className="l-plano-preco">
-                  {reais(p.valorMensal)}
-                  <span>/mês</span>
-                </p>
-              )}
-              {cupom && !comCupom(p.id) && <p className="cupom-nao-vale">{(cupom.precos[p.id] as { mensagem?: string })?.mensagem ?? 'O cupom não vale neste plano.'}</p>}
-              <ul>
-                {[
-                  `${contagem(p.creditosMensais.consulta, 'consulta', 'consultas')} por mês`,
-                  `${contagem(p.creditosMensais.dossie, 'dossiê', 'dossiês')} por mês`,
-                  `Carteira com até ${p.limiteCarteira} fazendas, reconferidas todo dia`,
-                  ...((p.limiteMembros ?? 1) > 1 ? [`Equipe de até ${p.limiteMembros} pessoas, cada uma com o próprio login`] : []),
-                  'Créditos que sobram passam para o mês seguinte',
-                ].map((t) => (
-                  <li key={t}>
-                    <Icone nome="check" className="l-icone-p" /> {t}
-                  </li>
-                ))}
-              </ul>
-              {campoDocumento(`plano:${p.id}`)}
-              <button
-                type="button"
-                className={`l-botao ${p.destaque ? 'l-botao-marca' : 'l-botao-claro'}`}
-                style={{ marginTop: 'auto' }}
-                disabled={enviando || !podePagar || !catalogo?.pagamentoDisponivel || (assinatura != null && assinatura.planoId !== p.id)}
-                onClick={() => seguir(`plano:${p.id}`, () => api.assinar(p.id, documento || undefined, cupomDe(p.id)))}
-              >
-                {assinatura?.planoId === p.id
-                  ? podePagar
-                    ? 'Seu plano'
-                    : 'Plano da equipe'
-                  : !podePagar
-                    ? 'Só o responsável assina'
-                  : assinatura
-                    ? 'Cancele o atual para trocar'
-                    : escolhido === `plano:${p.id}` || !exigeDocumento
-                      ? 'Ir para o pagamento'
-                      : 'Assinar'}
+        <h2 className="secao-titulo topo-centro">Assinatura</h2>
+        {temAnual && (
+          <div className="ciclo-escolha" role="radiogroup" aria-label="Forma de pagamento da assinatura">
+            {(['mensal', 'anual'] as const).map((c) => (
+              <button key={c} type="button" role="radio" aria-checked={ciclo === c} className={`ciclo-opcao${ciclo === c ? ' ciclo-ativo' : ''}`} onClick={() => escolherCiclo(c)}>
+                {c === 'mensal' ? 'Mensal' : 'Anual'}
+                {c === 'anual' && vantagemAnual(planos) && <span className="ciclo-selo">{vantagemAnual(planos)}</span>}
               </button>
-            </li>
-          ))}
+            ))}
+          </div>
+        )}
+        <ul className="l-planos">
+          {planos.map((p) => {
+            const anual = ciclo === 'anual';
+            const semAnual = anual && p.valorAnual == null;
+            const cheio = anual ? (p.valorAnual ?? 0) : p.valorMensal;
+            const preco = comCupom(p.id, ciclo);
+            const chave = `plano:${p.id}:${ciclo}`;
+            const seu = assinatura?.planoId === p.id && (assinatura.ciclo ?? 'mensal') === ciclo;
+            const economia = anual && p.valorAnual != null ? 12 * p.valorMensal - p.valorAnual : 0;
+            return (
+              <li key={p.id} className={`l-plano${p.destaque ? ' l-plano-destaque' : ''}`}>
+                {p.destaque && <span className="l-plano-selo">Recomendado</span>}
+                <h3>{p.nome}</h3>
+                {semAnual ? (
+                  <p className="fonte-suave">Este plano não tem opção anual. Veja o mensal.</p>
+                ) : preco ? (
+                  <>
+                    <p className="l-plano-preco">
+                      <s className="preco-antigo">{reais(cheio)}</s> {reais(preco.por)}
+                      <span>{POR[ciclo]}</span>
+                    </p>
+                    <p className="cupom-texto">{precoDepois(preco, cheio, ciclo)}</p>
+                  </>
+                ) : (
+                  <p className="l-plano-preco">
+                    {reais(cheio)}
+                    <span>{POR[ciclo]}</span>
+                  </p>
+                )}
+                {anual && !semAnual && (
+                  <p className="plano-anual-conta">
+                    Equivale a {reais(cheio / 12)}/mês{economia > 0 ? ` · economia de ${reais(economia)} no ano` : ''}
+                  </p>
+                )}
+                {cupom && !semAnual && !preco && <p className="cupom-nao-vale">{mensagemCupom(p.id, ciclo) ?? 'O cupom não vale neste plano.'}</p>}
+                <ul>
+                  {(anual
+                    ? [
+                        `${contagem(p.creditosMensais.consulta * 12, 'consulta', 'consultas')} por ano`,
+                        `${contagem(p.creditosMensais.dossie * 12, 'dossiê', 'dossiês')} por ano`,
+                        'Todos os créditos do ano liberados no pagamento: use na safra',
+                      ]
+                    : [
+                        `${contagem(p.creditosMensais.consulta, 'consulta', 'consultas')} por mês`,
+                        `${contagem(p.creditosMensais.dossie, 'dossiê', 'dossiês')} por mês`,
+                      ]
+                  )
+                    .concat(
+                      `Carteira com até ${p.limiteCarteira} fazendas, reconferidas todo dia`,
+                      ...((p.limiteMembros ?? 1) > 1 ? [`Equipe de até ${p.limiteMembros} pessoas, cada uma com o próprio login`] : []),
+                      anual ? 'Créditos que sobram continuam seus' : 'Créditos que sobram passam para o mês seguinte',
+                    )
+                    .map((t) => (
+                      <li key={t}>
+                        <Icone nome="check" className="l-icone-p" /> {t}
+                      </li>
+                    ))}
+                </ul>
+                {campoDocumento(chave)}
+                <button
+                  type="button"
+                  className={`l-botao ${p.destaque ? 'l-botao-marca' : 'l-botao-claro'}`}
+                  style={{ marginTop: 'auto' }}
+                  disabled={enviando || semAnual || !podePagar || !catalogo?.pagamentoDisponivel || (assinatura != null && !seu)}
+                  onClick={() => seguir(chave, () => api.assinar(p.id, documento || undefined, cupomDe(p.id, ciclo), ciclo))}
+                >
+                  {seu
+                    ? podePagar
+                      ? 'Seu plano'
+                      : 'Plano da equipe'
+                    : !podePagar
+                      ? 'Só o responsável assina'
+                      : assinatura
+                        ? assinatura.renovacaoCanceladaEm && assinatura.validaAte
+                          ? `Disponível depois de ${dataBr(assinatura.validaAte)}`
+                          : 'Cancele o atual para trocar'
+                        : escolhido === chave || !exigeDocumento
+                          ? 'Ir para o pagamento'
+                          : anual
+                            ? 'Assinar por um ano'
+                            : 'Assinar'}
+                </button>
+              </li>
+            );
+          })}
         </ul>
-        <p className="ajuda topo-centro">Cancele quando quiser: as próximas mensalidades deixam de ser cobradas e os créditos que você já tem continuam seus.</p>
+        <p className="ajuda topo-centro">
+          {ciclo === 'anual'
+            ? 'No anual, você paga uma vez por ano e recebe os créditos do ano inteiro na hora. Cancelar é não renovar: o plano vale até o fim do ano pago, e os créditos continuam seus.'
+            : 'Cancele quando quiser: as próximas mensalidades deixam de ser cobradas e os créditos que você já tem continuam seus.'}
+        </p>
       </section>
 
       <section className="pilha-p">
@@ -339,7 +431,7 @@ export function Planos() {
                 </p>
               </div>
               <p className="fonte-suave">{p.descricao}</p>
-              {cupom && !comCupom(p.id) && <p className="cupom-nao-vale">{(cupom.precos[p.id] as { mensagem?: string })?.mensagem ?? 'O cupom não vale neste produto.'}</p>}
+              {cupom && !comCupom(p.id) && <p className="cupom-nao-vale">{mensagemCupom(p.id) ?? 'O cupom não vale neste produto.'}</p>}
               {campoDocumento(`produto:${p.id}`)}
               <button
                 type="button"

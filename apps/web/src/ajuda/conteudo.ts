@@ -535,7 +535,7 @@ export const PERGUNTAS: Pergunta[] = [
     pergunta: 'Como funcionam os créditos?',
     resposta: [
       'Há dois tipos: crédito de consulta (1 por imóvel consultado) e crédito de dossiê (1 por dossiê gerado). Você vê o saldo no alto da tela e em "Minha conta".',
-      'Créditos vêm da compra avulsa ou da assinatura mensal, que renova os créditos todo mês.',
+      'Créditos vêm da compra avulsa ou da assinatura: no plano mensal, chegam a cada mensalidade paga; no anual, os do ano inteiro chegam de uma vez, no pagamento. Créditos não vencem.',
     ],
     links: [
       { rotulo: 'Ver planos', para: '/planos' },
@@ -548,9 +548,9 @@ export const PERGUNTAS: Pergunta[] = [
     id: 'preco',
     categoria: 'creditos',
     pergunta: 'Quanto custa?',
-    resposta: ['Os preços atualizados dos planos mensais e da compra avulsa (consulta e dossiê) estão na tela de Planos.'],
+    resposta: ['Os preços atualizados dos planos (mensal e anual) e da compra avulsa (consulta e dossiê) estão na tela de Planos.'],
     links: [{ rotulo: 'Ver planos e preços', para: '/planos' }],
-    palavras: ['preco', 'valor', 'custa', 'mensalidade', 'quanto e'],
+    palavras: ['preco', 'valor', 'custa', 'mensalidade', 'quanto e', 'anuidade'],
     telas: ['/', '/planos'],
   },
   {
@@ -581,10 +581,26 @@ export const PERGUNTAS: Pergunta[] = [
     id: 'cancelar-assinatura',
     categoria: 'creditos',
     pergunta: 'Como cancelo a assinatura?',
-    resposta: ['Na tela de Planos, use "Cancelar assinatura". As próximas mensalidades não são cobradas, e os créditos que você já tem continuam seus.'],
+    resposta: [
+      'Na tela de Planos, use "Cancelar assinatura". No plano mensal, as próximas mensalidades não são cobradas.',
+      'No plano anual já pago, o botão é "Cancelar renovação": o plano continua valendo até o fim do ano pago, e a próxima anuidade não é cobrada. Em todos os casos, os créditos que você já tem continuam seus.',
+    ],
     links: [{ rotulo: 'Ir para Planos', para: '/planos' }],
-    palavras: ['cancelar', 'parar de pagar', 'assinatura', 'mensalidade'],
+    palavras: ['cancelar', 'parar de pagar', 'assinatura', 'mensalidade', 'cancelar renovacao', 'nao renovar'],
     telas: ['/planos', '/conta'],
+  },
+  {
+    id: 'plano-anual',
+    categoria: 'creditos',
+    pergunta: 'Como funciona o plano anual?',
+    resposta: [
+      'Na tela de Planos, escolha "Anual". Você paga uma vez por ano, por um preço menor que 12 mensalidades, e recebe na hora as consultas e os dossiês do ano inteiro: dá para usar mais na época da safra. A carteira e a equipe são as mesmas do plano mensal.',
+      'A renovação é automática, um ano depois. Para não renovar, use "Cancelar renovação": o plano continua valendo até o fim do ano pago. Os créditos não vencem.',
+      'Cupom de desconto que vale em algumas mensalidades, no anual, vale na primeira anuidade.',
+    ],
+    links: [{ rotulo: 'Ver o plano anual', para: '/planos?ciclo=anual' }],
+    palavras: ['anual', 'plano anual', 'pagar por ano', 'anuidade', 'desconto anual', 'meses gratis', 'pagar uma vez'],
+    telas: ['/planos'],
   },
 
   {
@@ -593,7 +609,7 @@ export const PERGUNTAS: Pergunta[] = [
     pergunta: 'Como uso um cupom de desconto?',
     resposta: [
       'Na tela de Planos, digite o código em "Tem um cupom de desconto?" e toque em Aplicar. Os preços com desconto aparecem em cada plano e produto em que o cupom vale. Se você recebeu um link com o cupom, ele já abre aplicado.',
-      'Na assinatura, o cupom pode valer só nas primeiras mensalidades: a tela de Planos mostra quantas. Depois, a mensalidade volta sozinha ao valor normal. Cada cupom tem prazo e número de usos; se ele não valer mais, a tela explica o motivo.',
+      'Na assinatura, o cupom pode valer só nas primeiras mensalidades (no plano anual, na primeira anuidade): a tela de Planos mostra quantas. Depois, o valor volta sozinho ao normal. Cada cupom tem prazo e número de usos; se ele não valer mais, a tela explica o motivo.',
     ],
     links: [{ rotulo: 'Ir para Planos', para: '/planos' }],
     palavras: ['cupom', 'desconto', 'codigo promocional', 'promocao', 'voucher', 'cupom nao funciona'],

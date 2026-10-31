@@ -5,6 +5,7 @@ import {
   CREDITOS_BOAS_VINDAS_PADRAO,
   LIMITE_CARTEIRA_PADRAO,
   limiteMembrosDoPlano,
+  valorAnualDoPlano,
   PLANOS_PADRAO,
   PRODUTOS_PADRAO,
   type Plano,
@@ -111,6 +112,13 @@ export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], unknown> } = 
           .min(5, 'O valor mínimo da assinatura é R$ 5,00.')
           .max(100000)
           .transform((v) => Math.round(v * 100) / 100),
+        valorAnual: z
+          .number()
+          .min(5, 'O valor mínimo do plano anual é R$ 5,00.')
+          .max(1000000)
+          .transform((v) => Math.round(v * 100) / 100)
+          .nullable()
+          .optional(),
         creditosMensais: creditos,
         limiteCarteira: z.number().int().min(0).max(100000),
         limiteMembros: z.number().int().min(1, 'O plano precisa de pelo menos 1 pessoa (o responsável).').max(1000).default(1),
@@ -179,8 +187,8 @@ export class Configuracoes {
     const valor = { ...PADRAO, ...salvas };
     // Configuração da IA salva antes das funções separadas: todas ligadas, como era.
     valor.ia = { ...PADRAO.ia, ...valor.ia, funcoes: { ...FUNCOES_IA_PADRAO, ...valor.ia?.funcoes } };
-    // Planos salvos antes das equipes: completa o limite de pessoas com o padrão do plano.
-    valor.planos = valor.planos.map((p) => ({ ...p, limiteMembros: limiteMembrosDoPlano(p) }));
+    // Planos salvos antes das equipes e do plano anual: completa com o padrão do plano.
+    valor.planos = valor.planos.map((p) => ({ ...p, limiteMembros: limiteMembrosDoPlano(p), valorAnual: valorAnualDoPlano(p) }));
     this.cache = { valor, quando: Date.now() };
     return valor;
   }

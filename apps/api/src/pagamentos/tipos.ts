@@ -17,6 +17,9 @@ export interface DadosCobranca {
 
 export interface DadosAssinatura {
   assinaturaId: string;
+  /** Mensal ou anual (uma cobrança por ano). */
+  ciclo: 'mensal' | 'anual';
+  /** Valor de cada cobrança (no anual, a anuidade). */
   valorMensal: number;
   descricao: string;
   cliente: DadosCliente;
@@ -50,7 +53,7 @@ export interface ProvedorPagamento {
   estornar(provedorId: string, descricao: string): Promise<void>;
   /** Remove uma cobrança ainda não paga. */
   cancelar(provedorId: string): Promise<void>;
-  /** Cria a assinatura mensal; o link é o da primeira mensalidade. */
+  /** Cria a assinatura (mensal ou anual); o link é o da primeira cobrança. */
   criarAssinatura(dados: DadosAssinatura): Promise<Cobranca>;
   /** Encerra a recorrência (as mensalidades pendentes são removidas). */
   cancelarAssinatura(provedorId: string): Promise<void>;

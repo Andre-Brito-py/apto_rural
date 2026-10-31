@@ -23,13 +23,14 @@ export function MensalidadeSimulada() {
   return (
     <div className="pagina pilha" style={{ maxWidth: 520 }}>
       <p className="alerta" style={{ background: '#fef3c7', borderColor: '#f2d27a' }}>
-        <strong>Mensalidade simulada.</strong> Em produção, esta tela é a fatura da assinatura no Asaas. Cada clique simula um mês pago.
+        <strong>Cobrança simulada.</strong> Em produção, esta tela é a fatura da assinatura no Asaas. Cada clique simula uma cobrança paga: um
+        mês no plano mensal, um ano no anual.
       </p>
       {erro && <p className="alerta alerta-erro">{erro}</p>}
       <div className="cartao pilha-p">
-        {pago && <p className="verificacao sim">✓ Mensalidade confirmada. Os créditos do mês já estão na sua conta.</p>}
+        {pago && <p className="verificacao sim">✓ Pagamento confirmado. Os créditos já estão na sua conta.</p>}
         <button type="button" className="botao botao-primario" onClick={pagar}>
-          {pago ? 'Simular mais um mês pago' : 'Simular mensalidade paga'}
+          {pago ? 'Simular mais uma cobrança paga' : 'Simular pagamento'}
         </button>
         <Link to="/planos">Ver meu plano</Link>
       </div>

@@ -205,14 +205,17 @@ export class RepositorioContasMemoria implements RepositorioContas {
 
   private assinaturas = new Map<string, Assinatura>();
 
-  async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>) {
+  async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm' | 'validaAte' | 'renovacaoCanceladaEm'>) {
     if (await this.assinaturaAtual(a.usuarioId)) return 'ja_existe' as const;
     const nova: Assinatura = { ...a, id: randomUUID(), status: 'pendente', criadaEm: new Date().toISOString() };
     this.assinaturas.set(nova.id, nova);
     return nova;
   }
 
-  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal'>>) {
+  async atualizarAssinatura(
+    id: string,
+    d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal' | 'validaAte' | 'renovacaoCanceladaEm'>>,
+  ) {
     const a = this.assinaturas.get(id);
     if (!a) return;
     Object.assign(a, Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)));
@@ -222,6 +225,12 @@ export class RepositorioContasMemoria implements RepositorioContas {
 
   async buscarAssinatura(id: string) {
     return this.assinaturas.get(id) ?? null;
+  }
+
+  async anuaisVencidas(agora: Date) {
+    return [...this.assinaturas.values()].filter(
+      (a) => a.ciclo === 'anual' && a.status === 'ativa' && a.renovacaoCanceladaEm && a.validaAte && new Date(a.validaAte) < agora,
+    );
   }
 
   async buscarAssinaturaPorProvedor(provedorId: string) {

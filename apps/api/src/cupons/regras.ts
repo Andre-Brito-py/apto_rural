@@ -50,11 +50,15 @@ export function motivoSituacao(s: Exclude<SituacaoCupom, 'ativo'>, c: Cupom): st
   }
 }
 
-/** Texto curto do desconto, para a tela: "30% de desconto" ou "R$ 50,00 de desconto". */
-export function descreverDesconto(c: Pick<Cupom, 'tipo' | 'valor' | 'meses'>, plano: boolean): string {
+/**
+ * Texto curto do desconto, para a tela: "30% de desconto" ou "R$ 50,00 de desconto". No plano
+ * anual, um cupom de algumas mensalidades vale só na primeira anuidade (docs/plano-anual.md).
+ */
+export function descreverDesconto(c: Pick<Cupom, 'tipo' | 'valor' | 'meses'>, plano: boolean, anual = false): string {
   const quanto =
     c.tipo === 'percentual' ? `${c.valor.toLocaleString('pt-BR')}%` : c.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   if (!plano) return `${quanto} de desconto`;
+  if (anual) return c.meses == null ? `${quanto} de desconto em todas as anuidades` : `${quanto} de desconto na primeira anuidade`;
   if (c.meses == null) return `${quanto} de desconto em todas as mensalidades`;
   return c.meses === 1 ? `${quanto} de desconto na primeira mensalidade` : `${quanto} de desconto nas ${c.meses} primeiras mensalidades`;
 }
