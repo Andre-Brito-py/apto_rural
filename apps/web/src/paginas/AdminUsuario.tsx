@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { api, type FichaUsuario, type Papel } from '../api';
 import { useSessao } from '../sessao';
-import { VEREDITO } from '../textos';
+import { dataBr, VEREDITO } from '../textos';
 import { AjusteCreditos, dataHora, descreverDetalhes, NOME_ACAO, reais } from './Admin';
 
 const NOME_PAPEL: Record<Papel, string> = { usuario: 'Cliente', suporte: 'Suporte (só leitura)', admin: 'Administrador' };
@@ -235,9 +235,11 @@ export function AdminUsuario() {
 
       <Tabela
         titulo="Assinaturas"
-        colunas={['Plano', 'Situação', 'Desde', 'Meses pagos', '']}
+        colunas={['Plano', 'Situação', 'Desde', 'Cobranças pagas', '']}
         linhas={ficha.assinaturas.map((s) => [
-          `${s.nomePlano} — ${reais(s.valorMensal)}/mês`,
+          s.ciclo === 'anual'
+            ? `${s.nomePlano} — ${reais(s.valorMensal)}/ano${s.validaAte ? ` (vale até ${dataBr(s.validaAte)})` : ''}`
+            : `${s.nomePlano} — ${reais(s.valorMensal)}/mês`,
           SITUACAO_ASSINATURA[s.status],
           dataHora(s.ativadaEm ?? s.criadaEm),
           String(s.mesesPagos),

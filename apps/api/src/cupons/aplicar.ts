@@ -4,12 +4,14 @@ import type { EventoPagamento } from '../pagamentos/tipos.js';
 import { descreverDesconto, FORMATO_CODIGO, MINIMO_COBRANCA, motivoSituacao, normalizarCodigo, precoComCupom, situacao, valeEm } from './regras.js';
 import type { Cupom, RepositorioCupons } from './tipos.js';
 
-/** O que está sendo comprado: um produto avulso ou um plano mensal. */
+/** O que está sendo comprado: um produto avulso ou um plano (mensal ou anual). */
 export interface ItemCompra {
   id: string;
   nome: string;
   valor: number;
   plano: boolean;
+  /** Plano anual: o valor é o da anuidade. */
+  anual?: boolean;
 }
 
 export type Avaliacao =
@@ -62,7 +64,9 @@ export async function avaliarCupom(ctx: Contexto, codigoDigitado: string, item: 
       motivo: 'minimo',
     };
   }
-  return { ok: true, cupom: c, final, desconto, meses: item.plano ? c.meses : null, texto: descreverDesconto(c, item.plano) };
+  // No anual, "N mensalidades" vira a primeira anuidade; "todas" continua todas.
+  const meses = !item.plano ? null : item.anual && c.meses != null ? 1 : c.meses;
+  return { ok: true, cupom: c, final, desconto, meses, texto: descreverDesconto(c, item.plano, item.anual) };
 }
 
 /** Resposta da reserva atômica, em palavras para o cliente. */

@@ -80,8 +80,8 @@ export class ProvedorAsaas implements ProvedorPagamento {
   }
 
   /**
-   * POST /subscriptions (cycle MONTHLY) com o primeiro vencimento hoje. As
-   * mensalidades são geradas pelo Asaas; o link da primeira vem de
+   * POST /subscriptions (cycle MONTHLY ou YEARLY) com o primeiro vencimento hoje. As
+   * cobranças seguintes são geradas pelo Asaas; o link da primeira vem de
    * GET /subscriptions/{id}/payments (pode levar um instante para existir).
    */
   async criarAssinatura(d: DadosAssinatura): Promise<Cobranca> {
@@ -91,7 +91,7 @@ export class ProvedorAsaas implements ProvedorPagamento {
       billingType: 'UNDEFINED',
       value: d.valorMensal,
       nextDueDate: hojeSaoPaulo(),
-      cycle: 'MONTHLY',
+      cycle: d.ciclo === 'anual' ? 'YEARLY' : 'MONTHLY',
       description: d.descricao,
       externalReference: d.assinaturaId,
     });

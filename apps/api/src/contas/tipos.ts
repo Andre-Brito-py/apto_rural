@@ -54,13 +54,19 @@ export interface Pedido {
 
 export type StatusAssinatura = 'pendente' | 'ativa' | 'inadimplente' | 'cancelada';
 
+/** Mensal: uma cobrança por mês. Anual: uma por ano, com os créditos do ano inteiro (docs/plano-anual.md). */
+export type CicloAssinatura = 'mensal' | 'anual';
+
 export interface Assinatura {
   id: string;
   usuarioId: string;
   planoId: string;
   /** Condições fixadas na contratação. */
   nomePlano: string;
+  ciclo: CicloAssinatura;
+  /** Valor de cada cobrança: a mensalidade ou, no plano anual, a anuidade. */
   valorMensal: number;
+  /** Créditos de cada cobrança paga (no anual, os do ano inteiro). */
   creditos: Saldo;
   limiteCarteira: number;
   /** Pessoas na equipe, contando o responsável (1 = sem equipe). */
@@ -75,6 +81,10 @@ export interface Assinatura {
   criadaEm: string;
   ativadaEm?: string;
   canceladaEm?: string;
+  /** Anual: até quando o ano pago vale. */
+  validaAte?: string;
+  /** Anual: o cliente cancelou a renovação; o plano vale até validaAte. */
+  renovacaoCanceladaEm?: string;
 }
 
 export interface Lancamento {
@@ -131,8 +141,15 @@ export interface RepositorioContas {
   pedidosDoUsuario(usuarioId: string): Promise<Pedido[]>;
 
   /** Cria a assinatura pendente. 'ja_existe' se a conta já tem uma em andamento. */
-  criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>): Promise<Assinatura | 'ja_existe'>;
-  atualizarAssinatura(id: string, dados: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal'>>): Promise<void>;
+  criarAssinatura(
+    a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm' | 'validaAte' | 'renovacaoCanceladaEm'>,
+  ): Promise<Assinatura | 'ja_existe'>;
+  atualizarAssinatura(
+    id: string,
+    dados: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal' | 'validaAte' | 'renovacaoCanceladaEm'>>,
+  ): Promise<void>;
+  /** Anuais com a renovação cancelada cujo ano pago já acabou (para encerrar). */
+  anuaisVencidas(agora: Date): Promise<Assinatura[]>;
   buscarAssinatura(id: string): Promise<Assinatura | null>;
   buscarAssinaturaPorProvedor(provedorId: string): Promise<Assinatura | null>;
   /** A assinatura em andamento (pendente, ativa ou inadimplente), se houver. */

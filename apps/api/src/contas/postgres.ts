@@ -51,6 +51,7 @@ function assinatura(r: Record<string, unknown>): Assinatura {
     usuarioId: r.usuario_id as string,
     planoId: r.plano_id as string,
     nomePlano: r.nome_plano as string,
+    ciclo: ((r.ciclo as string) ?? 'mensal') as Assinatura['ciclo'],
     valorMensal: Number(r.valor_mensal),
     creditos: { consulta: r.creditos_consulta as number, dossie: r.creditos_dossie as number },
     limiteCarteira: r.limite_carteira as number,
@@ -64,6 +65,8 @@ function assinatura(r: Record<string, unknown>): Assinatura {
     criadaEm: data(r.criada_em)!,
     ativadaEm: data(r.ativada_em),
     canceladaEm: data(r.cancelada_em),
+    validaAte: data(r.valida_ate),
+    renovacaoCanceladaEm: data(r.renovacao_cancelada_em),
   };
 }
 
@@ -246,12 +249,12 @@ export class RepositorioContasPostgres implements RepositorioContas {
     return pedido(rows[0]);
   }
 
-  async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm'>) {
+  async criarAssinatura(a: Omit<Assinatura, 'id' | 'status' | 'criadaEm' | 'ativadaEm' | 'canceladaEm' | 'validaAte' | 'renovacaoCanceladaEm'>) {
     try {
       const { rows } = await this.pool.query(
         `INSERT INTO assinatura (usuario_id, plano_id, nome_plano, valor_mensal, creditos_consulta, creditos_dossie, limite_carteira, limite_membros,
-                                 provedor, cupom_codigo, valor_cheio)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+                                 provedor, cupom_codigo, valor_cheio, ciclo)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
         [
           a.usuarioId,
           a.planoId,
@@ -264,6 +267,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
           a.provedor,
           a.cupom ?? null,
           a.valorCheio ?? null,
+          a.ciclo,
         ],
       );
       return assinatura(rows[0]);
@@ -274,15 +278,29 @@ export class RepositorioContasPostgres implements RepositorioContas {
     }
   }
 
-  async atualizarAssinatura(id: string, d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal'>>) {
+  async atualizarAssinatura(
+    id: string,
+    d: Partial<Pick<Assinatura, 'status' | 'provedorId' | 'link' | 'valorMensal' | 'validaAte' | 'renovacaoCanceladaEm'>>,
+  ) {
     await this.pool.query(
       `UPDATE assinatura SET provedor_id = coalesce($2, provedor_id), link = coalesce($3, link), status = coalesce($4, status),
               valor_mensal = coalesce($5, valor_mensal),
+              valida_ate = coalesce($6::timestamptz, valida_ate),
+              renovacao_cancelada_em = coalesce($7::timestamptz, renovacao_cancelada_em),
               ativada_em = CASE WHEN $4 = 'ativa' THEN coalesce(ativada_em, now()) ELSE ativada_em END,
               cancelada_em = CASE WHEN $4 = 'cancelada' THEN now() ELSE cancelada_em END
         WHERE id = $1`,
-      [id, d.provedorId ?? null, d.link ?? null, d.status ?? null, d.valorMensal ?? null],
+      [id, d.provedorId ?? null, d.link ?? null, d.status ?? null, d.valorMensal ?? null, d.validaAte ?? null, d.renovacaoCanceladaEm ?? null],
     );
+  }
+
+  async anuaisVencidas(agora: Date) {
+    const { rows } = await this.pool.query(
+      `SELECT * FROM assinatura
+        WHERE ciclo = 'anual' AND status = 'ativa' AND renovacao_cancelada_em IS NOT NULL AND valida_ate < $1`,
+      [agora],
+    );
+    return rows.map(assinatura);
   }
 
   async buscarAssinatura(id: string) {

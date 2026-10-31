@@ -399,9 +399,11 @@ describe('webhook de mensalidade do Asaas', () => {
       usuarioId,
       planoId: 'plano-projetista',
       nomePlano: 'Projetista',
+      ciclo: 'mensal',
       valorMensal: 199,
       creditos: { consulta: 20, dossie: 2 },
       limiteCarteira: 50,
+      limiteMembros: 1,
       provedor: 'asaas',
     });
     if (a === 'ja_existe') throw new Error('inesperado');

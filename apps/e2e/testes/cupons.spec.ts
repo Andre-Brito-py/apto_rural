@@ -39,8 +39,8 @@ test('o administrador cria um cupom no painel e o cliente assina com desconto pe
   await expect(projetista).toContainText('50% de desconto nas 2 primeiras mensalidades; depois, R$ 199,00/mês.');
   await projetista.getByRole('button', { name: /Ir para o pagamento|Assinar/ }).click();
   await expect(cliente).toHaveURL(/pagamento-simulado\/assinatura/);
-  await cliente.getByRole('button', { name: 'Simular mensalidade paga' }).click();
-  await expect(cliente.getByText('Mensalidade confirmada')).toBeVisible();
+  await cliente.getByRole('button', { name: 'Simular pagamento' }).click();
+  await expect(cliente.getByText('Pagamento confirmado')).toBeVisible();
   await cliente.goto('/planos');
   await expect(cliente.getByText(`cupom ${codigo}; ainda mais 1 mensalidade com desconto`)).toBeVisible();
 

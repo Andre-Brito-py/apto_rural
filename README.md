@@ -281,17 +281,21 @@ Os imóveis que o técnico acompanha. Todo dia de manhã o sistema reconfere cad
 ![Planos](docs/img/telas/10-planos.png)
 
 Onde o cliente compra.
-- **Assinatura mensal:** planos Projetista e Escritório, com créditos todo mês e a carteira inclusa.
+- **Assinatura mensal ou anual:** planos Projetista e Escritório, com a carteira inclusa. O seletor **Mensal / Anual** troca os preços: no anual, uma cobrança por ano, com os créditos do ano inteiro liberados no pagamento e 2 meses grátis.
 - **Compra avulsa:** uma consulta ou um dossiê.
 - **Saldo:** quantas consultas e dossiês a pessoa ainda tem.
 - **Cupom:** campo para o cupom de desconto; o link de divulgação `/planos?cupom=CÓDIGO` já chega com o cupom aplicado.
 - **Pagamento:** Pix, cartão ou boleto, pelo Asaas. Os preços vêm do painel e mudam sem mexer no código.
 
+No anual, cada card mostra o valor por mês e quanto se economiza no ano:
+
+![Planos: anual](docs/img/telas/10b-planos-anual.png)
+
 ### 6.10 Central de ajuda
 
 ![Central de ajuda](docs/img/telas/11-central-de-ajuda.png)
 
-O botão verde "Dúvidas?", em todas as telas, abre um chat com **61 respostas prontas**, conferidas no código.
+O botão verde "Dúvidas?", em todas as telas, abre um chat com **63 respostas prontas**, conferidas no código.
 - **Sugestões:** as dúvidas comuns da tela aberta.
 - **Perguntas escritas:** entende o jeito de cada um perguntar ("aceita pix?", "carta ao banco") e mostra links para a tela certa.
 - **Sem resposta pronta:** diz que não achou e oferece os assuntos, sem inventar.
@@ -370,13 +374,13 @@ Mostrar o problema qualquer mapa público mostra. O Apto Rural vai além:
 
 ## 8. Como o produto ganha dinheiro
 
-O principal é a **assinatura mensal**: todo mês o técnico recebe créditos e pode acompanhar mais fazendas na carteira.
+O principal é a **assinatura**, mensal ou anual: o técnico recebe créditos e pode acompanhar mais fazendas na carteira.
 
-| Plano | Preço | Todo mês | Carteira | Pessoas |
-| --- | --- | --- | --- | --- |
-| Projetista | R$ 199/mês | 20 consultas + 2 dossiês | até 50 fazendas | 1 |
-| Escritório | R$ 499/mês | 100 consultas + 10 dossiês | até 300 fazendas | até 5 (equipe) |
-| Sem assinatura | — | — | até 5 fazendas | 1 |
+| Plano | Mensal | Anual | Créditos | Carteira | Pessoas |
+| --- | --- | --- | --- | --- | --- |
+| Projetista | R$ 199/mês | R$ 1.990/ano | 20 consultas + 2 dossiês por mês | até 50 fazendas | 1 |
+| Escritório | R$ 499/mês | R$ 4.990/ano | 100 consultas + 10 dossiês por mês | até 300 fazendas | até 5 (equipe) |
+| Sem assinatura | — | — | — | até 5 fazendas | 1 |
 
 Para quem não quer assinar, há **compra avulsa**: consulta por R$ 39 e dossiê por R$ 190.
 
@@ -387,6 +391,14 @@ Como funciona a assinatura:
 - **Mensalidade atrasada:** a assinatura fica "em atraso" e a carteira volta ao limite de quem não assina até o pagamento. Ninguém perde fazendas que já acompanha: o limite só vale para incluir novas.
 - **Cancelar:** o próprio técnico cancela na página de planos, a qualquer momento. As próximas mensalidades deixam de ser cobradas e os créditos que ele já tem continuam dele.
 - **Trocar de plano:** cancela o atual e assina o outro.
+
+**O plano anual** sai pelo preço de 10 mensalidades (2 meses grátis):
+- **Uma cobrança por ano**, e os créditos do ano inteiro (12 vezes os do mês) entram de uma vez, no pagamento. Dá para concentrar o uso na safra.
+- **Carteira e equipe** são as mesmas do plano mensal.
+- **Renova sozinho** um ano depois. "Cancelar renovação" mantém o plano até o fim do ano pago; a reconferência diária encerra o plano quando esse ano acaba.
+- **O preço anual** de cada plano é editável no painel (Preços e limites); vazio = sem opção anual.
+
+Todas as regras estão em [docs/plano-anual.md](docs/plano-anual.md).
 - Valor, créditos, carteira e número de pessoas ficam **fixados na contratação**: se o plano mudar no painel, quem já assina continua com as condições de quando assinou.
 
 ### Cupons de desconto
@@ -630,7 +642,7 @@ Tecnologias: TypeScript (Node + Fastify na API, React + Vite no site), Python no
 - [x] Backup fora do servidor (cópia cifrada todo dia, em qualquer armazenamento S3) e alertas de site fora do ar e de backup que não rodou (vigia a cada 5 min, pelo endereço público, avisando um serviço externo como o healthchecks.io). Bloco "Servidor" no painel. Testado no ensaio, inclusive a queda do site e a volta da cópia (veja [docs/backup-e-vigia.md](docs/backup-e-vigia.md)).
 - [x] Explicação para o produtor por IA (OpenAI), com conferência automática do texto, explicação de modelo sem IA, chave cifrada pelo painel, limite diário e uso do mês (veja [docs/ia.md](docs/ia.md)).
 - [x] Mais apoio por IA, cada função com liga/desliga e plano B: leitura do recibo do CAR na consulta, conferência de documentos e rascunhos (carta ao banco, retificação do CAR, requerimento ao órgão) no dossiê, frase explicada no e-mail da carteira e análise de norma nova no painel (veja [docs/ia.md](docs/ia.md)).
-- [x] Central de ajuda com cara de chat, com 61 respostas prontas conferidas no código (inclusive as do apoio por IA), busca que entende a pergunta escrita e página `/ajuda`. Também: tour de boas-vindas na primeira entrada, gravado na conta, e menu com todas as telas no celular. Testado no navegador (veja [docs/central-de-ajuda.md](docs/central-de-ajuda.md)).
+- [x] Central de ajuda com cara de chat, com 63 respostas prontas conferidas no código (inclusive as do apoio por IA e do plano anual), busca que entende a pergunta escrita e página `/ajuda`. Também: tour de boas-vindas na primeira entrada, gravado na conta, e menu com todas as telas no celular. Testado no navegador (veja [docs/central-de-ajuda.md](docs/central-de-ajuda.md)).
 
 - [x] Segunda revisão de segurança (27/10/2026): **verificação em duas etapas** (aplicativo autenticador, com códigos de recuperação; obrigatória para administração e suporte em produção), painel só com login de até 12 horas, aviso por e-mail a cada acesso ao painel, alertas de erro que não viram golpe, respostas da API sem cópia no navegador, faxina dos avisos antigos do Asaas e cifra do backup reforçada. Na IA, o pedido vai com raciocínio baixo (a resposta não é mais cortada) e a conferência deixou de barrar texto correto. Veja [docs/seguranca.md](docs/seguranca.md) e [docs/ia.md](docs/ia.md).
 - [x] Cupons de desconto pelo painel, sincronizados com o Asaas: porcentagem ou valor fixo, planos e produtos escolhidos, meses de desconto na assinatura (a mensalidade volta sozinha ao valor cheio), limite de usos no total e por conta, só na primeira compra, datas de início e fim, pausar, encerrar o desconto, link de divulgação e números de cada cupom. Testado na API (memória e PostgreSQL) e no navegador (veja [docs/cupons.md](docs/cupons.md)).
@@ -670,7 +682,8 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 
 *Logo depois do lançamento*
 
-- [ ] Trocar de plano sem cancelar, e plano anual com desconto.
+- [x] Plano anual com desconto (2 meses grátis), com os créditos do ano liberados no pagamento e "cancelar renovação" (veja [docs/plano-anual.md](docs/plano-anual.md)).
+- [ ] Trocar de plano sem cancelar.
 - [ ] Aceitar a planilha do Excel (.xlsx) direto na consulta em lote. Hoje é só CSV.
 - [ ] Conferir o Anexo IV da IE 5/2022 do Incra no DOU contra a tabela de módulos fiscais carregada, quando o site do DOU abrir.
 
@@ -726,6 +739,7 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
 | [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
 | [docs/login-google.md](docs/login-google.md) | Entrar com a conta Google: como funciona, as regras de segurança e o passo a passo para criar o ID do cliente no Google Cloud. |
+| [docs/plano-anual.md](docs/plano-anual.md) | Plano anual: preço, créditos do ano, renovação, cancelamento e cupons. |
 | [docs/cupons.md](docs/cupons.md) | Cupons de desconto: o que o administrador controla, o que o cliente vê, como o desconto chega ao Asaas e todas as regras de uso. |
 | [docs/marca.md](docs/marca.md) | A marca: logotipo e arquivos, cores, fonte, tom de voz, slogan e as checagens do nome (domínio, INPI). |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |

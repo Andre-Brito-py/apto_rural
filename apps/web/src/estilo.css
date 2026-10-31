@@ -1274,3 +1274,12 @@ ul.l-planos { list-style: none; padding: 0; }
 .apoio-ponto-conferir .apoio-etiqueta { background: var(--atencao-fundo); color: var(--atencao); }
 .apoio-texto { width: 100%; font-family: inherit; line-height: 1.5; }
 .ia-funcoes { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 6px; }
+
+/* ---- Plano anual (docs/plano-anual.md) ---- */
+.ciclo-escolha { display: flex; justify-content: center; gap: 4px; margin: 4px auto 8px; padding: 4px; width: max-content; max-width: 100%; border: 1px solid var(--linha-forte); border-radius: 999px; background: var(--superficie); }
+.ciclo-opcao { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; color: var(--tinta-suave); font: inherit; font-weight: 600; cursor: pointer; }
+.ciclo-opcao:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+.ciclo-ativo { background: var(--marca); color: #fff; }
+.ciclo-selo { font-size: 0.75em; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--marca-clara); color: var(--marca); }
+.ciclo-ativo .ciclo-selo { background: var(--broto); color: var(--marca-forte); }
+.plano-anual-conta { margin: -4px 0 4px; font-size: 0.9em; color: var(--ok); font-weight: 600; }
