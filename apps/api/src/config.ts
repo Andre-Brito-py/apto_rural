@@ -37,6 +37,16 @@ export const config = {
     endereco: process.env.VIGIA_ENDERECO || process.env.WEB_ORIGIN || 'http://localhost:5180',
     intervaloMin: Number(process.env.VIGIA_INTERVALO_MIN ?? 5),
   },
+  /** Entrar com a conta Google (docs/login-google.md). */
+  google: {
+    /** ID do cliente OAuth. Também dá para pôr pelo painel (Preços e limites); o do painel vale mais. */
+    clienteId: process.env.GOOGLE_CLIENT_ID ?? '',
+    /**
+     * Chaves públicas do Google. Trocar o endereço é só para os testes (Google falso);
+     * em produção é sempre o do Google.
+     */
+    certsUrl: (!producao && process.env.GOOGLE_CERTS_URL) || 'https://www.googleapis.com/oauth2/v3/certs',
+  },
   /** Só para o ensaio de produção e testes: aponta para uma IA falsa. */
   iaUrl: process.env.IA_URL || undefined,
   smtp: {

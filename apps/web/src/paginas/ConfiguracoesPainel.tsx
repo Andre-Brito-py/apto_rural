@@ -88,6 +88,30 @@ export function ConfiguracoesPainel({ podeAlterar }: { podeAlterar: boolean }) {
           )}
         />
       </div>
+      <Bloco
+        titulo="Entrar com a conta Google"
+        podeAlterar={podeAlterar}
+        salvar={(v) => api.admin.salvarConfiguracao('google', v)}
+        inicial={cfg.google}
+        render={(v, set) => (
+          <label className="campo" style={{ marginTop: 0 }}>
+            <span className="ajuda" style={{ marginTop: 0 }}>
+              ID do cliente OAuth, criado no Google Cloud (passo a passo em docs/login-google.md). Com ele, o botão "Continuar com o
+              Google" aparece em Entrar e em Criar conta. Deixe em branco para esconder o botão.
+            </span>
+            <input
+              className="entrada"
+              value={v.clienteId}
+              onChange={(e) => set({ clienteId: e.target.value.trim() })}
+              placeholder="000000000000-xxxxxxxx.apps.googleusercontent.com"
+              spellCheck={false}
+              autoComplete="off"
+              aria-label="ID do cliente do Google"
+              disabled={!podeAlterar}
+            />
+          </label>
+        )}
+      />
     </section>
   );
 }

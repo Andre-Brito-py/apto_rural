@@ -658,13 +658,13 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 *Antes de abrir para clientes*
 
 - [ ] **Canal de contato com uma pessoa.** Hoje o site não tem nenhum e-mail ou WhatsApp de suporte. Quando a central de ajuda não acha a resposta, a pessoa fica sem saída, e casos como "paguei e não caiu" ou "o embargo não é do meu imóvel" precisam de gente. O contato deve aparecer na central de ajuda (na resposta "não achei"), na página `/ajuda` e no rodapé. **Falta definir** qual e-mail e qual WhatsApp usar.
-- [ ] **Entrar com a conta Google**, para facilitar o cadastro:
-  - **Na tela:** um botão "Continuar com o Google" em Entrar e em Criar conta.
-  - **Por dentro:** login padrão OpenID Connect do Google, pedindo só nome e e-mail.
-  - **Cadastro:** o e-mail que o Google já confirmou libera a consulta grátis na hora, mas a pessoa ainda precisa aceitar os termos de uso.
-  - **Conta que já existe:** se o e-mail já tem conta com senha, as duas viram uma só.
-  - **Precisa:** criar o projeto no Google Cloud (ID do cliente, endereço de retorno) e citar o Google na política de privacidade.
-  - **Antes de começar:** conferir as regras na documentação oficial do Google.
+- [x] **Entrar com a conta Google**, feito em 30/10/2026 seguindo a documentação oficial do Google (veja [docs/login-google.md](docs/login-google.md)):
+  - **Na tela:** o botão "Continuar com o Google" em Entrar e em Criar conta.
+  - **Conta nova:** sai com o e-mail confirmado e a consulta grátis, depois do aceite dos termos.
+  - **Conta que já existe:** com Gmail ou Google Workspace, liga na hora; com outro e-mail, pede a senha da conta uma vez.
+  - **Segurança:** a verificação em duas etapas continua valendo, e o crachá do Google é conferido no servidor (assinatura, destinatário, emissor e validade).
+  - **Testes:** na API e no navegador, com um Google falso.
+  - **Falta você:** criar o ID do cliente no Google Cloud (grátis) e colar no painel, em Preços e limites. Até lá, o botão fica escondido.
 - [ ] **Confirmar que os testes passaram no GitHub** (aba Actions do repositório). O repositório é privado, e a primeira execução ainda não foi conferida.
 - [ ] **Beta com 3 a 5 técnicos ou escritórios reais**, para achar as dúvidas e os atritos que nenhum teste pega. As dúvidas que surgirem viram respostas novas na central de ajuda.
 
@@ -725,6 +725,7 @@ O produto está completo para lançar. Estes são os pontos que ainda valem a pe
 | [docs/teste-fazendas-reais.md](docs/teste-fazendas-reais.md) | Relatório do teste com fazendas reais. |
 | [docs/implantacao.md](docs/implantacao.md) | Como colocar o sistema no ar, passo a passo. |
 | [docs/seguranca.md](docs/seguranca.md) | Revisão de segurança: o que foi conferido, o que foi corrigido e o que fazer se houver um incidente. |
+| [docs/login-google.md](docs/login-google.md) | Entrar com a conta Google: como funciona, as regras de segurança e o passo a passo para criar o ID do cliente no Google Cloud. |
 | [docs/cupons.md](docs/cupons.md) | Cupons de desconto: o que o administrador controla, o que o cliente vê, como o desconto chega ao Asaas e todas as regras de uso. |
 | [docs/marca.md](docs/marca.md) | A marca: logotipo e arquivos, cores, fonte, tom de voz, slogan e as checagens do nome (domínio, INPI). |
 | [Plano de negócio](https://claude.ai/artifact/1vcJWqtW6fs2MTWsVmahhW) | Mercado, preços, riscos e plano de lançamento. |

@@ -14,6 +14,7 @@ import { RegistroErros } from './monitoramento/erros.js';
 import { rotasAdmin } from './rotas/admin.js';
 import { rotasAssinaturas } from './rotas/assinaturas.js';
 import { rotasCarteira } from './rotas/carteira.js';
+import { VerificadorGoogle } from './contas/google.js';
 import { RepositorioContasMemoria } from './contas/memoria.js';
 import { RepositorioContasPostgres } from './contas/postgres.js';
 import { RepositorioCuponsMemoria } from './cupons/memoria.js';
@@ -76,6 +77,7 @@ export function criarContexto(): Contexto {
       segredos,
       uso,
     },
+    google: new VerificadorGoogle(),
     pagamento: config.asaas.chave
       ? new ProvedorAsaas(config.asaas.chave, config.asaas.ambiente, config.asaas.tokenWebhook, config.asaas.url)
       : config.demo

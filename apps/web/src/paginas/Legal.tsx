@@ -56,6 +56,12 @@ export function Privacidade() {
           Só é consultado no cadastro de empregadores do Ministério do Trabalho quando você declara que o produtor autorizou. Guardamos apenas
           um código irreversível (hash com chave), nunca o número.
         </p>
+        <h2 className="secao-titulo">Entrar com a conta Google</h2>
+        <p>
+          Se você escolher "Continuar com o Google", o Google nos informa o seu nome, o seu e-mail e um código que identifica a sua conta
+          Google. Não recebemos a sua senha do Google nem acesso a e-mails, arquivos ou contatos. Usamos esses dados só para criar a sua conta
+          e reconhecer você nas próximas entradas.
+        </p>
         <h2 className="secao-titulo">Imóveis consultados</h2>
         <p>
           O código do CAR, o contorno enviado e o resultado ficam guardados para que o relatório possa ser conferido depois pelo código QR.

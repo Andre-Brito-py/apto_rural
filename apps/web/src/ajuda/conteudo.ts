@@ -669,6 +669,22 @@ export const PERGUNTAS: Pergunta[] = [
     telas: ['/conta', '/entrar'],
   },
   {
+    id: 'google',
+    categoria: 'conta',
+    pergunta: 'Posso entrar com a minha conta Google?',
+    resposta: [
+      'Pode. Em Entrar ou em Criar conta, toque em "Continuar com o Google" e escolha a conta. Na primeira vez, aceite os termos de uso: a conta é criada já com o e-mail confirmado e a consulta grátis liberada.',
+      'Já tem conta no Apto Rural com o mesmo e-mail? Com Gmail, ela é ligada na hora. Com e-mail de outro provedor, pedimos a senha da sua conta uma vez, para ninguém ligar uma conta Google à sua. Depois, dá para entrar pelos dois jeitos.',
+      'Conta criada pelo Google não tem senha. Para excluir a conta ou ligar a verificação em duas etapas, crie uma em Minha conta ("Criar uma senha"). Quem tem a verificação em duas etapas digita o código também ao entrar pelo Google.',
+    ],
+    links: [
+      { rotulo: 'Entrar', para: '/entrar' },
+      { rotulo: 'Minha conta', para: '/conta' },
+    ],
+    palavras: ['google', 'gmail', 'conta google', 'entrar com google', 'login google', 'sem senha', 'continuar com o google'],
+    telas: ['/entrar', '/conta'],
+  },
+  {
     id: 'esqueci-senha',
     categoria: 'conta',
     pergunta: 'Esqueci minha senha.',

@@ -13,7 +13,9 @@ export async function gerarHashSenha(senha: string): Promise<string> {
   return `scrypt$${sal.toString('base64')}$${hash.toString('base64')}`;
 }
 
-export async function conferirSenha(senha: string, guardado: string): Promise<boolean> {
+/** guardado null: conta sem senha (criada pelo Google), nenhuma senha confere. */
+export async function conferirSenha(senha: string, guardado: string | null): Promise<boolean> {
+  if (!guardado) return false;
   const [alg, sal, hash] = guardado.split('$');
   if (alg !== 'scrypt' || !sal || !hash) return false;
   const esperado = Buffer.from(hash, 'base64');

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { api, ErroApi } from '../api';
+import { api, ErroApi, type Saude } from '../api';
+import { BotaoGoogle } from '../componentes/BotaoGoogle';
 import { EntradaSenha } from '../componentes/EntradaSenha';
 import { Icone } from '../componentes/Icones';
 import { useSessao } from '../sessao';
@@ -21,7 +22,10 @@ const PROFISSOES = [
   'Outra',
 ];
 
-export function Entrar() {
+/** O que falta para concluir o login pelo Google (a API diz pelo "campo" da resposta). */
+type PassoGoogle = 'aceiteTermos' | 'senha' | 'codigo';
+
+export function Entrar({ saude }: { saude: Saude | null }) {
   const [busca] = useSearchParams();
   const [modo, setModo] = useState<'entrar' | 'criar'>(busca.get('modo') === 'criar' ? 'criar' : 'entrar');
   const [nome, setNome] = useState('');
@@ -41,6 +45,41 @@ export function Entrar() {
   // Só caminhos deste site: "//outro.com" ou "/\outro.com" levariam para fora (golpe de phishing).
   const pedido = busca.get('voltar') ?? '/';
   const destino = /^\/(?![/\\])/.test(pedido) ? pedido : '/';
+
+  // Login pelo Google: o token do Google e o passo que falta (aceite, senha da conta ou código).
+  const [google, setGoogle] = useState<{ credencial: string; passo: PassoGoogle; mensagem: string } | null>(null);
+  const [googleSenha, setGoogleSenha] = useState('');
+  const [googleCodigo, setGoogleCodigo] = useState('');
+  const [googleAceite, setGoogleAceite] = useState(false);
+
+  async function entrarGoogle(credencial: string, extra: { senha?: string; codigo?: string; aceiteTermos?: boolean } = {}) {
+    setErro(null);
+    setEnviando(true);
+    try {
+      definir(await api.entrarGoogle({ credencial, ...extra }));
+      navegar(destino, { replace: true });
+    } catch (e) {
+      const err = e as ErroApi;
+      const passo = err.campo as PassoGoogle | undefined;
+      // Primeira vez que o passo aparece: é um pedido, não um erro. Depois, é erro (senha ou código errado).
+      if (passo && ['aceiteTermos', 'senha', 'codigo'].includes(passo) && google?.passo !== passo) {
+        setGoogle({ credencial, passo, mensagem: err.message });
+      } else {
+        setErro({ mensagem: err.message, campo: err.campo });
+      }
+      setEnviando(false);
+    }
+  }
+
+  function continuarGoogle(ev: FormEvent) {
+    ev.preventDefault();
+    if (!google) return;
+    void entrarGoogle(google.credencial, {
+      senha: google.passo === 'senha' ? googleSenha : undefined,
+      codigo: google.passo === 'codigo' ? googleCodigo : undefined,
+      aceiteTermos: google.passo === 'aceiteTermos' ? googleAceite : undefined,
+    });
+  }
 
   async function enviar(ev: FormEvent) {
     ev.preventDefault();
@@ -115,7 +154,71 @@ export function Entrar() {
             </button>
           </div>
 
-          <form className="cartao" onSubmit={enviar} noValidate>
+          {google && (
+            <form className="cartao pilha-p" onSubmit={continuarGoogle} noValidate aria-labelledby="titulo-google">
+              <h2 id="titulo-google" className="form-secao" style={{ marginTop: 0 }}>
+                Continuar com o Google
+              </h2>
+              <p role="status">{google.mensagem}</p>
+              {google.passo === 'aceiteTermos' && (
+                <label className="marcar campo">
+                  <input type="checkbox" checked={googleAceite} onChange={(e) => setGoogleAceite(e.target.checked)} />
+                  <span>
+                    Li e aceito os <Link to="/termos">termos de uso</Link> e a <Link to="/privacidade">política de privacidade</Link>.
+                  </span>
+                </label>
+              )}
+              {google.passo === 'senha' && (
+                <EntradaSenha rotulo="Senha da conta do Apto Rural" value={googleSenha} onChange={setGoogleSenha} autoComplete="current-password" />
+              )}
+              {google.passo === 'codigo' && (
+                <label className="campo">
+                  <span className="rotulo">Código de verificação</span>
+                  <input
+                    className="entrada entrada-codigo"
+                    value={googleCodigo}
+                    onChange={(e) => setGoogleCodigo(e.target.value)}
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    maxLength={9}
+                    placeholder="000000"
+                    autoFocus
+                  />
+                  <span className="ajuda">Os 6 dígitos do aplicativo autenticador, ou um código de recuperação.</span>
+                </label>
+              )}
+              {erro && (
+                <p className="alerta alerta-erro" role="alert">
+                  {erro.mensagem}
+                </p>
+              )}
+              <div className="botoes" style={{ marginTop: 16 }}>
+                <button className="botao botao-primario" type="submit" disabled={enviando}>
+                  {enviando ? 'Aguarde…' : google.passo === 'aceiteTermos' ? 'Criar minha conta' : 'Continuar'}
+                </button>
+                <button
+                  type="button"
+                  className="botao botao-secundario"
+                  onClick={() => {
+                    setGoogle(null);
+                    setErro(null);
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
+
+          {!google && saude?.google && (
+            <div className="acesso-google">
+              <BotaoGoogle clienteId={saude.google} criar={criar} aoEntrar={(credencial) => void entrarGoogle(credencial)} />
+              <p className="acesso-ou">
+                <span>ou com e-mail e senha</span>
+              </p>
+            </div>
+          )}
+          <form className="cartao" onSubmit={enviar} noValidate hidden={google != null}>
             {criar && (
               <label className="campo">
                 <span className="rotulo">Nome</span>

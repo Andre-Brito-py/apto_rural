@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { conferirSenha, gerarHashSenha, novoTokenSessao, hashToken } from '../contas/senha.js';
@@ -58,6 +58,14 @@ const LIMITE_EMAIL = { config: { rateLimit: { max: 5, timeWindow: '15 minutes' }
 const LIMITE_CONFIRMAR = { config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } };
 
 const comToken = z.object({ token: z.string().min(20).max(200) });
+
+/** Login pelo Google: o ID token e, conforme o caso, a senha (para ligar), o código (duas etapas) e o aceite. */
+const entradaGoogle = z.object({
+  credencial: z.string().min(20).max(5000),
+  senha: z.string().max(200).trim().optional(),
+  codigo: z.string().trim().max(20).optional(),
+  aceiteTermos: z.boolean().optional(),
+});
 const redefinir = comToken.extend({ senha: senhaNova });
 
 export function rotasContas(app: FastifyInstance, ctx: Contexto) {
@@ -146,9 +154,14 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
       }
     }
     tentativas.acertou(email);
-    await abrirSessao(u.id, reply);
     const { senhaHash: _, ...usuario } = u;
-    // Login de quem tem papel no painel: aviso por e-mail (se não foi a pessoa, ela troca a senha).
+    return concluirLogin(usuario, req, reply);
+  });
+
+  /** Abre a sessão e responde como o login. Quem tem papel no painel recebe um aviso por e-mail. */
+  async function concluirLogin(usuario: Usuario, req: FastifyRequest, reply: FastifyReply) {
+    await abrirSessao(usuario.id, reply);
+    // Se não foi a pessoa, ela troca a senha.
     if (papelNoPainel(usuario)) {
       ctx.email
         .enviar(
@@ -157,6 +170,74 @@ export function rotasContas(app: FastifyInstance, ctx: Contexto) {
         .catch((e) => req.log.error(e, 'falha ao enviar o aviso de acesso ao painel'));
     }
     return { usuario, ...(await saldoEEquipe(usuario)), nivelAdmin: nivelAdmin(usuario), bloqueioPainel: bloqueioDoPainel(usuario) };
+  }
+
+  /**
+   * Entrar com a conta Google (docs/login-google.md). O site manda o "ID token" que o Google
+   * entregou; a API confere a assinatura e o cliente com o Google. Três casos:
+   * 1. a conta Google já está ligada a uma conta: entra;
+   * 2. já existe conta com o mesmo e-mail: liga. Se o Google não responde pelo e-mail
+   *    (não é @gmail.com nem Google Workspace), pede a senha dessa conta antes;
+   * 3. e-mail novo: cria a conta, depois do aceite dos termos.
+   * Quem tem a verificação em duas etapas digita o código também aqui.
+   */
+  app.post('/v1/sessao/google', LIMITE_LOGIN, async (req, reply) => {
+    const clienteId = (await ctx.config.obter()).google.clienteId;
+    if (!clienteId) return erro(reply, 404, 'O login com o Google não está ligado neste site.');
+    const corpo = entradaGoogle.safeParse(req.body);
+    if (!corpo.success) return erro(reply, 400, 'Login com o Google inválido. Tente de novo.');
+    const { credencial, senha, codigo, aceiteTermos } = corpo.data;
+    const g = await ctx.google.verificar(credencial, clienteId);
+    if (!g) return erro(reply, 401, 'Não conseguimos confirmar o login com o Google. Tente de novo.');
+    if (!g.emailVerificado) {
+      return erro(reply, 403, 'O e-mail desta conta Google não está verificado pelo Google. Entre com e-mail e senha.');
+    }
+    if (tentativas.bloqueado(g.email)) {
+      return erro(reply, 429, 'Muitas tentativas com este e-mail. Aguarde 15 minutos ou crie uma nova senha.');
+    }
+
+    let usuario = await ctx.contas.buscarPorGoogle(g.sub);
+    if (!usuario) {
+      const existente = await ctx.contas.buscarPorEmail(g.email);
+      if (existente) {
+        if (!g.autoritativo) {
+          if (!existente.senhaHash) {
+            return erro(reply, 409, 'Já existe uma conta com este e-mail. Entre por "Esqueci minha senha" para criar uma senha e depois ligue o Google.');
+          }
+          if (!senha) return erro(reply, 409, `Já existe uma conta com ${g.email}. Digite a senha dela uma vez para ligar o Google.`, 'senha');
+          if (!(await conferirSenha(senha, existente.senhaHash))) {
+            tentativas.falhou(g.email);
+            return erro(reply, 401, 'Senha incorreta.', 'senha');
+          }
+        }
+        if (!(await ctx.contas.vincularGoogle(existente.id, g.sub))) {
+          return erro(reply, 409, 'Esta conta Google já está ligada a outra conta do Apto Rural.');
+        }
+        // O Google confirmou o e-mail: conta ainda não confirmada fica confirmada (e ganha a amostra).
+        if (!existente.emailConfirmado) await confirmar(existente.id);
+      } else {
+        if (aceiteTermos !== true) {
+          return erro(reply, 409, `Vamos criar sua conta com ${g.email}. Aceite os termos de uso e a política de privacidade para continuar.`, 'aceiteTermos');
+        }
+        const criado = await ctx.contas.criarUsuario({ nome: g.nome, email: g.email, senhaHash: null, googleSub: g.sub });
+        if (criado === 'email_existe') return erro(reply, 409, 'Esta conta acabou de ser criada. Toque de novo em "Continuar com o Google".');
+        await confirmar(criado.id);
+      }
+      usuario = await ctx.contas.buscarPorGoogle(g.sub);
+      if (!usuario) return erro(reply, 500, 'Não conseguimos ligar a conta Google. Tente de novo.');
+    }
+
+    if (usuario.bloqueado) return erro(reply, 403, 'Esta conta está bloqueada. Fale com o suporte do Apto Rural.');
+    // O Google prova quem é a pessoa, mas não substitui a segunda etapa de quem a ligou.
+    if (usuario.doisFatores) {
+      if (!codigo) return erro(reply, 401, 'Digite o código de 6 dígitos do aplicativo autenticador.', 'codigo');
+      if (!(await conferirSegundaEtapa(ctx, usuario.id, codigo))) {
+        tentativas.falhou(g.email);
+        return erro(reply, 401, 'Código incorreto ou já usado. Confira o código mais recente no aplicativo.', 'codigo');
+      }
+    }
+    tentativas.acertou(g.email);
+    return concluirLogin(usuario, req, reply);
   });
 
   app.delete('/v1/sessao', async (req, reply) => {

@@ -16,6 +16,43 @@ const STATUS: Record<Pedido['status'], string> = {
 };
 
 /** Confirmação da exclusão: explica o que some e o que a lei manda guardar, e pede a senha de novo. */
+/**
+ * Conta criada pelo Google não tem senha. Excluir a conta e ligar a verificação em duas
+ * etapas pedem a senha: o link do e-mail cria uma (o mesmo de "Esqueci minha senha").
+ */
+function CriarSenha({ email }: { email: string }) {
+  const [estado, setEstado] = useState<'parado' | 'enviando' | 'enviado' | 'erro'>('parado');
+
+  async function enviar() {
+    setEstado('enviando');
+    try {
+      await api.esqueciSenha(email);
+      setEstado('enviado');
+    } catch {
+      setEstado('erro');
+    }
+  }
+
+  return (
+    <div className="alerta" role="note">
+      <p>
+        Você entra pela conta Google e ainda não tem senha no Apto Rural. Para excluir a conta ou ligar a verificação em duas etapas, crie
+        uma senha: mandamos um link para {email}.
+      </p>
+      {estado === 'enviado' ? (
+        <p role="status" style={{ marginTop: 8 }}>
+          <strong>Link enviado.</strong> Confira o e-mail (vale por 1 hora).
+        </p>
+      ) : (
+        <button type="button" className="botao botao-secundario botao-pequeno" style={{ marginTop: 10 }} onClick={enviar} disabled={estado === 'enviando'}>
+          {estado === 'enviando' ? 'Enviando…' : 'Criar uma senha'}
+        </button>
+      )}
+      {estado === 'erro' && <p className="alerta alerta-erro">Não conseguimos enviar agora. Tente de novo em instantes.</p>}
+    </div>
+  );
+}
+
 function ExcluirConta({ aoCancelar }: { aoCancelar: () => void }) {
   const [senha, setSenha] = useState('');
   const [entendo, setEntendo] = useState(false);
@@ -164,7 +201,12 @@ export function Conta() {
               {sessao.usuario.emailConfirmado ? 'confirmado' : 'não confirmado'}
             </span>
           </dd>
+          <dt>Como entra</dt>
+          <dd>
+            {[sessao.usuario.temSenha !== false && 'e-mail e senha', sessao.usuario.comGoogle && 'conta Google'].filter(Boolean).join(' ou ')}
+          </dd>
         </dl>
+        {sessao.usuario.temSenha === false && !sessao.personificadoPor && <CriarSenha email={sessao.usuario.email} />}
       </section>
 
       {!sessao.personificadoPor && <DoisFatores obrigatoria={sessao.doisFatoresObrigatorio === true} />}

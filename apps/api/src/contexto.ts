@@ -5,6 +5,7 @@ import type { RepositorioAdmin } from './admin/repositorio.js';
 import type { RepositorioCarteira } from './carteira/repositorio.js';
 import type { Configuracoes } from './configuracoes.js';
 import type { RegistroErros } from './monitoramento/erros.js';
+import type { VerificadorGoogle } from './contas/google.js';
 import type { RepositorioContas, Usuario } from './contas/tipos.js';
 import type { RepositorioCupons } from './cupons/tipos.js';
 import type { Enviador } from './email/enviador.js';
@@ -44,6 +45,8 @@ export interface Contexto {
    * CAR, documentos e rascunhos do dossiê, frase da carteira, análise de norma).
    */
   ia: { explicacao: ServicoExplicacao; executor: ExecutorIA; apoio: RepositorioApoio; segredos: Segredos; uso: UsoIA };
+  /** Confere o login pela conta Google (docs/login-google.md). Nos testes, um Google falso. */
+  google: Pick<VerificadorGoogle, 'verificar'>;
 }
 
 export type NivelAdmin = 'admin' | 'suporte';

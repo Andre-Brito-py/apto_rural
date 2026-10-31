@@ -6,7 +6,7 @@ import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas,
  * Tudo se perde ao reiniciar a API.
  */
 export class RepositorioContasMemoria implements RepositorioContas {
-  private usuarios = new Map<string, Usuario & { senhaHash: string }>();
+  private usuarios = new Map<string, Usuario & { senhaHash: string | null; googleSub?: string }>();
   private sessoes = new Map<string, { usuarioId: string; expiraEm: Date; criadaEm: Date; personificadoPor?: string }>();
   private doisFatores = new Map<string, { segredoCifrado?: string; ultimoPasso: number | null; recuperacao: { hash: string; usado: boolean }[] }>();
   private lancamentos: (Lancamento & { criadoEm: Date })[] = [];
@@ -14,20 +14,37 @@ export class RepositorioContasMemoria implements RepositorioContas {
   private eventos = new Set<string>();
   private tokens = new Map<string, { usuarioId: string; tipo: TipoTokenEmail; expiraEm: Date; usado: boolean }>();
 
-  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string }) {
+  async criarUsuario(
+    u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string | null; googleSub?: string },
+  ) {
     const email = u.email.toLowerCase();
-    if ([...this.usuarios.values()].some((x) => x.email === email)) return 'email_existe' as const;
-    const novo: Usuario & { senhaHash: string } = { ...u, email, id: randomUUID(), emailConfirmado: false, papel: 'usuario', bloqueado: false };
+    if ([...this.usuarios.values()].some((x) => x.email === email || (u.googleSub && x.googleSub === u.googleSub))) return 'email_existe' as const;
+    const novo = { ...u, email, id: randomUUID(), emailConfirmado: false, papel: 'usuario' as const, bloqueado: false };
     this.usuarios.set(novo.id, novo);
-    const { senhaHash: _, ...publico } = novo;
-    return publico;
+    return this.publico(novo);
+  }
+
+  /** Sem a senha e o "sub" do Google; com temSenha e comGoogle, como no banco. */
+  private publico(u: Usuario & { senhaHash: string | null; googleSub?: string }): Usuario {
+    const { senhaHash, googleSub, ...resto } = u;
+    return { ...resto, temSenha: senhaHash != null, comGoogle: googleSub != null };
   }
 
   async buscarPorId(id: string) {
     const u = this.usuarios.get(id);
-    if (!u) return null;
-    const { senhaHash: _, ...publico } = u;
-    return publico;
+    return u ? this.publico(u) : null;
+  }
+
+  async buscarPorGoogle(googleSub: string) {
+    const u = [...this.usuarios.values()].find((x) => x.googleSub === googleSub);
+    return u ? this.publico(u) : null;
+  }
+
+  async vincularGoogle(usuarioId: string, googleSub: string) {
+    if ([...this.usuarios.values()].some((x) => x.googleSub === googleSub && x.id !== usuarioId)) return false;
+    const u = this.usuarios.get(usuarioId);
+    if (u) u.googleSub = googleSub;
+    return true;
   }
 
   async confirmarEmail(usuarioId: string) {
@@ -58,7 +75,8 @@ export class RepositorioContasMemoria implements RepositorioContas {
   }
 
   async buscarPorEmail(email: string) {
-    return [...this.usuarios.values()].find((u) => u.email === email.toLowerCase()) ?? null;
+    const u = [...this.usuarios.values()].find((x) => x.email === email.toLowerCase());
+    return u ? { ...this.publico(u), senhaHash: u.senhaHash } : null;
   }
 
   async definirClientePagamento(usuarioId: string, clienteId: string) {
@@ -80,8 +98,7 @@ export class RepositorioContasMemoria implements RepositorioContas {
     if (!s || s.expiraEm <= new Date()) return null;
     const u = this.usuarios.get(s.usuarioId);
     if (!u || (u.bloqueado && !s.personificadoPor)) return null;
-    const { senhaHash: _, ...publico } = u;
-    return { ...publico, personificadoPor: s.personificadoPor, sessaoCriadaEm: s.criadaEm.toISOString() };
+    return { ...this.publico(u), personificadoPor: s.personificadoPor, sessaoCriadaEm: s.criadaEm.toISOString() };
   }
 
   /** Só nos testes: envelhece as sessões da pessoa (o painel exige login recente). */
@@ -251,6 +268,7 @@ export class RepositorioContasMemoria implements RepositorioContas {
     const u = this.usuarios.get(usuarioId);
     if (u) {
       Object.assign(u, { nome: 'Conta excluída', email: `excluida-${u.id}@excluida.invalid`, senhaHash: 'excluida', papel: 'usuario', bloqueado: true });
+      delete u.googleSub;
       delete u.whatsapp;
       delete u.profissao;
     }

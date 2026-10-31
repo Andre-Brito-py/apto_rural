@@ -29,14 +29,16 @@ export function rotasConsultas(app: FastifyInstance, ctx: Contexto) {
   app.get('/v1/saude', { logLevel: 'warn' }, async (_req, reply) => {
     // Confere o banco de verdade: com ele fora do ar, responde 503 (o Docker e o vigia percebem).
     const banco = await ctx.bancoResponde();
-    if (banco === false) return reply.status(503).send({ ok: false, banco: false, demo: null, aviso: null });
-    const aviso = (await ctx.config.obter()).aviso_site;
+    if (banco === false) return reply.status(503).send({ ok: false, banco: false, demo: null, aviso: null, google: null });
+    const { aviso_site: aviso, google } = await ctx.config.obter();
     return {
       ok: true,
       banco: banco === true,
       demo: ctx.demo != null ? CARS_DEMO : null,
       // Aviso no topo do site, definido pelo painel (ex.: manutenção, novidade).
       aviso: aviso.ativo && aviso.texto ? { texto: aviso.texto, tipo: aviso.tipo } : null,
+      // ID do cliente do Google (público): sem ele, o botão "Continuar com o Google" não aparece.
+      google: google.clienteId || null,
     };
   });
 

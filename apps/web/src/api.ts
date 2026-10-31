@@ -54,6 +54,10 @@ export interface Usuario {
   tourVisto?: boolean;
   /** Verificação em duas etapas (aplicativo autenticador) ligada. */
   doisFatores?: boolean;
+  /** Tem senha (conta criada pelo Google não tem, até criar uma). */
+  temSenha?: boolean;
+  /** Entra também com a conta Google. */
+  comGoogle?: boolean;
 }
 
 export interface Saldo {
@@ -366,6 +370,8 @@ export interface Saude {
   demo: Record<string, string> | null;
   /** Aviso no topo do site, definido pelo painel. */
   aviso: { texto: string; tipo: 'info' | 'alerta' } | null;
+  /** ID do cliente do Google; null = sem o botão "Continuar com o Google". */
+  google?: string | null;
 }
 
 export interface Configs {
@@ -375,6 +381,7 @@ export interface Configs {
   creditos_boas_vindas: Saldo;
   aviso_site: { ativo: boolean; texto: string; tipo: 'info' | 'alerta' };
   ia: ConfigIA;
+  google: { clienteId: string };
 }
 
 export interface FuncoesIA {
@@ -546,6 +553,9 @@ export const api = {
     pedir<Sessao>('/v1/conta', post(dados)),
   /** Com a verificação em duas etapas, a 1ª tentativa sem código volta erro com campo "codigo". */
   entrar: (email: string, senha: string, codigo?: string) => pedir<Sessao>('/v1/sessao', post({ email, senha, codigo })),
+  /** Login pela conta Google (docs/login-google.md): o ID token e, conforme o caso, senha, código ou aceite. */
+  entrarGoogle: (dados: { credencial: string; senha?: string; codigo?: string; aceiteTermos?: boolean }) =>
+    pedir<Sessao>('/v1/sessao/google', post(dados)),
   sair: () => pedir<{ ok: boolean }>('/v1/sessao', { method: 'DELETE' }),
   confirmarEmail: (token: string) => pedir<{ ok: boolean; saldo: Saldo }>('/v1/conta/confirmar', post({ token })),
   reenviarConfirmacao: () => pedir<{ ok: boolean; jaConfirmado?: boolean }>('/v1/conta/confirmacao', post()),

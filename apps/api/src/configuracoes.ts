@@ -1,5 +1,6 @@
 import type pg from 'pg';
 import { z } from 'zod';
+import { config } from './config.js';
 import {
   CREDITOS_BOAS_VINDAS_PADRAO,
   LIMITE_CARTEIRA_PADRAO,
@@ -43,6 +44,12 @@ export interface ConfigIA {
 
 export const FUNCOES_IA_PADRAO: FuncoesIA = { explicacao: true, recibo: true, documentos: true, rascunhos: true, carteira: true, normas: true };
 
+/** Entrar com a conta Google (docs/login-google.md). O ID do cliente é público: não é segredo. */
+export interface ConfigGoogle {
+  /** Vazio = botão do Google escondido. */
+  clienteId: string;
+}
+
 export interface Configs {
   produtos: Produto[];
   planos: Plano[];
@@ -50,6 +57,7 @@ export interface Configs {
   creditos_boas_vindas: { consulta: number; dossie: number };
   aviso_site: AvisoSite;
   ia: ConfigIA;
+  google: ConfigGoogle;
 }
 
 export type ChaveConfig = keyof Configs;
@@ -62,6 +70,7 @@ const PADRAO: Configs = {
   aviso_site: { ativo: false, texto: '', tipo: 'info' },
   // gpt-6-luna: o mais econômico da linha atual da OpenAI (developers.openai.com/api/docs/pricing, 26/10/2026).
   ia: { ativo: false, modelo: 'gpt-6-luna', limiteDiario: 300, funcoes: FUNCOES_IA_PADRAO },
+  google: { clienteId: config.google.clienteId },
 };
 
 const creditos = z.object({
@@ -135,6 +144,15 @@ export const ESQUEMAS: { [K in ChaveConfig]: z.ZodType<Configs[K], unknown> } = 
         normas: z.boolean(),
       })
       .default(FUNCOES_IA_PADRAO),
+  }),
+  google: z.object({
+    clienteId: z
+      .string()
+      .trim()
+      .regex(
+        /^$|^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/,
+        'O ID do cliente do Google termina em ".apps.googleusercontent.com" (copie do Google Cloud, em Credenciais).',
+      ),
   }),
 };
 

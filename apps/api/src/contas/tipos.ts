@@ -12,6 +12,10 @@ export interface Usuario {
   bloqueado: boolean;
   /** Já viu (ou pulou) o tour de boas-vindas. */
   tourVisto?: boolean;
+  /** Tem senha. Conta criada pelo Google não tem, até a pessoa criar uma. */
+  temSenha?: boolean;
+  /** Entra também com a conta Google. */
+  comGoogle?: boolean;
   /** Verificação em duas etapas (código do aplicativo autenticador) ligada. */
   doisFatores?: boolean;
   /** Quando a sessão atual foi aberta (só nas buscas pela sessão): o painel exige login recente. */
@@ -83,9 +87,14 @@ export interface Lancamento {
 }
 
 export interface RepositorioContas {
+  /** senhaHash null e googleSub: conta criada pelo Google. */
   criarUsuario(
-    u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string },
+    u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string | null; googleSub?: string },
   ): Promise<Usuario | 'email_existe'>;
+  /** A conta ligada a este "sub" do Google, se houver. */
+  buscarPorGoogle(googleSub: string): Promise<Usuario | null>;
+  /** Liga a conta Google à conta. false se esta conta Google já está ligada a outra. */
+  vincularGoogle(usuarioId: string, googleSub: string): Promise<boolean>;
   buscarPorId(id: string): Promise<Usuario | null>;
   /** Marca o e-mail como confirmado. Retorna true só na primeira vez. */
   confirmarEmail(usuarioId: string): Promise<boolean>;
@@ -95,7 +104,7 @@ export interface RepositorioContas {
   criarTokenEmail(usuarioId: string, tipo: TipoTokenEmail, tokenHash: string, expiraEm: Date): Promise<void>;
   /** Usa o token (uma vez só). Retorna o dono, ou null se inválido, usado ou vencido. */
   consumirTokenEmail(tokenHash: string, tipo: TipoTokenEmail): Promise<string | null>;
-  buscarPorEmail(email: string): Promise<(Usuario & { senhaHash: string }) | null>;
+  buscarPorEmail(email: string): Promise<(Usuario & { senhaHash: string | null }) | null>;
   definirClientePagamento(usuarioId: string, clienteId: string): Promise<void>;
   /** Marca que a pessoa já viu (ou pulou) o tour de boas-vindas. */
   marcarTourVisto(usuarioId: string): Promise<void>;

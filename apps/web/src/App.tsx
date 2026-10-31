@@ -85,7 +85,7 @@ export function App() {
             <Route path="/consulta/:id/dossie" element={<Dossie />} />
             <Route path="/fontes" element={<Fontes />} />
             <Route path="/ajuda" element={<Ajuda />} />
-            <Route path="/entrar" element={<Entrar />} />
+            <Route path="/entrar" element={<Entrar saude={saude} />} />
             <Route path="/conta" element={<Conta />} />
             <Route path="/carteira" element={<Carteira />} />
             <Route path="/equipe" element={<Equipe />} />

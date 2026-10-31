@@ -3,7 +3,7 @@ import type { Assinatura, DadosDoTitular, Lancamento, Pedido, RepositorioContas,
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em, tour_visto_em, totp_ativado_em`;
+const USUARIO = `id, nome, email, whatsapp, profissao, pagamento_cliente_id, email_confirmado_em, papel, bloqueado_em, tour_visto_em, totp_ativado_em, senha_hash IS NOT NULL AS tem_senha, google_sub IS NOT NULL AS com_google`;
 
 function usuario(r: Record<string, unknown>): Usuario {
   return {
@@ -18,6 +18,8 @@ function usuario(r: Record<string, unknown>): Usuario {
     bloqueado: r.bloqueado_em != null,
     tourVisto: r.tour_visto_em != null,
     doisFatores: r.totp_ativado_em != null,
+    temSenha: r.tem_senha !== false,
+    comGoogle: r.com_google === true,
     sessaoCriadaEm: r.sessao_criada_em ? (r.sessao_criada_em as Date).toISOString() : undefined,
     personificadoPor: (r.personificado_por as string) ?? undefined,
   };
@@ -109,15 +111,33 @@ export class RepositorioContasPostgres implements RepositorioContas {
     return rows[0]?.usuario_id ?? null;
   }
 
-  async criarUsuario(u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string }) {
+  async criarUsuario(
+    u: Omit<Usuario, 'id' | 'emailConfirmado' | 'papel' | 'bloqueado' | 'personificadoPor'> & { senhaHash: string | null; googleSub?: string },
+  ) {
     const { rows } = await this.pool.query(
-      `INSERT INTO usuario (nome, email, whatsapp, profissao, senha_hash, aceite_termos_em)
-       VALUES ($1, lower($2), $3, $4, $5, now())
-       ON CONFLICT (email) DO NOTHING
+      `INSERT INTO usuario (nome, email, whatsapp, profissao, senha_hash, google_sub, aceite_termos_em)
+       VALUES ($1, lower($2), $3, $4, $5, $6, now())
+       ON CONFLICT DO NOTHING
        RETURNING ${USUARIO}`,
-      [u.nome, u.email, u.whatsapp ?? null, u.profissao ?? null, u.senhaHash],
+      [u.nome, u.email, u.whatsapp ?? null, u.profissao ?? null, u.senhaHash, u.googleSub ?? null],
     );
     return rows[0] ? usuario(rows[0]) : 'email_existe';
+  }
+
+  async buscarPorGoogle(googleSub: string) {
+    const { rows } = await this.pool.query(`SELECT ${USUARIO} FROM usuario WHERE google_sub = $1`, [googleSub]);
+    return rows[0] ? usuario(rows[0]) : null;
+  }
+
+  async vincularGoogle(usuarioId: string, googleSub: string) {
+    try {
+      await this.pool.query('UPDATE usuario SET google_sub = $2 WHERE id = $1', [usuarioId, googleSub]);
+      return true;
+    } catch (e) {
+      // google_sub é único: esta conta Google já está ligada a outra conta.
+      if ((e as { code?: string }).code === '23505') return false;
+      throw e;
+    }
   }
 
   async buscarPorEmail(email: string) {
@@ -388,7 +408,8 @@ export class RepositorioContasPostgres implements RepositorioContas {
     const q = (sql: string) => this.pool.query(sql, [usuarioId]).then((r) => r.rows);
     // Nunca sai: hash da senha e hashes de tokens (não são dados da pessoa, e sim chaves de segurança).
     const [conta, creditos, pedidos, assinaturas, consultas, carteira, avisos, sessoesAbertas, equipe, apoioIA] = await Promise.all([
-      q(`SELECT id, nome, email, whatsapp, profissao, papel, criado_em, aceite_termos_em, email_confirmado_em, bloqueado_em
+      q(`SELECT id, nome, email, whatsapp, profissao, papel, criado_em, aceite_termos_em, email_confirmado_em, bloqueado_em,
+                google_sub IS NOT NULL AS entra_com_google
            FROM usuario WHERE id = $1`),
       q('SELECT tipo, quantidade, motivo, criado_em FROM credito_lancamento WHERE usuario_id = $1 ORDER BY id'),
       q(`SELECT id, produto, nome_produto, valor, status, provedor, criado_em, pago_em, assinatura_id, cupom_codigo, desconto
@@ -441,7 +462,7 @@ export class RepositorioContasPostgres implements RepositorioContas {
         `UPDATE usuario
             SET nome = 'Conta excluída', email = 'excluida-' || id || '@excluida.invalid', whatsapp = NULL, profissao = NULL,
                 senha_hash = 'excluida', papel = 'usuario', excluida_em = now(), bloqueado_em = coalesce(bloqueado_em, now()),
-                totp_segredo = NULL, totp_ativado_em = NULL, totp_ultimo_passo = NULL
+                totp_segredo = NULL, totp_ativado_em = NULL, totp_ultimo_passo = NULL, google_sub = NULL
           WHERE id = $1`,
         [usuarioId],
       );
